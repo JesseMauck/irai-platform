@@ -71,3 +71,7 @@ class Settings:
 
 
 settings = Settings()
+
+# Production safety: never fall back to a throwaway SQLite file when the real database URL is missing.
+if os.environ.get("IRAI_REQUIRE_DATABASE_URL") == "1" and not os.environ.get("DATABASE_URL", "").startswith("postgres"):
+    raise RuntimeError("DATABASE_URL must be set to the PostgreSQL (Supabase) connection string in production")
