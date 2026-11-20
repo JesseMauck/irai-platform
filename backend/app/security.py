@@ -7,6 +7,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import hashlib
+import secrets
+
 import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, Request
@@ -14,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .db import get_db
-from .models import User
+from .models import ApiKey, User
 
 PLAN_ORDER = {"free": 0, "essential": 1, "pro": 2}
 
@@ -44,7 +47,39 @@ def _token(request: Request) -> str | None:
     return request.cookies.get("irai_token")
 
 
+API_KEY_PREFIX = "irai_"
+
+
+def new_api_key() -> tuple[str, str]:
+    """Returns (plaintext key shown once, sha256 hash stored)."""
+    key = API_KEY_PREFIX + secrets.token_urlsafe(32)
+    return key, hashlib.sha256(key.encode()).hexdigest()
+
+
+def _api_key_user(request: Request, db: Session) -> User | None:
+    key = request.headers.get("x-api-key")
+    if not key:
+        return None
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        raise HTTPException(403, "API keys are read-only")
+    row = db.query(ApiKey).filter(ApiKey.key_hash == hashlib.sha256(key.encode()).hexdigest(),
+                                  ApiKey.revoked_at.is_(None)).first()
+    if not row:
+        raise HTTPException(401, "Invalid or revoked API key")
+    user = db.get(User, row.user_id)
+    if not user or user.disabled or not limits(user)["api"]:
+        raise HTTPException(403, "API access needs an active Pro plan")
+    now = dt.datetime.now(dt.timezone.utc)
+    last = row.last_used_at.replace(tzinfo=dt.timezone.utc) if row.last_used_at and row.last_used_at.tzinfo is None else row.last_used_at
+    if not last or (now - last).total_seconds() > 60:  # don't write on every request
+        row.last_used_at = now
+        db.commit()
+    return user
+
+
 def optional_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    if request.headers.get("x-api-key"):
+        return _api_key_user(request, db)
     tok = _token(request)
     if not tok:
         return None

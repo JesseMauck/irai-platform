@@ -13,6 +13,7 @@ const NAV: NavItem[] = [
     { href: "/monitor/adr", label: "ADR Monitor", desc: "Cross-listings vs local lines, net of basis" },
     { href: "/monitor/etf", label: "ETF Monitor", desc: "Fund price vs NAV" },
     { href: "/monitor/fundamental", label: "Fundamental RV", desc: "Cheap for its quality, within peers" },
+    { href: "/monitor/pairs", label: "Pair ideas", desc: "Pro: score spreads within peer groups" },
   ] },
   { href: "/valuebot", label: "ValueBot" },
   { href: "/lab", label: "Strategy Lab" },

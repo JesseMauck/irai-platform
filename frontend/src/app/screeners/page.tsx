@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApi } from "@/lib/hooks";
 import { pct, signed } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
+import { CustomScreens } from "@/components/CustomScreens";
 import { Button, Card, DataNote, ErrorNote, PageHeader, Skeleton, SourceBadge } from "@/components/ui";
 
 interface Preset { key: string; title: string; rule: string }
@@ -52,6 +53,7 @@ export default function Screeners() {
         )}
       </Card>
       <DataNote />
+      <CustomScreens />
     </div>
   );
 }

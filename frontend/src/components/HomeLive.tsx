@@ -31,6 +31,17 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
   const { data } = useApi<TickerPage>(`/api/market/ticker/${symbol}`);
   const g = data?.grade;
   if (!g) return <Card className="p-6"><Skeleton rows={6} /></Card>;
+  if (g.locked) return (
+    <Card className="relative overflow-hidden p-6">
+      <h3 className="text-sm text-muted">Relative Value — <span className="font-semibold text-fg">{g.symbol}</span></h3>
+      <div className="mt-3 flex items-end gap-3"><div className="select-none text-4xl font-semibold blur-sm">88th percentile</div><GradeChip grade={g.grade} /></div>
+      <div className="mt-5 select-none space-y-2 blur-sm">{["Peer group", "Multiple", "Quality composite", "Residual", "Coverage confidence"].map(k => <div key={k} className="flex justify-between text-sm"><span className="text-muted">{k}</span><span>00.0x vs 00.0x</span></div>)}</div>
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-card via-card/95 to-transparent p-6 pt-16 text-center">
+        <p className="text-sm">The grade letter is free. Percentiles, residuals and the full explanation are on Essential.</p>
+        <Link href="/pricing" className="solar-bg rounded-lg px-4 py-2 text-sm font-semibold text-primary-fg">See plans</Link>
+      </div>
+    </Card>
+  );
   const x = (v: number | null | undefined) => (v ? `${v.toFixed(1)}x` : "—");
   const rows: [string, React.ReactNode][] = [
     ["Peer group", `${g.peer_group} (${g.peer_count} names)`],

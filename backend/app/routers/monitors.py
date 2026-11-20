@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..market import engines
-from ..models import AdrPair, EtfFund, PeerGroup, User
+import datetime as dt
+
+from ..models import AdrPair, EtfFund, GradeSnapshot, PeerGroup, User
 from ..security import limits, optional_user, require_plan
 
 router = APIRouter(prefix="/api/monitors", tags=["monitors"])
@@ -61,10 +63,67 @@ def etf(user: User | None = Depends(optional_user), db: Session = Depends(get_db
     return _gate(engines.build_etf_monitor(_funds(db)), user)
 
 
+def record_snapshots(db: Session, rows: list[dict]) -> int:
+    """Store at most one point-in-time grade per symbol per peer group per UTC day (never restated)."""
+    today = dt.datetime.now(dt.timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    have = {(g.symbol, g.peer_group) for g in db.scalars(select(GradeSnapshot).where(GradeSnapshot.as_of >= today))}
+    n = 0
+    for r in rows:
+        if r.get("rv_percentile") is None or (r["symbol"], r["peer_group"]) in have:
+            continue
+        db.add(GradeSnapshot(symbol=r["symbol"], peer_group=r["peer_group"], grade=r["grade"], rv_percentile=r["rv_percentile"],
+                             quality_percentile=r["quality_percentile"], multiple=r["multiple"], multiple_name=r["multiple_name"],
+                             residual=r["residual"], source=r["source"]))
+        n += 1
+    if n:
+        db.commit()
+    return n
+
+
 @router.get("/fundamental")
 def fundamental(user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
     rows = engines.build_fundamental(_groups(db))
+    if all(r.get("source") == "LIVE" for r in rows):  # demo/stale numbers never enter the point-in-time history
+        record_snapshots(db, rows)
+    if not limits(user)["grade_detail"]:
+        rows = [{**r, "rv_percentile": None, "quality_percentile": None, "residual_sigma": None, "locked": True} for r in rows]
     return _gate(rows, user, strip=("residual", "fitted_multiple"))
+
+
+@router.get("/pair-ideas")
+def pair_ideas(user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    """Pro: within each peer group, the name cheapest for its quality against the richest — the score spread
+    is the gap between their regression residuals, in σ. History comes from stored point-in-time grades."""
+    if not limits(user)["pair_ideas"]:
+        raise HTTPException(402, "Pair ideas are a Pro feature")
+    rows = engines.build_fundamental(_groups(db))
+    ideas = []
+    for g in {r["peer_group"] for r in rows}:
+        grp = [r for r in rows if r["peer_group"] == g and r.get("residual_sigma") is not None]
+        if len(grp) < 4:
+            continue
+        cheap = min(grp, key=lambda r: r["residual_sigma"])
+        rich = max(grp, key=lambda r: r["residual_sigma"])
+        hist = _spread_history(db, g, cheap["symbol"], rich["symbol"])
+        ideas.append({"peer_group": g, "long": {k: cheap[k] for k in ("symbol", "name", "grade", "multiple", "rv_percentile")},
+                      "short": {k: rich[k] for k in ("symbol", "name", "grade", "multiple", "rv_percentile")},
+                      "multiple_name": cheap["multiple_name"], "spread_sigma": rich["residual_sigma"] - cheap["residual_sigma"],
+                      "spread_history": hist, "source": "DEMO" if "DEMO" in (cheap["source"], rich["source"]) else cheap["source"],
+                      "caveats": ["Relative-value spreads can widen for long periods.",
+                                  "Check borrow availability and cost on the short leg.",
+                                  "Peer groups are judgement calls; a regime change in one name breaks the comparison."]})
+    ideas.sort(key=lambda i: -i["spread_sigma"])
+    return ideas
+
+
+def _spread_history(db: Session, group: str, a: str, b: str) -> list[dict]:
+    snaps = db.scalars(select(GradeSnapshot).where(GradeSnapshot.peer_group == group, GradeSnapshot.symbol.in_([a, b]))
+                       .order_by(GradeSnapshot.as_of)).all()
+    by_day: dict[str, dict[str, float]] = {}
+    for s in snaps:
+        if s.residual is not None:
+            by_day.setdefault(s.as_of.date().isoformat(), {})[s.symbol] = s.residual
+    return [{"date": d, "spread": v[b] - v[a]} for d, v in sorted(by_day.items()) if a in v and b in v]
 
 
 PRESETS = {

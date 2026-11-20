@@ -65,9 +65,34 @@ export default function Account() {
             </div>
             <Button variant="outline" className="mt-2 w-full" onClick={addAlert} disabled={!al.symbol || !al.threshold}>Add alert</Button>
           </Card>
+          <ApiKeys plan={user.plan} />
           <Card className="p-5"><h2 className="font-semibold">ValueBot</h2><p className="mt-1 text-sm text-muted">Your valuations and models.</p><Button href="/valuebot" variant="outline" className="mt-3 w-full">Open ValueBot</Button></Card>
         </div>
       </div>
     </div>
+  );
+}
+
+
+interface Key { id: number; name: string; prefix: string; created_at: string; last_used_at: string | null }
+
+function ApiKeys({ plan }: { plan: string }) {
+  const { data, reload } = useApi<Key[]>(plan === "pro" ? "/api/me/api-keys" : null);
+  const [name, setName] = useState("");
+  const [fresh, setFresh] = useState<string | null>(null);
+  const [err, setErr] = useState<Error | null>(null);
+  if (plan !== "pro") return <Card className="p-5"><h2 className="font-semibold">API access</h2><p className="mt-1 text-sm text-muted">A read-only API key for the monitors, grades and market data comes with Pro.</p></Card>;
+  const create = async () => { setErr(null); try { const r = await api<{ key: string }>("/api/me/api-keys", { method: "POST", json: { name } }); setFresh(r.key); setName(""); reload(); } catch (e) { setErr(e as Error); } };
+  const revoke = async (id: number) => { await api(`/api/me/api-keys/${id}`, { method: "DELETE" }); reload(); };
+  return (
+    <Card className="p-5">
+      <h2 className="font-semibold">API keys</h2>
+      <p className="text-xs text-muted">Read-only. Send as the <code>X-API-Key</code> header to any GET endpoint under /api.</p>
+      {fresh && <div className="mt-2 break-all rounded bg-accent p-2 font-mono text-xs">{fresh}<div className="mt-1 font-sans text-primary">Copy it now. It won&apos;t be shown again.</div></div>}
+      <ul className="mt-2 space-y-1 text-sm">{data?.map(k => <li key={k.id} className="flex justify-between"><span>{k.name} <span className="font-mono text-xs text-muted">{k.prefix}…</span></span>
+        <button onClick={() => revoke(k.id)} className="text-xs text-muted hover:text-down">Revoke</button></li>)}</ul>
+      <div className="mt-2 flex gap-2"><input value={name} onChange={e => setName(e.target.value)} placeholder="Key name" className="flex-1 rounded border border-line bg-bg px-2 py-1 text-sm" /><Button variant="outline" onClick={create} disabled={!name}>Create</Button></div>
+      <ErrorNote error={err} />
+    </Card>
   );
 }

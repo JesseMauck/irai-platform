@@ -281,3 +281,69 @@ def test_email_alert_enqueued(client):
     with SessionLocal() as db:
         evaluate_alerts(db)
         assert db.scalar(select(EmailOutbox).where(EmailOutbox.to_addr == me["email"], EmailOutbox.kind == "alert"))
+
+
+def test_api_keys_read_only_and_pro_only(client):
+    free = signup(client)
+    assert client.post("/api/me/api-keys", json={"name": "x"}, headers=free).status_code == 402
+    pro = signup(client, "pro")
+    k = client.post("/api/me/api-keys", json={"name": "notebook"}, headers=pro).json()
+    assert k["key"].startswith("irai_") and k["prefix"] == k["key"][:12]
+    hdr = {"X-API-Key": k["key"]}
+    assert client.get("/api/monitors/adr", headers=hdr).json()["locked"] == 0      # Pro data via key
+    assert client.get("/api/me/api-keys", headers=pro).json()[0]["name"] == "notebook"
+    assert "key" not in client.get("/api/me/api-keys", headers=pro).json()[0]       # plaintext never shown again
+    assert client.post("/api/me/alerts", json={"symbol": "A", "kind": "price_above", "threshold": 1}, headers=hdr).status_code == 403
+    assert client.get("/api/monitors/adr", headers={"X-API-Key": "irai_wrong"}).status_code == 401
+    client.delete(f"/api/me/api-keys/{k['id']}", headers=pro)
+    assert client.get("/api/monitors/adr", headers=hdr).status_code == 401
+
+
+def test_grade_detail_gated_for_free(client):
+    anon = client.get("/api/market/ticker/NVDA").json()["grade"]
+    assert anon["locked"] and "rv_percentile" not in anon and anon["grade"]
+    paid = client.get("/api/market/ticker/NVDA", headers=signup(client, "essential")).json()["grade"]
+    assert paid.get("locked") is None and paid["rv_percentile"] is not None
+    assert client.get("/api/monitors/fundamental").json()["rows"][0]["rv_percentile"] is None
+
+
+def test_pair_ideas_pro_only(client):
+    assert client.get("/api/monitors/pair-ideas", headers=signup(client, "essential")).status_code == 402
+    ideas = client.get("/api/monitors/pair-ideas", headers=signup(client, "pro")).json()
+    assert ideas and ideas[0]["spread_sigma"] > 0 and ideas[0]["long"]["symbol"] != ideas[0]["short"]["symbol"]
+
+
+def test_point_in_time_snapshots_once_per_day():
+    from app.db import SessionLocal
+    from app.routers.monitors import record_snapshots
+    rows = [{"symbol": "ZZZ1", "peer_group": "T", "grade": "A", "rv_percentile": 90.0, "quality_percentile": 50.0,
+             "multiple": 10.0, "multiple_name": "P/E", "residual": -0.2, "source": "LIVE"}]
+    with SessionLocal() as db:
+        assert record_snapshots(db, rows) == 1
+        assert record_snapshots(db, [{**rows[0], "rv_percentile": 10.0}]) == 0  # not restated the same day
+
+
+def test_saved_screens(client):
+    free = signup(client)
+    body = {"name": "Cheap quality", "universe": "fundamental", "filters": {"rv_min": 50}}
+    assert client.post("/api/me/screens", json=body, headers=free).status_code == 402
+    e = signup(client, "essential")
+    prev = client.post("/api/me/screens/preview", json=body, headers=e).json()["rows"]
+    assert prev and all(r["value"] >= 50 for r in prev)
+    sc = client.post("/api/me/screens", json={**body, "alert_on_new": True}, headers=e).json()
+    assert sc["alert_on_new"] is True
+    assert client.get(f"/api/me/screens/{sc['id']}/run", headers=e).json()["rows"] == prev
+    assert client.post("/api/me/screens", json={**body, "filters": {"bogus": 1}}, headers=e).status_code == 422
+    for i in range(4):
+        client.post("/api/me/screens", json={**body, "name": f"s{i}"}, headers=e)
+    assert client.post("/api/me/screens", json=body, headers=e).status_code == 402  # 5 saved max on Essential
+    adr = client.post("/api/me/screens/preview", json={"name": "x", "universe": "adr", "filters": {"z_abs_min": 0}}, headers=e).json()
+    assert len(adr["rows"]) > 0
+    from app.db import SessionLocal
+    from app.models import SavedScreen
+    from app.routers.me import check_screen_alerts
+    with SessionLocal() as db:
+        s = db.get(SavedScreen, sc["id"])
+        s.last_symbols = []
+        db.commit()
+        assert check_screen_alerts(db) >= 1

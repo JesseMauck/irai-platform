@@ -27,7 +27,7 @@ export interface RvRow {
   symbol: string; name: string; peer_group: string; sector?: string | null; multiple: number | null; multiple_name: string;
   peer_median_multiple: number | null; rv_percentile: number | null; quality_percentile: number; grade: string;
   coverage: string; peer_count: number; source: Source; roe?: number | null; operating_margin?: number | null;
-  revenue_growth?: number | null; fitted_multiple?: number; residual?: number | null; residual_sigma?: number | null;
+  revenue_growth?: number | null; fitted_multiple?: number; residual?: number | null; residual_sigma?: number | null; locked?: boolean;
 }
 export interface Gated<T> { rows: T[]; total: number; locked: number; plan: string }
 
@@ -57,7 +57,7 @@ export interface Trade {
 export interface TickerPage {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   quote: Quote; history: HistoryPoint[]; info: Record<string, any>;
-  grade: (RvRow & { peers: { symbol: string; grade: string; multiple: number | null; rv_percentile: number | null }[] }) | null;
+  grade: (RvRow & { peers: { symbol: string; grade: string; multiple?: number | null; rv_percentile?: number | null }[] }) | null;
   grade_history: { as_of: string; grade: string; rv_percentile: number }[];
 }
 

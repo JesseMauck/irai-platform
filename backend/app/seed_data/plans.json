@@ -29,7 +29,9 @@
    "csv_export": false,
    "api": false,
    "backtests_per_day": 5,
-   "optimize": false
+   "optimize": false,
+   "grade_detail": false,
+   "pair_ideas": false
   }
  },
  {
@@ -63,7 +65,9 @@
    "csv_export": false,
    "api": false,
    "backtests_per_day": 100,
-   "optimize": false
+   "optimize": false,
+   "grade_detail": true,
+   "pair_ideas": false
   }
  },
  {
@@ -97,7 +101,9 @@
    "csv_export": true,
    "api": true,
    "backtests_per_day": null,
-   "optimize": true
+   "optimize": true,
+   "grade_detail": true,
+   "pair_ideas": true
   }
  }
 ]

@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..market import engines, service
 from ..market.source import SourceError
-from ..models import GradeSnapshot, Instrument, PeerMember
+from ..models import GradeSnapshot, Instrument, PeerMember, User
+from ..security import limits, optional_user
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 SYMBOL_RE = re.compile(r"^[A-Za-z0-9^=.\-]{1,20}$")
@@ -68,7 +69,7 @@ def chart(symbol: str, range: str = "1y"):  # noqa: A002
 
 
 @router.get("/ticker/{symbol}")
-def ticker(symbol: str, db: Session = Depends(get_db)):
+def ticker(symbol: str, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
     """Everything the ticker page needs in one call: quote, 1y history, fundamentals, peer grade."""
     sym = _sym(symbol)
     try:
@@ -89,14 +90,15 @@ def ticker(symbol: str, db: Session = Depends(get_db)):
         if mine:
             grade = {**mine, "peers": [{"symbol": r["symbol"], "grade": r["grade"], "multiple": r["multiple"],
                                          "rv_percentile": r["rv_percentile"]} for r in rows]}
-            if mine["rv_percentile"] is not None:
-                db.add(GradeSnapshot(symbol=sym, peer_group=grp.name, grade=mine["grade"],
-                                     rv_percentile=mine["rv_percentile"], quality_percentile=mine["quality_percentile"],
-                                     multiple=mine["multiple"], multiple_name=mine["multiple_name"],
-                                     residual=mine["residual"], source=mine["source"]))
-                db.commit()
+            if mine["source"] == "LIVE":
+                from .monitors import record_snapshots
+                record_snapshots(db, rows)
+    if grade and not limits(user)["grade_detail"]:
+        grade = {"symbol": grade["symbol"], "name": grade["name"], "peer_group": grade["peer_group"], "grade": grade["grade"],
+                 "peer_count": grade["peer_count"], "coverage": grade["coverage"], "source": grade["source"], "locked": True,
+                 "multiple_name": grade["multiple_name"], "peers": [{"symbol": p["symbol"], "grade": p["grade"]} for p in grade["peers"]]}
     hist = db.scalars(select(GradeSnapshot).where(GradeSnapshot.symbol == sym)
-                      .order_by(GradeSnapshot.as_of.desc()).limit(30)).all()
+                      .order_by(GradeSnapshot.as_of.desc()).limit(365)).all() if limits(user)["grade_detail"] else []
     return {"quote": c["quote"], "history": c["history"], "info": info, "grade": grade,
             "grade_history": [{"as_of": h.as_of.isoformat(), "grade": h.grade, "rv_percentile": h.rv_percentile}
                               for h in reversed(hist)]}

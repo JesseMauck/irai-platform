@@ -104,7 +104,11 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold">Relative Value</h2>
-          {grade ? <>
+          {grade?.locked ? <>
+            <div className="mt-3 flex items-center gap-3"><GradeChip grade={grade.grade} /><span className="text-sm text-muted">in {grade.peer_group} ({grade.peer_count} names)</span></div>
+            <p className="mt-3 select-none text-sm text-muted blur-sm">EV/EBITDA 00.0x vs peer median 00.0x · quality 00th</p>
+            <p className="mt-3 text-sm">Percentiles, residuals and peer multiples are on <Link href="/pricing" className="text-primary">Essential</Link>.</p>
+          </> : grade ? <>
             <div className="mt-3 flex items-center gap-3"><GradeChip grade={grade.grade} /><span className="text-2xl font-semibold num">{ord(grade.rv_percentile)}</span><span className="text-sm text-muted">in {grade.peer_group}</span></div>
             <p className="mt-2 text-sm text-muted">{grade.multiple_name} {grade.multiple?.toFixed(1)}x vs peer median {grade.peer_median_multiple?.toFixed(1)}x · quality {ord(grade.quality_percentile)}</p>
             <ul className="mt-3 divide-y divide-line text-sm">
@@ -118,6 +122,13 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           </> : <p className="mt-2 text-sm text-muted">{symbol} isn&apos;t in a covered peer group yet. Run a ValueBot valuation for an intrinsic-value view instead.</p>}
         </Card>
       </div>
+      {data.grade_history.length > 1 && (
+        <Card className="mt-4 p-5">
+          <h2 className="font-semibold">Relative Value history <span className="text-xs font-normal text-muted">point-in-time, never restated</span></h2>
+          <LineChart height={180} dates={data.grade_history.map(h => h.as_of.slice(0, 10))} format={v => `${v.toFixed(0)}th`}
+            series={[{ values: data.grade_history.map(h => h.rv_percentile), color: "#f5a524", label: "RV percentile" }]} />
+        </Card>
+      )}
       <DataNote />
     </div>
   );
