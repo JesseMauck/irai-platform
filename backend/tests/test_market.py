@@ -148,3 +148,15 @@ def test_letter_grades():
 def test_demo_source_deterministic():
     a, b = DemoSource().chart("XYZ"), DemoSource().chart("XYZ")
     assert a["quote"]["price"] == b["quote"]["price"] and a["quote"]["source"] == "DEMO"
+
+
+def test_compose_db_url_encodes_password(monkeypatch):
+    from app import config
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DB_HOST", "aws-0-us-west-2.pooler.supabase.com")
+    monkeypatch.setenv("DB_USER", "postgres.ref")
+    monkeypatch.setenv("DB_PASSWORD", "p@ss:w/rd!#")
+    config._compose_db_url()
+    import os
+    assert os.environ["DATABASE_URL"] == "postgresql://postgres.ref:p%40ss%3Aw%2Frd%21%23@aws-0-us-west-2.pooler.supabase.com:5432/postgres"
+    monkeypatch.delenv("DATABASE_URL")

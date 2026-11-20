@@ -23,6 +23,28 @@ def _load_dotenv() -> None:
 _load_dotenv()
 
 
+def _compose_db_url() -> None:
+    """Build DATABASE_URL from DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD when it isn't set.
+
+    Lets the password live in its own variable, percent-encoded here, so special
+    characters never break the URL.
+    """
+    if os.environ.get("DATABASE_URL", "").strip() or not os.environ.get("DB_PASSWORD"):
+        return
+    from urllib.parse import quote
+    host = os.environ.get("DB_HOST", "").strip()
+    user = os.environ.get("DB_USER", "").strip()
+    if not host or not user:
+        return
+    pw = quote(os.environ["DB_PASSWORD"].strip(), safe="")
+    port = os.environ.get("DB_PORT", "5432").strip()
+    name = os.environ.get("DB_NAME", "postgres").strip()
+    os.environ["DATABASE_URL"] = f"postgresql://{quote(user, safe='')}:{pw}@{host}:{port}/{name}"
+
+
+_compose_db_url()
+
+
 def normalise_db_url(url: str) -> str:
     """Accept the plain URLs Supabase/Railway/Heroku hand out and select the psycopg 3 driver."""
     for prefix in ("postgres://", "postgresql://"):
