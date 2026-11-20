@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,9 @@ def _month() -> str:
 
 def _run(r: ValuationRun) -> dict:
     return {"id": r.job_id, "ticker": r.ticker, "stance": r.stance, "status": r.status, "method": r.method,
+            "title": r.title or f"{r.ticker} — {r.stance} valuation", "pinned": bool(r.pinned),
+            "archived": bool(r.archived), "has_notes": bool(r.notes_md),
+            "scenario_count": len(r.scenarios or []),
             "value_per_share": r.value_per_share, "price": r.price, "upside": r.upside,
             "prob_undervalued": r.prob_undervalued, "share_token": r.share_token, "error": r.error,
             "created_at": r.created_at.isoformat() if r.created_at else None,
@@ -97,6 +101,182 @@ def record_finished(job: dict) -> None:
 
 if record_finished not in pipeline.on_finish:
     pipeline.on_finish.append(record_finished)
+
+# ── report library: the member's saved reports, their own notes, saved scenarios and exports ─────
+class MetaIn(BaseModel):
+    title: str | None = Field(default=None, max_length=200)
+    notes_md: str | None = Field(default=None, max_length=50_000)
+    pinned: bool | None = None
+    archived: bool | None = None
+
+
+class ScenarioIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    assumptions: dict[str, float]
+
+
+def _owned(db: Session, user: User, job_id: str) -> ValuationRun:
+    r = db.scalar(select(ValuationRun).where(ValuationRun.job_id == job_id))
+    if not r or r.user_id != user.id:
+        raise HTTPException(404, "Report not found")
+    return r
+
+
+def _detail(r: ValuationRun) -> dict:
+    return {**_run(r), "notes_md": r.notes_md or "", "scenarios": r.scenarios or [],
+            "notes_updated_at": r.notes_updated_at.isoformat() if r.notes_updated_at else None}
+
+
+@router.get("/library")
+def library(archived: bool = False, q: str | None = None, user: User = Depends(current_user),
+            db: Session = Depends(get_db)):
+    """Saved reports: pinned first, then newest. `q` filters by ticker or title."""
+    stmt = select(ValuationRun).where(ValuationRun.user_id == user.id, ValuationRun.archived.is_(archived))
+    if q:
+        like = f"%{q.strip().lower()}%"
+        stmt = stmt.where(func.lower(ValuationRun.ticker).like(like) | func.lower(func.coalesce(ValuationRun.title, "")).like(like))
+    runs = db.scalars(stmt.order_by(ValuationRun.pinned.desc(), ValuationRun.created_at.desc()).limit(500))
+    return [_run(r) for r in runs]
+
+
+@router.get("/jobs/{job_id}/meta")
+def get_meta(job_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return _detail(_owned(db, user, job_id))
+
+
+@router.patch("/jobs/{job_id}/meta")
+def update_meta(job_id: str, body: MetaIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    r = _owned(db, user, job_id)
+    if body.title is not None:
+        r.title = body.title.strip() or None
+    if body.notes_md is not None:
+        r.notes_md = body.notes_md
+        r.notes_updated_at = dt.datetime.now(dt.timezone.utc)
+    if body.pinned is not None:
+        r.pinned = body.pinned
+    if body.archived is not None:
+        r.archived = body.archived
+    db.commit()
+    return _detail(r)
+
+
+@router.post("/jobs/{job_id}/scenarios")
+def save_scenario(job_id: str, body: ScenarioIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Recompute with edited drivers (same engine as what-if) and keep the result with the report."""
+    from valuebot.api import RevalueRequest, revalue
+
+    r = _owned(db, user, job_id)
+    if r.status != "done":
+        raise HTTPException(409, "The valuation hasn't finished yet")
+    if len(r.scenarios or []) >= 20:
+        raise HTTPException(400, "A report can keep up to 20 scenarios")
+    out = revalue(job_id, RevalueRequest(assumptions=body.assumptions))
+    sc = {"name": body.name.strip(), "assumptions": body.assumptions, "value_per_share": out["value_per_share"],
+          "upside": out["upside"], "warnings": out.get("warnings") or [],
+          "saved_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    r.scenarios = [*(r.scenarios or []), sc]  # reassign so the JSON change is persisted
+    db.commit()
+    return _detail(r)
+
+
+@router.delete("/jobs/{job_id}/scenarios/{index}")
+def delete_scenario(job_id: str, index: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    r = _owned(db, user, job_id)
+    items = list(r.scenarios or [])
+    if not 0 <= index < len(items):
+        raise HTTPException(404, "Scenario not found")
+    items.pop(index)
+    r.scenarios = items
+    db.commit()
+    return _detail(r)
+
+
+def _notes_html(r: ValuationRun) -> str:
+    import html
+
+    import markdown as md
+
+    parts = ['<section style="page-break-before:always;font-family:Inter,Arial,sans-serif">',
+             f"<h1>{html.escape(r.title or r.ticker)} — member notes</h1>"]
+    if r.notes_md:
+        parts.append(md.markdown(html.escape(r.notes_md), extensions=["tables", "sane_lists"]))
+    if r.scenarios:
+        parts.append("<h2>Saved scenarios</h2><table border=1 cellpadding=6 style='border-collapse:collapse'>"
+                     "<tr><th>Scenario</th><th>Value / share</th><th>vs price</th><th>Changed drivers</th></tr>")
+        for sc in r.scenarios:
+            up = f"{sc['upside'] * 100:+.1f}%" if sc.get("upside") is not None else "—"
+            drv = ", ".join(f"{html.escape(k)} = {v:g}" for k, v in sc["assumptions"].items())
+            parts.append(f"<tr><td>{html.escape(sc['name'])}</td><td>{sc['value_per_share']:,.2f}</td><td>{up}</td><td>{drv}</td></tr>")
+        parts.append("</table>")
+    parts.append("<p style='color:#666;font-size:10px'>Member notes are the author's own views. Research and education only — not investment advice.</p></section>")
+    return "".join(parts)
+
+
+@router.get("/jobs/{job_id}/export.pdf")
+def export_pdf(job_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """The ValueBot report as PDF, with the member's notes and saved scenarios appended."""
+    import tempfile
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+    from valuebot.output import report
+
+    r = _owned(db, user, job_id)
+    src = pipeline.job_dir(job_id) / "report.html"
+    if not src.exists():
+        raise HTTPException(409, "The report isn't ready yet")
+    page = src.read_text()
+    extra = _notes_html(r) if (r.notes_md or r.scenarios) else ""
+    page = page.replace("</body>", extra + "</body>") if "</body>" in page else page + extra
+    tmp = Path(tempfile.mkdtemp(prefix="vbexport-"))
+    (tmp / "report.html").write_text(page)
+    # Images referenced relatively (tornado chart etc.) must sit next to the HTML.
+    for img in pipeline.job_dir(job_id).glob("*.png"):
+        (tmp / img.name).write_bytes(img.read_bytes())
+    if not report.write_pdf(tmp / "report.html", tmp / "report.pdf"):
+        raise HTTPException(503, "PDF rendering is unavailable on this server")
+    return FileResponse(tmp / "report.pdf", filename=f"{r.ticker}_valuebot_report.pdf", media_type="application/pdf")
+
+
+@router.get("/jobs/{job_id}/export.xlsx")
+def export_xlsx(job_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """The live-formula model workbook plus a 'My notes' sheet with the member's notes and scenarios."""
+    import io
+
+    from fastapi.responses import StreamingResponse
+    from openpyxl import load_workbook
+    from openpyxl.styles import Font
+
+    r = _owned(db, user, job_id)
+    src = pipeline.job_dir(job_id) / "model.xlsx"
+    if not src.exists():
+        raise HTTPException(409, "The model isn't ready yet")
+    wb = load_workbook(src)
+    ws = wb.create_sheet("My notes")
+    ws["A1"] = r.title or f"{r.ticker} valuation"
+    ws["A1"].font = Font(bold=True, size=14)
+    row = 3
+    for line in (r.notes_md or "(No notes yet)").splitlines():
+        ws.cell(row=row, column=1, value=line)
+        row += 1
+    if r.scenarios:
+        row += 1
+        for c, h in enumerate(["Scenario", "Value / share", "vs price", "Changed drivers"], 1):
+            ws.cell(row=row, column=c, value=h).font = Font(bold=True)
+        for sc in r.scenarios:
+            row += 1
+            ws.cell(row=row, column=1, value=sc["name"])
+            ws.cell(row=row, column=2, value=sc["value_per_share"])
+            ws.cell(row=row, column=3, value=sc.get("upside"))
+            ws.cell(row=row, column=4, value=", ".join(f"{k} = {v:g}" for k, v in sc["assumptions"].items()))
+    ws.column_dimensions["A"].width = 60
+    ws.column_dimensions["D"].width = 60
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f'attachment; filename="{r.ticker}_valuebot_model.xlsx"'})
+
 
 # ValueBot's own routes come after ours so the overrides above win.
 router.include_router(valuebot_router)

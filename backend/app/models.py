@@ -327,6 +327,8 @@ class ValuationRun(TimestampMixin, Base):
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     notes_updated_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    # Saved what-if scenarios: [{"name", "assumptions": {...}, "value_per_share", "upside", "saved_at"}]
+    scenarios: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, server_default="[]")
 
 
 # ── platform ──────────────────────────────────────────────────────────────────────────────────────

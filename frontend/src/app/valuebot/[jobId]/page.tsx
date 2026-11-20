@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { num, pct } from "@/lib/format";
 import { Button, Card, ErrorNote, Skeleton } from "@/components/ui";
+import { NotesEditor, ReportHeaderTools, Scenarios, type ReportMeta } from "@/components/ReportWorkspace";
 
 interface Stage { key: string; label: string; status: string; detail: string | null }
 interface Job { id: string; ticker: string; status: string; stages: Stage[]; error: string | null; share_token: string; plan: { method_title: string } | null }
@@ -29,6 +30,7 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
   const { data: r } = useApi<Result>(done ? `/api/valuebot/jobs/${jobId}/result` : null);
   const [whatIf, setWhatIf] = useState<Record<string, number>>({});
   const [rv, setRv] = useState<{ value_per_share: number; upside: number } | null>(null);
+  const [meta, setMeta] = useState<ReportMeta | null>(null);
 
   const revalue = async (k: string, v: number) => {
     const next = { ...whatIf, [k]: v }; setWhatIf(next);
@@ -38,7 +40,7 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/valuebot" className="text-sm text-muted hover:text-fg">← ValueBot</Link>
+      <div className="flex gap-4 text-sm"><Link href="/valuebot" className="text-muted hover:text-fg">← ValueBot</Link><Link href="/valuebot/reports" className="text-muted hover:text-fg">My reports</Link></div>
       <ErrorNote error={error} />
       {!job ? <Skeleton /> : !done ? (
         <Card className="mt-4 p-6">
@@ -69,6 +71,7 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
               <Button variant="ghost" onClick={() => navigator.clipboard?.writeText(`${location.origin}/valuebot/share/${job.share_token}`)}>Copy share link</Button>
             </div>
           </div>
+          <ReportHeaderTools jobId={jobId} onMeta={setMeta} />
           <div className="mt-6 grid gap-3 md:grid-cols-5">
             {[["Value / share", num(r.result.value_per_share)], ["Price", num(r.result.price)], ["Upside", pct(r.result.upside, 1)],
               ["P(undervalued)", pct(r.probabilistic.simulation.prob_undervalued ?? null, 0, false)],
@@ -81,11 +84,12 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
               {r.section_titles.filter(([k]) => r.sections[k]).map(([k, title]) => (
                 <section key={k}><h2 className="text-xl font-semibold">{title}</h2><div className="prose-irai"><ReactMarkdown>{r.sections[k]}</ReactMarkdown></div></section>
               ))}
+              {meta && <NotesEditor key={meta.id} jobId={jobId} initial={meta.notes_md} updatedAt={meta.notes_updated_at} />}
             </div>
             <div className="space-y-4">
               <Card className="p-5">
                 <h3 className="font-semibold">What if?</h3>
-                <p className="text-xs text-muted">Edit a driver to reprice instantly (nothing is saved).</p>
+                <p className="text-xs text-muted">Edit a driver to reprice instantly{meta ? ", then save it as a named scenario." : " (nothing is saved)."}</p>
                 {rv && <p className="mt-2 text-lg font-semibold num">{num(rv.value_per_share)} <span className={rv.upside >= 0 ? "text-up" : "text-down"}>({pct(rv.upside, 1)})</span></p>}
                 <div className="mt-3 space-y-2">
                   {Object.entries(r.assumptions).slice(0, 12).map(([k, a]) => (
@@ -97,6 +101,8 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
                     </label>
                   ))}
                 </div>
+                {meta && <Scenarios key={meta.id} jobId={jobId} whatIf={whatIf} initial={meta.scenarios}
+                  labels={Object.fromEntries(Object.entries(r.assumptions).map(([k, a]) => [k, { label: a.label, unit: a.unit }]))} />}
               </Card>
               <Card className="p-5">
                 <h3 className="font-semibold">Story tests</h3>

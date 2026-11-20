@@ -119,10 +119,10 @@ function ValueBotForm() {
           <ErrorNote error={err} />
         </div>
         <Card className="h-fit p-5">
-          <h2 className="font-semibold">Your runs</h2>
+          <div className="flex items-center justify-between"><h2 className="font-semibold">Your reports</h2>{user && <Link href="/valuebot/reports" className="text-xs text-primary">Open library →</Link>}</div>
           {!user && <p className="mt-2 text-sm text-muted"><Link href="/login" className="text-primary">Sign in</Link> to run valuations and keep their reports and models.</p>}
           <ul className="mt-3 divide-y divide-line text-sm">
-            {(runs ?? []).map(r => (
+            {(runs ?? []).slice(0, 8).map(r => (
               <li key={r.id} className="py-2"><Link href={`/valuebot/${r.id}`} className="flex justify-between hover:text-primary">
                 <span className="font-semibold">{r.ticker}</span><span className="num text-muted">{r.status === "done" ? `${num(r.value_per_share)} (${pct(r.upside, 0)})` : r.status}</span></Link>
                 <div className="text-xs text-muted">{ago(r.created_at)}</div></li>

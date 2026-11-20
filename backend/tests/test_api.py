@@ -308,6 +308,34 @@ def test_valuebot_run_recorded_and_quota(client):
     assert client.post("/api/valuebot/jobs", json={"ticker": "DEMO"}, headers=h).status_code == 402
     assert client.post("/api/valuebot/jobs", json={"ticker": "../../x"}, headers=h).status_code == 422
     assert client.get("/api/valuebot/jobs/../../etc").status_code == 404
+    # report library: title, notes, pin, saved scenario, exports, ownership
+    jid = job["id"]
+    m = client.patch(f"/api/valuebot/jobs/{jid}/meta", json={"title": "My DEMO case", "notes_md": "## Thesis\nMargins expand.",
+                                                               "pinned": True}, headers=h).json()
+    assert m["title"] == "My DEMO case" and m["pinned"] and "Margins" in m["notes_md"]
+    m = client.post(f"/api/valuebot/jobs/{jid}/scenarios", json={"name": "Higher margin",
+                    "assumptions": {"target_operating_margin": 0.35}}, headers=h).json()
+    assert m["scenarios"][0]["value_per_share"] == pytest.approx(rv["value_per_share"])
+    lib = client.get("/api/valuebot/library", headers=h).json()
+    assert lib[0]["title"] == "My DEMO case" and lib[0]["scenario_count"] == 1 and lib[0]["has_notes"]
+    assert client.get("/api/valuebot/library?q=demo", headers=h).json()
+    x = client.get(f"/api/valuebot/jobs/{jid}/export.xlsx", headers=h)
+    assert x.status_code == 200 and x.content[:2] == b"PK"
+    from openpyxl import load_workbook
+    import io
+    wb = load_workbook(io.BytesIO(x.content))
+    assert "My notes" in wb.sheetnames and wb["My notes"]["A1"].value == "My DEMO case"
+    pdf = client.get(f"/api/valuebot/jobs/{jid}/export.pdf", headers=h)
+    assert pdf.status_code in (200, 503)
+    if pdf.status_code == 200:
+        assert pdf.content[:4] == b"%PDF"
+    other = signup(client)
+    assert client.get(f"/api/valuebot/jobs/{jid}/meta", headers=other).status_code == 404
+    assert client.patch(f"/api/valuebot/jobs/{jid}/meta", json={"title": "x"}, headers=other).status_code == 404
+    assert client.delete(f"/api/valuebot/jobs/{jid}/scenarios/0", headers=h).json()["scenarios"] == []
+    client.patch(f"/api/valuebot/jobs/{jid}/meta", json={"archived": True}, headers=h)
+    assert client.get("/api/valuebot/library", headers=h).json() == []
+    assert client.get("/api/valuebot/library?archived=true", headers=h).json()[0]["archived"]
 
 
 def test_password_reset_flow_and_outbox(client):

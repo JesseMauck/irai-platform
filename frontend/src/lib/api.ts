@@ -85,3 +85,20 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   }
   return res.json() as Promise<T>;
 }
+
+/** Download an authenticated file (sends the same credentials as api()). */
+export async function download(path: string, filename: string): Promise<void> {
+  const headers = new Headers();
+  const t = typeof window !== "undefined" ? token.get() : null;
+  if (t) headers.set("Authorization", `Bearer ${t}`);
+  const res = await fetch(path, { headers, credentials: "include" });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); msg = typeof j.detail === "string" ? j.detail : msg; } catch {}
+    throw new ApiError(res.status, msg);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
