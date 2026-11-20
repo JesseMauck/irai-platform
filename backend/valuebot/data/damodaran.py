@@ -135,7 +135,7 @@ YAHOO_TO_DAMODARAN = {
     "computer hardware": "Computers/Peripherals",
     "communication equipment": "Telecom. Equipment",
     "information technology services": "Computer Services",
-    "internet retail": "Retail (Online)",
+    "internet retail": "Retail (General)",
     "specialty retail": "Retail (Special Lines)",
     "discount stores": "Retail (General)",
     "home improvement retail": "Retail (Building Supply)",
