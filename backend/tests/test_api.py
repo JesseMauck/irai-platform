@@ -612,3 +612,15 @@ def test_adr_scanner_and_opportunities(client):
     assert "countries" in opp and len(opp["rows"]) <= 3  # anonymous: top 3
     sig = client.get(f"/api/monitors/adr/{rows[0]['adr_symbol']}/signals").json()
     assert sig and "z" in sig[0]
+
+
+def test_export_and_delete_account(client):
+    h = signup(client)
+    client.get("/api/me/watchlists", headers=h)  # creates the default list
+    ex = client.get("/api/me/export", headers=h).json()
+    assert ex["profile"]["email"].endswith("@test.io") and "password_hash" not in ex["profile"]
+    assert len(ex["watchlists"]) == 1
+    assert client.post("/api/me/delete", json={"password": "wrong", "confirm": "DELETE"}, headers=h).status_code == 403
+    assert client.post("/api/me/delete", json={"password": "correct-horse-9", "confirm": "nope"}, headers=h).status_code == 400
+    assert client.post("/api/me/delete", json={"password": "correct-horse-9", "confirm": "DELETE"}, headers=h).json()["ok"]
+    assert client.get("/api/auth/me", headers=h).status_code == 401

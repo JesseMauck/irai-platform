@@ -368,3 +368,72 @@ def check_screen_alerts(db: Session) -> int:
         sc.last_symbols = now_syms
     db.commit()
     return sent
+
+
+# ── your data: export and account deletion (Privacy Policy §4, §6) ──────────────────────────────────
+def _rows(db: Session, model, col, uid: int, drop: tuple[str, ...] = ()) -> list[dict]:
+    out = []
+    for r in db.scalars(select(model).where(getattr(model, col) == uid)):
+        d = {}
+        for c in model.__table__.columns:
+            if c.name in drop:
+                continue
+            v = getattr(r, c.name)
+            d[c.name] = v.isoformat() if isinstance(v, (dt.datetime, dt.date)) else v
+        out.append(d)
+    return out
+
+
+@router.get("/export")
+def export_my_data(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Everything we hold that is linked to your account, as JSON (secrets excluded)."""
+    from ..models import BacktestRun, Post, Subscription, Thread, TradePost, ValuationRun, Vote
+
+    secret = ("password_hash", "hashed_password", "key_hash", "token_hash")
+    profile = {c.name: getattr(user, c.name) for c in User.__table__.columns if c.name not in secret}
+    profile = {k: (v.isoformat() if isinstance(v, (dt.datetime, dt.date)) else v) for k, v in profile.items()}
+    wls = [{**_wl(w), "created_at": w.created_at.isoformat() if getattr(w, "created_at", None) else None}
+           for w in db.scalars(select(Watchlist).where(Watchlist.user_id == user.id))]
+    return {
+        "exported_at": dt.datetime.now(dt.timezone.utc).isoformat(), "profile": profile, "watchlists": wls,
+        "alerts": _rows(db, Alert, "user_id", user.id), "saved_screens": _rows(db, SavedScreen, "user_id", user.id),
+        "api_keys": _rows(db, ApiKey, "user_id", user.id, drop=secret),
+        "valuebot_reports": _rows(db, ValuationRun, "user_id", user.id),
+        "lab_runs": _rows(db, BacktestRun, "user_id", user.id),
+        "threads": _rows(db, Thread, "author_id", user.id), "posts": _rows(db, Post, "author_id", user.id),
+        "trade_posts": _rows(db, TradePost, "author_id", user.id), "votes": _rows(db, Vote, "user_id", user.id),
+        "subscriptions": _rows(db, Subscription, "user_id", user.id),
+    }
+
+
+class DeleteIn(BaseModel):
+    password: str = Field(min_length=1, max_length=200)
+    confirm: str
+
+
+@router.post("/delete")
+def delete_account(body: DeleteIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Permanently delete the account and its private data. Cancels any Square subscription first."""
+    from sqlalchemy import delete
+
+    from ..models import Subscription, ValuationRun
+    from ..payments.square import SquareClient, SquareConfig, SquareError
+    from ..security import verify_password
+
+    if body.confirm != "DELETE":
+        raise HTTPException(400, 'Type DELETE to confirm')
+    if not verify_password(body.password, user.password_hash):
+        raise HTTPException(403, "Password is incorrect")
+    cfg = SquareConfig.from_env()
+    for s in db.scalars(select(Subscription).where(Subscription.user_id == user.id, Subscription.provider == "square",
+                                                   Subscription.status.in_(("active", "past_due", "pending")))):
+        if s.provider_subscription_id and cfg.access_token:
+            try:
+                SquareClient(cfg).cancel_subscription(s.provider_subscription_id)
+            except SquareError as e:
+                raise HTTPException(502, f"Couldn't cancel your Square subscription ({e}). Nothing was deleted; please try again.")
+    uid = user.id
+    db.execute(delete(ValuationRun).where(ValuationRun.user_id == uid))  # reports are private: remove, don't orphan
+    db.delete(user)
+    db.commit()
+    return {"ok": True}

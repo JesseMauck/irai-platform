@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, type Quote } from "@/lib/api";
+import { api, download, type Quote } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { ago, num, pct, tone } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
@@ -70,7 +70,8 @@ export default function Account() {
             <Button variant="outline" className="mt-2 w-full" onClick={addAlert} disabled={!al.symbol || !al.threshold}>Add alert</Button>
           </Card>
           <ApiKeys plan={user.plan} />
-          <Card className="p-5"><h2 className="font-semibold">ValueBot</h2><p className="mt-1 text-sm text-muted">Your valuations and models.</p><Button href="/valuebot" variant="outline" className="mt-3 w-full">Open ValueBot</Button></Card>
+          <Card className="p-5"><h2 className="font-semibold">ValueBot</h2><p className="mt-1 text-sm text-muted">Your valuations, notes and models.</p><Button href="/valuebot/reports" variant="outline" className="mt-3 w-full">My reports</Button></Card>
+          <YourData />
         </div>
       </div>
     </div>
@@ -96,6 +97,36 @@ function ApiKeys({ plan }: { plan: string }) {
       <ul className="mt-2 space-y-1 text-sm">{data?.map(k => <li key={k.id} className="flex justify-between"><span>{k.name} <span className="font-mono text-xs text-muted">{k.prefix}…</span></span>
         <button onClick={() => revoke(k.id)} className="text-xs text-muted hover:text-down">Revoke</button></li>)}</ul>
       <div className="mt-2 flex gap-2"><input value={name} onChange={e => setName(e.target.value)} placeholder="Key name" className="flex-1 rounded border border-line bg-bg px-2 py-1 text-sm" /><Button variant="outline" onClick={create} disabled={!name}>Create</Button></div>
+      <ErrorNote error={err} />
+    </Card>
+  );
+}
+
+
+function YourData() {
+  const { logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState(""); const [confirmText, setConfirmText] = useState("");
+  const [err, setErr] = useState<Error | null>(null);
+  const exportData = async () => { setErr(null); try { await download("/api/me/export", "irradiance-my-data.json"); } catch (e) { setErr(e as Error); } };
+  const del = async () => {
+    setErr(null);
+    try { await api("/api/me/delete", { method: "POST", json: { password: pw, confirm: confirmText } }); await logout(); location.href = "/"; }
+    catch (e) { setErr(e as Error); }
+  };
+  return (
+    <Card className="p-5">
+      <h2 className="font-semibold">Your data</h2>
+      <p className="mt-1 text-sm text-muted">Download everything linked to your account, or delete it. See the <Link href="/legal/privacy" className="text-primary">Privacy Policy</Link>.</p>
+      <Button variant="outline" className="mt-3 w-full" onClick={exportData}>Export my data</Button>
+      {!open ? <button onClick={() => setOpen(true)} className="mt-3 text-sm text-down">Delete account…</button> : (
+        <div className="mt-3 space-y-2 rounded-lg border border-down/40 p-3 text-sm">
+          <p className="text-fg-2">This permanently deletes your account, watchlists, alerts, reports, notes and posts, and cancels any paid membership. It can&rsquo;t be undone.</p>
+          <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Your password" autoComplete="current-password" className="w-full rounded border border-line bg-bg px-2 py-1" />
+          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder='Type DELETE to confirm' className="w-full rounded border border-line bg-bg px-2 py-1" />
+          <div className="flex gap-2"><Button onClick={del} disabled={!pw || confirmText !== "DELETE"} className="bg-none bg-down text-white">Delete permanently</Button><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button></div>
+        </div>
+      )}
       <ErrorNote error={err} />
     </Card>
   );
