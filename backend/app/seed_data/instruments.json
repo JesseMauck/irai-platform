@@ -1,0 +1,11 @@
+[
+  {"symbol": "^GSPC", "name": "S&P 500", "kind": "index", "in_ticker_bar": true, "ticker_bar_label": "S&P 500", "sort_order": 1},
+  {"symbol": "^IXIC", "name": "Nasdaq Composite", "kind": "index", "in_ticker_bar": true, "ticker_bar_label": "NASDAQ", "sort_order": 2},
+  {"symbol": "^DJI", "name": "Dow Jones Industrial Average", "kind": "index", "in_ticker_bar": true, "ticker_bar_label": "DOW", "sort_order": 3},
+  {"symbol": "^STOXX50E", "name": "Euro Stoxx 50", "kind": "index", "in_ticker_bar": true, "ticker_bar_label": "STOXX 50", "sort_order": 4},
+  {"symbol": "^N225", "name": "Nikkei 225", "kind": "index", "in_ticker_bar": true, "ticker_bar_label": "NIKKEI", "sort_order": 5},
+  {"symbol": "EURUSD=X", "name": "EUR/USD", "kind": "fx", "in_ticker_bar": true, "ticker_bar_label": "EUR/USD", "sort_order": 6},
+  {"symbol": "JPY=X", "name": "USD/JPY", "kind": "fx", "in_ticker_bar": true, "ticker_bar_label": "USD/JPY", "sort_order": 7},
+  {"symbol": "^TNX", "name": "US 10-Year Treasury Yield", "kind": "rate", "in_ticker_bar": true, "ticker_bar_label": "US 10Y", "sort_order": 8},
+  {"symbol": "BTC-USD", "name": "Bitcoin", "kind": "crypto", "in_ticker_bar": true, "ticker_bar_label": "BTC", "sort_order": 9}
+]

@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-bg: #0b1220;
+  --color-card: #101a2c;
+  --color-card-2: #16223a;
+  --color-accent: #1b2740;
+  --color-line: #1e2a44;
+  --color-fg: #e5e7eb;
+  --color-muted: #94a3b8;
+  --color-primary: #f5a524;
+  --color-primary-fg: #221503;
+  --color-solar-to: #f2545b;
+  --color-up: #2fbf8f;
+  --color-down: #f07538;
+  --color-data-1: #56b4e9;
+  --color-data-2: #e69f00;
+  --color-data-3: #2fbf8f;
+  --color-data-4: #cc79a7;
+}
+
+html { color-scheme: dark; }
+body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+.solar-text { background: linear-gradient(100deg, #f5a524, #f2545b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.solar-bg { background: linear-gradient(100deg, #f5a524, #f2545b); }
+.glass { background: #1b274080; border: 1px solid #8ba8f024; backdrop-filter: blur(12px); }
+.num { font-variant-numeric: tabular-nums; }
+.hero-glow { background: radial-gradient(60% 50% at 20% 0%, #f5a52418 0%, transparent 70%), radial-gradient(40% 40% at 90% 10%, #f2545b12 0%, transparent 70%); }
+
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.animate-ticker { animation: ticker 60s linear infinite; }
+.animate-ticker:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .animate-ticker { animation: none; } }
+
+.prose-irai h2 { font-size: 1.25rem; font-weight: 600; margin: 1.75rem 0 .5rem; }
+.prose-irai p { color: #cbd5e1; line-height: 1.75; margin: .75rem 0; }
+.prose-irai ol, .prose-irai ul { padding-left: 1.25rem; color: #cbd5e1; line-height: 1.75; }
+.prose-irai ol { list-style: decimal; } .prose-irai ul { list-style: disc; }
+.prose-irai strong { color: #f3f4f6; }

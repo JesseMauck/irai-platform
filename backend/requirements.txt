@@ -1,0 +1,22 @@
+# IRAI platform API
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+email-validator>=2.1
+sqlalchemy>=2.0
+psycopg[binary]>=3.1     # PostgreSQL driver (DATABASE_URL=postgresql+psycopg://...)
+pyjwt>=2.8
+bcrypt>=4.1
+httpx>=0.27
+# ValueBot engine + live data
+anthropic>=0.40
+yfinance>=0.2.40
+pandas>=2.0
+xlrd>=2.0
+openpyxl>=3.1
+numpy>=1.26
+matplotlib>=3.8
+jinja2>=3.1
+markdown>=3.5
+playwright>=1.40         # PDF export (playwright install chromium); optional
+pytest>=8

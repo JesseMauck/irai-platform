@@ -1,0 +1,96 @@
+[
+ {
+  "slug": "reading-the-adr-basis",
+  "title": "Reading the basis: why most ADR gaps are not mispricings",
+  "category": "Methodology",
+  "tickers": [
+   "TM",
+   "BP",
+   "TSM"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-11-02",
+  "read_minutes": 6,
+  "premium": false,
+  "summary": "A raw ADR premium mixes three things: FX timing, structural frictions and genuine dislocation. Only the last is interesting.",
+  "body_md": "## Three layers in every premium\n\nWhen an ADR trades at a premium to its local line, the raw number blends **timing** (the local market closed hours ago while FX kept moving), **structure** (custody fees, capital controls, dividend withholding, borrow scarcity) and **dislocation**.\n\nThe ADR Monitor separates them:\n\n1. Convert the local price to dollars at *current* FX and the depositary ratio.\n2. Estimate the **structural basis** as the pair's trailing median premium.\n3. Measure today's deviation from that basis in standard deviations of the pair's own history (the z-score).\n\n## Why the median, not zero\n\nSome pairs live permanently away from parity. Taiwan's foreign-ownership limits keep TSM above 2330.TW for long stretches; treating that premium as an opportunity has historically meant waiting a very long time. The basis absorbs those persistent frictions so the z-score only reacts to *changes*.\n\n## When the monitor says \"not tradable\"\n\nA large z-score is necessary but not sufficient. We reject a signal when the deviation is smaller than estimated round-trip costs, when the local line cannot be borrowed, when the local market is closed (no live hedge), or when the fair value is stale. Each rejection is printed next to the row so you can disagree with it."
+ },
+ {
+  "slug": "etf-premium-fee-not-signal",
+  "title": "When an ETF premium is a fee, not a signal",
+  "category": "ETF",
+  "tickers": [
+   "EEM",
+   "EMB",
+   "HYG"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-10-27",
+  "read_minutes": 5,
+  "premium": false,
+  "summary": "Bond and emerging-market funds routinely trade away from NAV. Most of that gap is the price of liquidity.",
+  "body_md": "## NAV is a stale anchor for some funds\n\nAn ETF's published NAV is struck from closing prices of its holdings. For a US large-cap fund those prices are current; for an emerging-market bond fund many holdings did not trade at all that day and are marked by a pricing service.\n\n## The premium pays the market maker\n\nWhen investors pile into HYG during a selloff, the ETF price falls faster than the evaluated NAV. The \"discount\" is often the more accurate price, and the NAV is catching up. Authorized participants need a margin to cover the cost of buying or selling the underlying bonds, so a persistent premium or discount can simply be that cost.\n\n## How to read the ETF Monitor\n\nWe show price versus the issuer's prior-close NAV, label the tier honestly (free data has no intraday iNAV), and flag gaps above 0.5%. Treat flagged rows as a prompt to check liquidity, not as a trade."
+ },
+ {
+  "slug": "quality-adjusted-cheapness",
+  "title": "Cheap for a reason? Quality-adjusted valuation in practice",
+  "category": "Fundamental",
+  "tickers": [
+   "INTC",
+   "MU",
+   "NVDA"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-10-21",
+  "read_minutes": 8,
+  "premium": true,
+  "summary": "A low multiple alone is a weak signal. Regressing multiples on quality tells you whether a name is cheap for what it is.",
+  "body_md": "## The problem with low multiples\n\nScreens for low P/E or EV/EBITDA fill up with businesses whose returns are falling, whose balance sheets are stretched, or whose earnings are cyclically inflated. They are cheap because they deserve to be.\n\n## The regression\n\nWithin a peer group we build a **quality composite** from return on equity, operating margin and leverage (standardized and averaged), then regress the log of the multiple on it. The fitted line is the multiple the group \"pays\" for a given level of quality. The **residual** is how far each name sits from that line.\n\nA name below the line is cheap *for its quality*; above it, expensive. We convert the residual into a percentile within the group and map that to a letter grade.\n\n## Limits\n\nPeer groups are judgement calls, trailing data lags, and a regression on eight names is noisy. That is why every grade prints its peer count and coverage next to the score."
+ },
+ {
+  "slug": "valuebot-narrative-and-numbers",
+  "title": "From story to value: how ValueBot builds a DCF",
+  "category": "Methodology",
+  "tickers": [
+   "AAPL",
+   "MSFT"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-10-15",
+  "read_minutes": 7,
+  "premium": false,
+  "summary": "ValueBot turns an investment thesis into growth, margin, reinvestment and risk drivers, then tests whether the story is possible, plausible and probable.",
+  "body_md": "## The five questions\n\nEvery valuation answers five questions: how big can revenue get, how profitable will the business be at scale, how much must it reinvest, how risky is it, and when does it mature. ValueBot asks you for the story behind each, or drafts a bullish, bearish or neutral one from the filings.\n\n## Measuring earnings right\n\nBefore projecting, ValueBot capitalizes R&D (so research is treated as investment, not expense), moves operating leases into debt, and strips one-time items. Then it chooses the framework: free-cash-flow-to-firm for most companies, excess-return for banks and insurers, and dividend discount for high-payout utilities.\n\n## Testing the story\n\nThe output includes break-even values for every key driver, a correlated Monte Carlo simulation, an exact reverse DCF showing what the market price implies, and an Excel model with live formulas you can edit."
+ },
+ {
+  "slug": "japan-adr-discounts",
+  "title": "The quiet discount in Japanese ADRs",
+  "category": "ADR",
+  "tickers": [
+   "TM",
+   "SONY"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-10-08",
+  "read_minutes": 6,
+  "premium": true,
+  "summary": "Tokyo closes before New York opens, so Japanese ADRs spend most of the US session priced against a stale local close.",
+  "body_md": "## A timing problem, mostly\n\nThe Tokyo Stock Exchange closes at 15:30 JST, which is before the US open. For the entire New York session the \"local\" price is the previous close, while yen keeps moving and US futures keep repricing Japan. Gaps of one or two percent are normal and usually close at the next Tokyo open.\n\n## What the monitor does with this\n\nDuring US hours Japanese pairs are labelled **PROXY**: fair value uses the last Tokyo close at live FX. Confidence is reduced, and the monitor will not mark them tradable because there is no live hedge. Look at z-scores *at the Tokyo open* for a cleaner read."
+ },
+ {
+  "slug": "three-screens-fast-reversion",
+  "title": "Three screens for fast-reverting gaps",
+  "category": "ETF",
+  "tickers": [
+   "EWZ",
+   "FXI",
+   "EWJ"
+  ],
+  "author": "IRAI Research",
+  "published_at": "2026-09-30",
+  "read_minutes": 4,
+  "premium": false,
+  "summary": "Half-life filters cut the list of interesting gaps to the ones that historically close within days.",
+  "body_md": "## Screen 1: |z| above 2 with a half-life under three days\nLarge deviations that have historically closed quickly.\n\n## Screen 2: Country ETFs whose home market is closed\nEWJ, EWZ and FXI price off markets that may be shut. Their premium versus NAV often reflects news the NAV has not seen yet.\n\n## Screen 3: Discount plus improving quality\nCombine the Fundamental RV percentile with a rising quality composite to find names where the market has not caught up with the improvement."
+ }
+]

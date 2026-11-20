@@ -1,0 +1,15 @@
+[
+  {"name": "Semiconductors", "sector": "Technology", "members": [
+    ["NVDA","NVIDIA"],["AMD","Advanced Micro Devices"],["AVGO","Broadcom"],["INTC","Intel"],["QCOM","Qualcomm"],
+    ["TXN","Texas Instruments"],["MU","Micron Technology"],["ADI","Analog Devices"],["NXPI","NXP Semiconductors"],["MRVL","Marvell Technology"]]},
+  {"name": "Megacap Internet", "sector": "Communication", "members": [
+    ["GOOGL","Alphabet"],["META","Meta Platforms"],["AMZN","Amazon"],["NFLX","Netflix"],["BKNG","Booking Holdings"],["UBER","Uber Technologies"]]},
+  {"name": "Large Pharma", "sector": "Healthcare", "members": [
+    ["LLY","Eli Lilly"],["JNJ","Johnson & Johnson"],["MRK","Merck"],["PFE","Pfizer"],["ABBV","AbbVie"],["BMY","Bristol-Myers Squibb"],["AZN","AstraZeneca"],["NVS","Novartis"]]},
+  {"name": "Integrated Oil", "sector": "Energy", "members": [
+    ["XOM","Exxon Mobil"],["CVX","Chevron"],["SHEL","Shell"],["BP","BP"],["TTE","TotalEnergies"],["COP","ConocoPhillips"]]},
+  {"name": "US Money-Center Banks", "sector": "Financials", "members": [
+    ["JPM","JPMorgan Chase"],["BAC","Bank of America"],["C","Citigroup"],["WFC","Wells Fargo"],["GS","Goldman Sachs"],["MS","Morgan Stanley"]]},
+  {"name": "Consumer Staples", "sector": "Consumer", "members": [
+    ["PG","Procter & Gamble"],["KO","Coca-Cola"],["PEP","PepsiCo"],["UL","Unilever"],["CL","Colgate-Palmolive"],["MDLZ","Mondelez"]]}
+]

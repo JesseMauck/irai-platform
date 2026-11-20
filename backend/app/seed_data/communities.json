@@ -1,0 +1,10 @@
+[
+  {"slug": "adr-arbitrage", "name": "ADR Arbitrage", "description": "Cross-listings, depositary ratios, basis and borrow.", "member_count": 0},
+  {"slug": "etf-mechanics", "name": "ETF Mechanics", "description": "Creation/redemption, NAV vs price, tracking error.", "member_count": 0},
+  {"slug": "fundamental-value", "name": "Fundamental Value", "description": "Quality-adjusted valuation, peers, and accounting.", "member_count": 0},
+  {"slug": "valuebot-models", "name": "ValueBot Models", "description": "Share and critique ValueBot DCF runs and their assumptions.", "member_count": 0},
+  {"slug": "global-markets", "name": "Global Markets", "description": "Macro, FX and rates context for relative value.", "member_count": 0},
+  {"slug": "trade-journals", "name": "Trade Journals", "description": "Structured trade posts with captured entry prices.", "member_count": 0},
+  {"slug": "platform-feedback", "name": "Platform Feedback", "description": "Bugs, ideas and methodology questions for the team.", "member_count": 0},
+  {"slug": "pro-room", "name": "Pro Room", "description": "Pair ideas and score-spread discussion for Pro members.", "member_count": 0, "pro_only": true}
+]

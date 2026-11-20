@@ -1,0 +1,16 @@
+[
+  {"adr_symbol": "TM",   "local_symbol": "7203.T",      "name": "Toyota Motor",              "country": "Japan",       "local_currency": "JPY", "ratio": 10,  "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "SONY", "local_symbol": "6758.T",      "name": "Sony Group",                "country": "Japan",       "local_currency": "JPY", "ratio": 1,   "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "TSM",  "local_symbol": "2330.TW",     "name": "Taiwan Semiconductor",      "country": "Taiwan",      "local_currency": "TWD", "ratio": 5,   "shortable_local": false, "round_trip_cost_bps": 45},
+  {"adr_symbol": "BABA", "local_symbol": "9988.HK",     "name": "Alibaba Group",             "country": "Hong Kong",   "local_currency": "HKD", "ratio": 8,   "shortable_local": true,  "round_trip_cost_bps": 40},
+  {"adr_symbol": "HSBC", "local_symbol": "0005.HK",     "name": "HSBC Holdings",             "country": "Hong Kong",   "local_currency": "HKD", "ratio": 5,   "shortable_local": true,  "round_trip_cost_bps": 35},
+  {"adr_symbol": "BP",   "local_symbol": "BP.L",        "name": "BP",                        "country": "United Kingdom", "local_currency": "GBP", "ratio": 6, "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "SHEL", "local_symbol": "SHEL.L",      "name": "Shell",                     "country": "United Kingdom", "local_currency": "GBP", "ratio": 2, "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "AZN",  "local_symbol": "AZN.L",       "name": "AstraZeneca",               "country": "United Kingdom", "local_currency": "GBP", "ratio": 0.5, "shortable_local": true, "round_trip_cost_bps": 30},
+  {"adr_symbol": "UL",   "local_symbol": "ULVR.L",      "name": "Unilever",                  "country": "United Kingdom", "local_currency": "GBP", "ratio": 1, "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "NVS",  "local_symbol": "NOVN.SW",     "name": "Novartis",                  "country": "Switzerland", "local_currency": "CHF", "ratio": 1,   "shortable_local": true,  "round_trip_cost_bps": 30},
+  {"adr_symbol": "INFY", "local_symbol": "INFY.NS",     "name": "Infosys",                   "country": "India",       "local_currency": "INR", "ratio": 1,   "shortable_local": false, "round_trip_cost_bps": 60},
+  {"adr_symbol": "HDB",  "local_symbol": "HDFCBANK.NS", "name": "HDFC Bank",                 "country": "India",       "local_currency": "INR", "ratio": 3,   "shortable_local": false, "round_trip_cost_bps": 60},
+  {"adr_symbol": "VALE", "local_symbol": "VALE3.SA",    "name": "Vale",                      "country": "Brazil",      "local_currency": "BRL", "ratio": 1,   "shortable_local": true,  "round_trip_cost_bps": 50},
+  {"adr_symbol": "ITUB", "local_symbol": "ITUB4.SA",    "name": "Itaú Unibanco",             "country": "Brazil",      "local_currency": "BRL", "ratio": 1,   "shortable_local": true,  "round_trip_cost_bps": 50}
+]

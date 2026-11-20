@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: irai, POSTGRES_PASSWORD: irai, POSTGRES_DB: irai }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+  api:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://irai:irai@db:5432/irai
+      VALUEBOT_DATA_DIR: /data/runs
+    volumes: [runs:/data/runs]
+    depends_on: [db]
+    ports: ["8000:8000"]
+  web:
+    build: { context: ./frontend, args: { BACKEND_URL: "http://api:8000" } }
+    depends_on: [api]
+    ports: ["3000:3000"]
+volumes: { pgdata: {}, runs: {} }

@@ -1,0 +1,94 @@
+[
+ {
+  "key": "free",
+  "name": "Free",
+  "monthly": 0,
+  "annual": 0,
+  "tagline": "Headlines, summaries, and 3 full articles a month.",
+  "cta": "Create account",
+  "note": "No card needed",
+  "badge": null,
+  "features": [
+   "Top 5 monitor rows, 1-day delayed",
+   "Grade letters (blurred detail)",
+   "1 watchlist, 10 tickers",
+   "Read-only forum access",
+   "1 ValueBot run a month"
+  ],
+  "limits": {
+   "articles_per_month": 3,
+   "monitor_rows": 5,
+   "monitor_delay": "1 day",
+   "watchlists": 1,
+   "watchlist_size": 10,
+   "alerts": 0,
+   "valuebot_runs_per_month": 1,
+   "saved_screens": 0,
+   "post": false,
+   "csv_export": false,
+   "api": false
+  }
+ },
+ {
+  "key": "essential",
+  "name": "Essential",
+  "monthly": 49,
+  "annual": 490,
+  "tagline": "The full research core for independent investors.",
+  "cta": "Choose Essential",
+  "note": "7-day free trial · cancel anytime",
+  "badge": "Most popular",
+  "features": [
+   "Unlimited articles",
+   "Full grades with explanations",
+   "Full monitors, 15-min delayed",
+   "Email alerts (20 active)",
+   "Post, comment, vote, track trades",
+   "10 ValueBot runs a month"
+  ],
+  "limits": {
+   "articles_per_month": null,
+   "monitor_rows": null,
+   "monitor_delay": "15 min",
+   "watchlists": 10,
+   "watchlist_size": 100,
+   "alerts": 20,
+   "valuebot_runs_per_month": 10,
+   "saved_screens": 5,
+   "post": true,
+   "csv_export": false,
+   "api": false
+  }
+ },
+ {
+  "key": "pro",
+  "name": "Pro",
+  "monthly": 100,
+  "annual": 1000,
+  "tagline": "Everything, plus the deepest engine output.",
+  "cta": "Choose Pro",
+  "note": "Upgrade applies immediately, prorated",
+  "badge": null,
+  "features": [
+   "Real-time where licensed",
+   "Pair ideas and score-spread history",
+   "Unlimited screens, CSV export",
+   "Webhook alerts (100 active)",
+   "Verified-trader badge eligibility",
+   "Unlimited ValueBot runs + read-only API"
+  ],
+  "limits": {
+   "articles_per_month": null,
+   "monitor_rows": null,
+   "monitor_delay": "real-time where licensed",
+   "watchlists": null,
+   "watchlist_size": null,
+   "alerts": 100,
+   "valuebot_runs_per_month": null,
+   "saved_screens": null,
+   "post": true,
+   "csv_export": true,
+   "api": true
+  }
+ }
+]

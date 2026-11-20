@@ -1,0 +1,62 @@
+[
+ {
+  "term": "ADR premium / discount",
+  "definition": "The ADR price divided by the dollar value of the local shares it represents (local price \u00d7 depositary ratio \u00d7 FX), minus one."
+ },
+ {
+  "term": "Depositary ratio",
+  "definition": "How many local ordinary shares one ADR represents. Toyota: 10. AstraZeneca: 0.5."
+ },
+ {
+  "term": "Structural basis",
+  "definition": "The pair's typical premium, measured as its trailing median. It absorbs persistent frictions such as ownership limits, fees and borrow scarcity."
+ },
+ {
+  "term": "Z-score",
+  "definition": "Today's deviation from the structural basis divided by the standard deviation of past deviations. |z| \u2265 2 is unusual."
+ },
+ {
+  "term": "Half-life",
+  "definition": "How many trading days a deviation has historically taken to shrink by half, estimated from an AR(1) fit."
+ },
+ {
+  "term": "Fair-value source",
+  "definition": "LIVE: both legs fresh. PROXY: the local market is closed, so its last close is used at live FX. STALE: a price is older than 30 minutes. DEMO: synthetic data."
+ },
+ {
+  "term": "NAV / iNAV",
+  "definition": "Net asset value per fund share. NAV is struck at the close; iNAV is an intraday estimate. The ETF Monitor uses the issuer's prior-close NAV."
+ },
+ {
+  "term": "Implementation tier",
+  "definition": "How the fair value for a fund was built. Here: NAV (prior close), because free data has no intraday iNAV."
+ },
+ {
+  "term": "Tracking error",
+  "definition": "The volatility of the difference between a fund's return and its index's return."
+ },
+ {
+  "term": "Quality composite",
+  "definition": "The average of standardized ROE, operating margin and (inverted) leverage within a peer group."
+ },
+ {
+  "term": "Relative value residual",
+  "definition": "The gap between a company's log multiple and the multiple its quality would justify in the peer regression. Negative is cheap."
+ },
+ {
+  "term": "Point-in-time grade",
+  "definition": "A grade stored with the data available when it was computed and never restated with hindsight."
+ },
+ {
+  "term": "Timestamp-verified trade",
+  "definition": "A trade post whose entry price was captured by the platform from market data at the moment of posting and cannot be edited."
+ },
+ {
+  "term": "Reverse DCF",
+  "definition": "The value of a key driver (growth, margin) that makes the DCF value equal the market price: what the market is implicitly assuming."
+ },
+ {
+  "term": "Margin of safety",
+  "definition": "How far below estimated value the price sits. ValueBot scales the required margin with the uncertainty of the valuation."
+ }
+]
