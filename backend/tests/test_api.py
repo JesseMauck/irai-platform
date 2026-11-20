@@ -347,3 +347,60 @@ def test_saved_screens(client):
         s.last_symbols = []
         db.commit()
         assert check_screen_alerts(db) >= 1
+
+
+def _admin(client):
+    from app.db import SessionLocal
+    from app.models import User
+    h = signup(client, "pro")
+    uid = client.get("/api/auth/me", headers=h).json()["id"]
+    with SessionLocal() as db:
+        db.get(User, uid).is_admin = True
+        db.commit()
+    return h, uid
+
+
+def test_admin_requires_admin(client):
+    assert client.get("/api/admin/stats", headers=signup(client, "pro")).status_code == 403
+    h, _ = _admin(client)
+    s = client.get("/api/admin/stats", headers=h).json()
+    assert s["users"]["total"] > 0 and "by_plan" in s["users"]
+
+
+def test_admin_users_and_disable(client):
+    h, me_id = _admin(client)
+    victim = signup(client)
+    vid = client.get("/api/auth/me", headers=victim).json()["id"]
+    assert client.patch(f"/api/admin/users/{vid}", json={"plan": "essential"}, headers=h).status_code == 200
+    time.sleep(1.1)
+    assert client.patch(f"/api/admin/users/{vid}", json={"disabled": True}, headers=h).status_code == 200
+    assert client.get("/api/auth/me", headers=victim).status_code == 401
+    assert client.patch(f"/api/admin/users/{me_id}", json={"disabled": True}, headers=h).status_code == 409
+    assert client.patch(f"/api/admin/users/{vid}", json={"plan": "gold"}, headers=h).status_code == 422
+
+
+def test_admin_articles_coverage_moderation(client):
+    h, _ = _admin(client)
+    art = {"slug": "test-article-xyz", "title": "A test article", "category": "ADR", "tickers": ["tm"],
+           "summary": "A summary long enough.", "body_md": "## Hello\n\nBody text that is long enough.", "author": "Admin"}
+    aid = client.post("/api/admin/articles", json=art, headers=h).json()["id"]
+    assert client.post("/api/admin/articles", json=art, headers=h).status_code == 409
+    assert client.get("/api/research/articles/test-article-xyz").json()["tickers"] == ["TM"]
+    client.put(f"/api/admin/articles/{aid}", json={**art, "title": "Edited title"}, headers=h)
+    assert client.get("/api/research/articles/test-article-xyz").json()["title"] == "Edited title"
+    client.delete(f"/api/admin/articles/{aid}", headers=h)
+    assert client.get("/api/research/articles/test-article-xyz").status_code == 404
+
+    client.put("/api/admin/coverage/adr", json={"adr_symbol": "rio", "local_symbol": "rio.l", "name": "Rio Tinto",
+                                                "country": "United Kingdom", "local_currency": "gbp", "ratio": 1}, headers=h)
+    cov = client.get("/api/admin/coverage", headers=h).json()
+    assert any(p["adr_symbol"] == "RIO" and p["local_currency"] == "GBP" for p in cov["adr_pairs"])
+    assert client.post("/api/admin/coverage/peers", json={"group": "Test Group", "symbol": "aaa", "name": "AAA"}, headers=h).status_code == 200
+    assert client.post("/api/admin/coverage/peers", json={"group": "Test Group", "symbol": "AAA", "name": "AAA"}, headers=h).status_code == 409
+
+    poster = signup(client, "essential")
+    t = client.post("/api/community/threads", json={"community": "etf-mechanics", "title": "Spam thread here", "body": "buy now"}, headers=poster).json()
+    assert client.post(f"/api/admin/moderate/thread/{t['id']}", json={"action": "hide", "reason": "Promotion"}, headers=h).json()["hidden"]
+    assert all(x["id"] != t["id"] for x in client.get("/api/community/threads").json())
+    assert client.get(f"/api/community/threads/{t['id']}").status_code == 404
+    assert client.get("/api/admin/moderation-log", headers=h).json()[0]["reason"] == "Promotion"

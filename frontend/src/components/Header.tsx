@@ -72,6 +72,7 @@ export function Header() {
           <TickerSearch />
           {user ? (
             <>
+              {user.is_admin && <Link href="/admin" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">Admin</Link>}
               <Link href="/account" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">@{user.handle}</Link>
               {user.plan !== "pro" && <Link href="/pricing" className="solar-bg rounded-lg px-3 py-1.5 text-sm font-semibold text-primary-fg">Upgrade</Link>}
               <button onClick={logout} className="hidden text-sm text-muted hover:text-fg md:block">Sign out</button>

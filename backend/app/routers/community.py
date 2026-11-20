@@ -44,7 +44,7 @@ def _trade(t: TradePost) -> dict:
 def communities(db: Session = Depends(get_db)):
     out = []
     for c in db.scalars(select(Community).order_by(Community.id)):
-        n = db.scalar(select(func.count()).select_from(Thread).where(Thread.community_id == c.id)) or 0
+        n = db.scalar(select(func.count()).select_from(Thread).where(Thread.community_id == c.id, Thread.hidden.is_(False))) or 0
         out.append({"slug": c.slug, "name": c.name, "description": c.description, "members": c.member_count,
                     "threads": n, "pro_only": c.pro_only})
     return out
@@ -52,7 +52,7 @@ def communities(db: Session = Depends(get_db)):
 
 @router.get("/threads")
 def threads(community: str | None = None, db: Session = Depends(get_db)):
-    q = select(Thread).join(Community).order_by(Thread.last_activity_at.desc()).limit(50)
+    q = select(Thread).join(Community).where(Thread.hidden.is_(False)).order_by(Thread.last_activity_at.desc()).limit(50)
     if community:
         q = q.where(Community.slug == community)
     return [_thread(t) for t in db.scalars(q)]
@@ -83,9 +83,9 @@ def create_thread(body: ThreadIn, user: User = Depends(current_user), db: Sessio
 @router.get("/threads/{thread_id}")
 def get_thread(thread_id: int, db: Session = Depends(get_db)):
     t = db.get(Thread, thread_id)
-    if not t:
+    if not t or t.hidden:
         raise HTTPException(404)
-    posts = db.scalars(select(Post).where(Post.thread_id == t.id).order_by(Post.created_at)).all()
+    posts = db.scalars(select(Post).where(Post.thread_id == t.id, Post.hidden.is_(False)).order_by(Post.created_at)).all()
     return {**_thread(t), "body": t.body_md,
             "posts": [{"id": p.id, "author": p.author.handle, "body": p.body_md,
                        "created_at": p.created_at.isoformat() if p.created_at else None} for p in posts]}
@@ -138,7 +138,7 @@ def vote(target_type: str, target_id: int, body: VoteIn, user: User = Depends(cu
 # ── trades ────────────────────────────────────────────────────────────────────────────────────────
 @router.get("/trades")
 def trades(status: str | None = None, db: Session = Depends(get_db)):
-    q = select(TradePost).order_by(TradePost.created_at.desc()).limit(100)
+    q = select(TradePost).where(TradePost.hidden.is_(False)).order_by(TradePost.created_at.desc()).limit(100)
     if status in ("open", "closed"):
         q = q.where(TradePost.status == status)
     return [_trade(t) for t in db.scalars(q)]

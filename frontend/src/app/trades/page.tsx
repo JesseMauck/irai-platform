@@ -43,6 +43,7 @@ export default function Trades() {
               <span>@{t.author}</span><span>entry {num(t.entry_long)}{t.entry_short != null && ` / ${num(t.entry_short)}`}</span>
               {t.exit_long != null && <span>exit {num(t.exit_long)}{t.exit_short != null && ` / ${num(t.exit_short)}`}</span>}
               {t.return_pct != null && <span className={`font-semibold ${tone(t.return_pct)}`}>{pct(t.return_pct)}</span>}
+              {user?.is_admin && <button onClick={async () => { const reason = prompt("Reason for hiding (logged)"); if (reason) { await api(`/api/admin/moderate/trade/${t.id}`, { method: "POST", json: { action: "hide", reason } }); reload(); } }} className="text-down">Hide</button>}
               {user?.handle === t.author && t.status === "open" && <button onClick={() => close(t.id)} className="ml-auto text-primary">Close at live price</button>}
             </div>
           </Card>
