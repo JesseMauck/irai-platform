@@ -23,8 +23,58 @@ from .routers.me import check_screen_alerts, evaluate_alerts
 log = logging.getLogger("irai.worker")
 
 
+PREWARM_EVERY = int(os.environ.get("IRAI_PREWARM_SECONDS", "300"))
+_last_prewarm = 0.0
+
+
+def coverage_symbols(db) -> list[str]:
+    """Every symbol a public page needs: ticker bar, ADR legs + FX, ETFs, peer groups."""
+    from sqlalchemy import select
+
+    from .models import AdrPair, EtfFund, Instrument, PeerMember
+
+    syms: list[str] = list(db.scalars(select(Instrument.symbol).where(Instrument.in_ticker_bar)))
+    from .market.engines import fx_symbol
+
+    for a in db.scalars(select(AdrPair)):
+        fx = fx_symbol(getattr(a, "local_currency", "") or "")
+        syms += [a.adr_symbol, a.local_symbol] + ([fx] if fx else [])
+    syms += list(db.scalars(select(EtfFund.symbol)))
+    syms += list(db.scalars(select(PeerMember.symbol)))
+    seen, out = set(), []
+    for s in syms:
+        if s and s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def prewarm(db, pause: float = 0.4) -> dict:
+    """Refresh stored quotes for covered symbols at a gentle pace, so pages always have a recent
+    last-known price (shown as STALE) even when the live feed is rate-limiting the web server."""
+    from .market import service
+
+    ok = live = 0
+    for sym in coverage_symbols(db):
+        if service.cooling_down():
+            break
+        try:
+            q = service.quote(sym)
+            ok += 1
+            live += q.get("source") == "LIVE"
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(pause)
+    return {"fetched": ok, "live": live, "cooling_down": service.cooling_down()}
+
+
 def tick() -> dict:
+    global _last_prewarm
     out = {}
+    if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
+        _last_prewarm = time.time()
+        with SessionLocal() as db:
+            out["prewarm"] = prewarm(db)
     with SessionLocal() as db:
         out["alerts"] = len(evaluate_alerts(db))
     with SessionLocal() as db:

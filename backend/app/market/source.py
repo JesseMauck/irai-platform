@@ -21,12 +21,28 @@ from typing import Any, Protocol
 import httpx
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+CHART_HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
+CHART_URL = CHART_HOSTS[0] + "/v8/finance/chart/{symbol}"
 SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
 
 
 class SourceError(RuntimeError):
     pass
+
+
+class RateLimited(SourceError):
+    """The feed refused us for sending too many requests (HTTP 429). Callers should back off."""
+
+
+def _browser_session():
+    """A curl_cffi session that presents a real browser TLS fingerprint. Yahoo rate-limits generic HTTP
+    clients from cloud IPs far more aggressively than browsers; falls back to httpx if unavailable."""
+    try:
+        from curl_cffi import requests as creq
+
+        return creq.Session(impersonate="chrome", timeout=10)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 class MarketSource(Protocol):
@@ -103,18 +119,39 @@ class YahooSource:
     def __init__(self, timeout: float = 10.0, client: httpx.Client | None = None):
         self._client = client or httpx.Client(headers={"User-Agent": UA, "Accept": "application/json"},
                                               timeout=timeout, follow_redirects=True)
+        # Tests inject an httpx client; production uses the browser-fingerprint session when available.
+        self._browser = None if client is not None else _browser_session()
+
+    def _get(self, url: str, params: dict[str, Any]) -> tuple[int, Any]:
+        if self._browser is not None:
+            try:
+                r = self._browser.get(url, params=params)
+                return r.status_code, r
+            except Exception as e:  # noqa: BLE001  (curl errors -> treat like a network error)
+                raise SourceError(type(e).__name__) from e
+        try:
+            r = self._client.get(url, params=params)
+        except httpx.HTTPError as e:
+            raise SourceError(type(e).__name__) from e
+        return r.status_code, r
 
     def chart(self, symbol: str, range_: str = "1y", interval: str = "1d") -> dict[str, Any]:
-        try:
-            r = self._client.get(CHART_URL.format(symbol=symbol), params={"range": range_, "interval": interval,
-                                                                          "includePrePost": "false"})
-        except httpx.HTTPError as e:
-            raise SourceError(f"{symbol}: {type(e).__name__}") from e
-        if r.status_code == 404:
-            raise SourceError(f"Unknown symbol {symbol}")
-        if r.status_code >= 400:
-            raise SourceError(f"{symbol}: HTTP {r.status_code}")
-        return parse_chart(symbol, r.json())
+        params = {"range": range_, "interval": interval, "includePrePost": "false"}
+        last = 0
+        for host in CHART_HOSTS:  # query2 is a separate pool; try it once if query1 refuses
+            try:
+                status, r = self._get(f"{host}/v8/finance/chart/{symbol}", params)
+            except SourceError as e:
+                raise SourceError(f"{symbol}: {e}") from e
+            last = status
+            if status == 404:
+                raise SourceError(f"Unknown symbol {symbol}")
+            if status == 429:
+                continue
+            if status >= 400:
+                raise SourceError(f"{symbol}: HTTP {status}")
+            return parse_chart(symbol, r.json())
+        raise RateLimited(f"{symbol}: HTTP {last}")
 
     def info(self, symbol: str) -> dict[str, Any]:
         try:
@@ -129,10 +166,13 @@ class YahooSource:
 
     def search(self, q: str) -> list[dict[str, Any]]:
         try:
-            r = self._client.get(SEARCH_URL, params={"q": q, "quotesCount": 10, "newsCount": 0})
-            r.raise_for_status()
+            status, r = self._get(SEARCH_URL, {"q": q, "quotesCount": 10, "newsCount": 0})
+            if status == 429:
+                raise RateLimited("search: HTTP 429")
+            if status >= 400:
+                raise SourceError(f"search: HTTP {status}")
             quotes = r.json().get("quotes") or []
-        except (httpx.HTTPError, ValueError) as e:
+        except ValueError as e:
             raise SourceError(f"search: {e}") from e
         return [{"symbol": x.get("symbol"), "name": x.get("longname") or x.get("shortname") or x.get("symbol"),
                  "exchange": x.get("exchDisp") or x.get("exchange"), "type": x.get("quoteType")}

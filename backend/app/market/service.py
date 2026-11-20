@@ -16,10 +16,49 @@ from typing import Any
 
 from ..config import settings
 from ..db import SessionLocal
-from .source import DemoSource, MarketSource, SourceError, YahooSource, parallel
+from .source import DemoSource, MarketSource, RateLimited, SourceError, YahooSource, parallel
 
 _lock = threading.Lock()
 _mem: dict[tuple[str, str], tuple[float, Any]] = {}
+_inflight: dict[tuple[str, str], threading.Lock] = {}
+_live_slots = threading.BoundedSemaphore(4)  # at most 4 concurrent requests to the live feed
+FALLBACK_TTL = 60.0  # retry the live feed a minute after serving a stored/demo fallback
+
+# Back-off when the feed rate-limits us: no live calls until _cooldown_until, doubling up to 10 minutes.
+_cooldown_until = 0.0
+_cooldown_s = 0.0
+_COOLDOWN_MIN, _COOLDOWN_MAX = 30.0, 600.0
+
+
+def _note_rate_limited() -> None:
+    global _cooldown_until, _cooldown_s
+    with _lock:
+        _cooldown_s = min(_COOLDOWN_MAX, max(_COOLDOWN_MIN, _cooldown_s * 2))
+        _cooldown_until = time.time() + _cooldown_s
+
+
+def _note_live_ok() -> None:
+    global _cooldown_s
+    with _lock:
+        _cooldown_s = 0.0
+
+
+def cooling_down() -> bool:
+    return time.time() < _cooldown_until
+
+
+def _live_call(fn):
+    """Run one live-feed call under the concurrency cap and circuit breaker."""
+    if cooling_down():
+        raise RateLimited("feed cooling down after rate limit")
+    with _live_slots:
+        try:
+            out = fn()
+        except RateLimited:
+            _note_rate_limited()
+            raise
+    _note_live_ok()
+    return out
 _source: MarketSource | None = None
 _demo = DemoSource()
 
@@ -44,27 +83,56 @@ def set_source(src: MarketSource | None) -> None:
 
 
 def _cached(kind: str, key: str, ttl: float, fn):
-    now = time.time()
+    """Memoise fn() for ttl seconds. Concurrent callers for the same key share one fetch.
+    fn may return (value, ttl_override) via _Short to cache a fallback for less time."""
+    k = (kind, key)
+
+    def fresh():
+        with _lock:
+            hit = _mem.get(k)
+        if hit and time.time() < hit[0]:
+            return True, hit[1]
+        return False, None
+
+    ok, val = fresh()
+    if ok:
+        return val
     with _lock:
-        hit = _mem.get((kind, key))
-    if hit and now - hit[0] < ttl:
-        return hit[1]
-    val = fn()
-    with _lock:
-        _mem[(kind, key)] = (now, val)
-    return val
+        gate = _inflight.setdefault(k, threading.Lock())
+    with gate:
+        ok, val = fresh()  # another caller may have filled it while we waited
+        if ok:
+            return val
+        val = fn()
+        life = ttl
+        if isinstance(val, _Short):
+            val, life = val.value, min(ttl, FALLBACK_TTL)
+        with _lock:
+            _mem[k] = (time.time() + life, val)
+        return val
 
 
-def _persist(quote: dict[str, Any]) -> None:
+class _Short:
+    """Wrapper marking a fallback value that should be cached briefly."""
+    def __init__(self, value: Any):
+        self.value = value
+
+
+def _persist(quote: dict[str, Any], history: list[dict[str, Any]] | None = None) -> None:
     from ..models import QuoteCache
 
     try:
         with SessionLocal() as db:
             row = db.get(QuoteCache, quote["symbol"])
+            payload = dict(quote)
+            if history:
+                payload["_history"] = history[-260:]  # ~1y of daily closes so charts survive outages
+            elif row is not None and row.payload.get("_history"):
+                payload["_history"] = row.payload["_history"]
             if row is None:
-                db.add(QuoteCache(symbol=quote["symbol"], payload=quote))
+                db.add(QuoteCache(symbol=quote["symbol"], payload=payload, fetched_at=dt.datetime.now(dt.timezone.utc)))
             else:
-                row.payload = quote
+                row.payload = payload
                 row.fetched_at = dt.datetime.now(dt.timezone.utc)
             db.commit()
     except Exception:  # noqa: BLE001  (cache persistence must never break a request)
@@ -79,12 +147,24 @@ def _stored(symbol: str) -> dict[str, Any] | None:
             row = db.get(QuoteCache, symbol)
             if row:
                 q = dict(row.payload)
+                q.pop("_history", None)
                 q["source"] = "STALE"
                 q["fetched_at"] = row.fetched_at.isoformat() if row.fetched_at else None
                 return q
     except Exception:  # noqa: BLE001
         pass
     return None
+
+
+def _stored_history(symbol: str) -> list[dict[str, Any]]:
+    from ..models import QuoteCache
+
+    try:
+        with SessionLocal() as db:
+            row = db.get(QuoteCache, symbol)
+            return list((row.payload or {}).get("_history") or []) if row else []
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def normalise_symbol(symbol: str) -> str:
@@ -98,18 +178,18 @@ def chart(symbol: str, range_: str = "1y") -> dict[str, Any]:
 
     def fetch():
         try:
-            data = src.chart(symbol, range_)
+            data = _live_call(lambda: src.chart(symbol, range_)) if src is not _demo else src.chart(symbol, range_)
             if data["quote"].get("source") != "DEMO":
-                _persist(data["quote"])
+                _persist(data["quote"], data["history"] if range_ == "1y" else None)
             return data
         except SourceError:
             if src is _demo:
                 raise
             stored = _stored(symbol)
             if stored:
-                return {"quote": stored, "history": []}
+                return _Short({"quote": stored, "history": _stored_history(symbol)})
             if settings.demo_fallback:
-                return _demo.chart(symbol, range_)
+                return _Short(_demo.chart(symbol, range_))
             raise
 
     ttl = settings.quote_ttl if range_ in ("1d", "5d") else min(settings.quote_ttl * 2, settings.history_ttl)
@@ -135,10 +215,12 @@ def info(symbol: str) -> dict[str, Any]:
 
     def fetch():
         try:
-            return {**src.info(symbol), "source": "DEMO" if src is _demo else "LIVE"}
+            if src is _demo:
+                return {**src.info(symbol), "source": "DEMO"}
+            return {**_live_call(lambda: src.info(symbol)), "source": "LIVE"}
         except SourceError:
             if src is not _demo and settings.demo_fallback:
-                return {**_demo.info(symbol), "source": "DEMO"}
+                return _Short({**_demo.info(symbol), "source": "DEMO"})
             raise
 
     return _cached("info", symbol, settings.info_ttl, fetch)
@@ -152,9 +234,9 @@ def search(q: str) -> list[dict[str, Any]]:
 
     def fetch():
         try:
-            return src.search(q)
+            return _live_call(lambda: src.search(q)) if src is not _demo else src.search(q)
         except SourceError:
-            return _demo.search(q) if settings.demo_fallback else []
+            return _Short(_demo.search(q) if settings.demo_fallback else [])
 
     return _cached("search", q.lower(), 3600, fetch)
 
@@ -162,4 +244,5 @@ def search(q: str) -> list[dict[str, Any]]:
 def status() -> dict[str, Any]:
     src = get_source()
     return {"mode": settings.market_mode, "source": src.name, "demo_fallback": settings.demo_fallback,
-            "cache_entries": len(_mem)}
+            "cache_entries": len(_mem), "cooling_down": cooling_down(),
+            "cooldown_seconds_left": max(0, round(_cooldown_until - time.time()))}

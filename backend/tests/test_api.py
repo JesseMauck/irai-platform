@@ -555,3 +555,11 @@ def test_guess_square_plan_key():
     assert guess_plan_key({"plan": "Essential", "name": "Monthly", "cadence": "MONTHLY"}, prices) == "essential_monthly"
     assert guess_plan_key({"plan": "Membership", "name": "Tier B", "cadence": "MONTHLY", "amount_cents": 10000}, prices) == "pro_monthly"
     assert guess_plan_key({"plan": "Other", "name": "X", "cadence": "WEEKLY", "amount_cents": 1}, prices) is None
+
+
+def test_worker_coverage_symbols():
+    from app.db import SessionLocal
+    from app.jobs import coverage_symbols
+    with SessionLocal() as db:
+        syms = coverage_symbols(db)
+    assert len(syms) == len(set(syms)) and len(syms) > 20

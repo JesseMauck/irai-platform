@@ -160,3 +160,36 @@ def test_compose_db_url_encodes_password(monkeypatch):
     import os
     assert os.environ["DATABASE_URL"] == "postgresql://postgres.ref:p%40ss%3Aw%2Frd%21%23@aws-0-us-west-2.pooler.supabase.com:5432/postgres"
     monkeypatch.delenv("DATABASE_URL")
+
+
+def test_rate_limit_backs_off_and_serves_fallback(monkeypatch):
+    from app.market import service
+    from app.market.source import RateLimited
+
+    calls = {"n": 0}
+
+    class Limited:
+        name = "limited"
+
+        def chart(self, symbol, range_="1y", interval="1d"):
+            calls["n"] += 1
+            raise RateLimited("HTTP 429")
+
+        def info(self, symbol):
+            raise RateLimited("HTTP 429")
+
+        def search(self, q):
+            raise RateLimited("HTTP 429")
+
+    service.set_source(Limited())
+    monkeypatch.setattr(service, "_cooldown_until", 0.0)
+    monkeypatch.setattr(service, "_cooldown_s", 0.0)
+    try:
+        q = service.quote("ZZZTEST1")
+        assert q["source"] in ("DEMO", "STALE")
+        assert service.cooling_down()
+        service.quote("ZZZTEST2")  # in cooldown: no live call made
+        assert calls["n"] == 1
+    finally:
+        service.set_source(None)
+        monkeypatch.setattr(service, "_cooldown_until", 0.0)
