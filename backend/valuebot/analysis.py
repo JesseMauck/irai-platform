@@ -281,8 +281,15 @@ def default_drivers(method: str, snap: dict, metrics: list[dict], coc: CostOfCap
         why["revenue_growth_y1"] = "Analyst consensus for next fiscal year." if cons is not None else "Last fiscal year's revenue growth."
         revs = [m["revenue"] for m in metrics if m["revenue"]]
         cagr = (revs[-1] / revs[0]) ** (1 / (len(revs) - 1)) - 1 if len(revs) > 1 and revs[0] > 0 else d["revenue_growth_y1"]
-        d["revenue_growth_y2_5"] = _clamp(0.85 * (d["revenue_growth_y1"] + cagr) / 2, -0.05, 0.4)
+        # Scale discipline: the bigger the revenue base, the lower the sustainable multi-year growth ceiling
+        # (40% for a $50B-revenue company, ~25% at $330B, floor 8%). Avoids extrapolating hyper-growth.
+        rev0 = revs[-1] if revs else 0
+        cap = _clamp(0.40 * (50e9 / rev0) ** 0.25, 0.08, 0.40) if rev0 > 50e9 else 0.40
+        raw = 0.85 * (d["revenue_growth_y1"] + cagr) / 2
+        d["revenue_growth_y2_5"] = _clamp(raw, -0.05, cap)
         why["revenue_growth_y2_5"] = f"Fades the {len(revs) - 1}-year historical CAGR ({cagr:.1%}) and year-1 growth by 15% for scale."
+        if raw > cap:
+            why["revenue_growth_y2_5"] += f" Capped at {cap:.0%} for a ${rev0 / 1e9:,.0f}B revenue base."
         m_last = last["operating_margin"] or 0.0
         adjusted = " (adjusted: " + ", ".join(i["item"] for i in earnings.get("items", [])) + ")" if earnings.get("items") else ""
         if earnings.get("normalize") and earnings.get("average_margin") is not None:
@@ -309,10 +316,17 @@ def default_drivers(method: str, snap: dict, metrics: list[dict], coc: CostOfCap
         why["wacc_initial"] = f"CAPM with beta {coc.beta:.2f}, ERP {coc.erp:.2%}, synthetic rating {coc.rating}."
         d["wacc_terminal"] = coc.terminal_wacc
         why["wacc_terminal"] = "Mature-firm cost of capital: beta converges to 1."
-        d["terminal_growth"] = min(rf, coc.terminal_wacc - 0.01)
-        why["terminal_growth"] = "Capped at the risk-free rate: no firm outgrows the economy forever."
-        d["terminal_roc"] = coc.terminal_wacc
-        why["terminal_roc"] = "Return on capital equals cost of capital in stable growth (no perpetual moat)."
+        d["terminal_growth"] = min(rf, 0.04, coc.terminal_wacc - 0.01)
+        why["terminal_growth"] = ("The lower of the risk-free rate and 4% long-run nominal growth: no firm outgrows the "
+                                  "economy forever.")
+        # Excess returns fade but rarely vanish for firms that earn them today: keep half of today's spread
+        # over the mature cost of capital (ROIC capped at 35%). Firms without excess returns get ROIC = WACC.
+        roic_now = last.get("roic")
+        spread = max(0.0, min(roic_now or 0.0, 0.35) - coc.terminal_wacc)
+        d["terminal_roc"] = coc.terminal_wacc + 0.5 * spread
+        why["terminal_roc"] = (f"Half of today's excess return persists: current ROIC {roic_now:.1%} vs mature cost of capital "
+                               f"{coc.terminal_wacc:.1%}." if spread > 0 else
+                               "Return on capital equals cost of capital in stable growth (no excess returns today).")
         t = last.get("effective_tax_rate")
         d["effective_tax_rate"] = _clamp(t, 0.0, 0.35) if t is not None else US_MARGINAL_TAX
         why["effective_tax_rate"] = "Trailing effective tax rate."
