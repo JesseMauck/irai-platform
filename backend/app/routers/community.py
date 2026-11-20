@@ -27,6 +27,8 @@ def _can_post(user: User) -> None:
 def _thread(t: Thread) -> dict:
     return {"id": t.id, "title": t.title, "community": t.community.name, "community_slug": t.community.slug,
             "author": t.author.handle, "score": t.score, "replies": t.reply_count, "tickers": t.tickers,
+            "kind": t.kind, "outlook": t.outlook, "ticker": t.primary_ticker, "backtest_run_id": t.backtest_run_id,
+            "valuation_job_id": t.valuation_job_id, "excerpt": (t.body_md or "")[:240],
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "last_activity_at": t.last_activity_at.isoformat() if t.last_activity_at else None}
 
@@ -51,11 +53,18 @@ def communities(db: Session = Depends(get_db)):
 
 
 @router.get("/threads")
-def threads(community: str | None = None, db: Session = Depends(get_db)):
-    q = select(Thread).join(Community).where(Thread.hidden.is_(False)).order_by(Thread.last_activity_at.desc()).limit(50)
+def threads(community: str | None = None, kind: str | None = None, ticker: str | None = None, limit: int = 50,
+            db: Session = Depends(get_db)):
+    q = select(Thread).join(Community).where(Thread.hidden.is_(False)).order_by(Thread.last_activity_at.desc())
     if community:
         q = q.where(Community.slug == community)
-    return [_thread(t) for t in db.scalars(q)]
+    if kind:
+        q = q.where(Thread.kind == kind)
+    rows = db.scalars(q.limit(min(limit, 100) if not ticker else 400)).all()
+    if ticker:  # match the primary ticker or any tagged ticker
+        tk = ticker.upper()
+        rows = [t for t in rows if t.primary_ticker == tk or tk in (t.tickers or [])][: min(limit, 100)]
+    return [_thread(t) for t in rows]
 
 
 class ThreadIn(BaseModel):
@@ -63,6 +72,10 @@ class ThreadIn(BaseModel):
     title: str = Field(min_length=5, max_length=200)
     body: str = Field(min_length=1, max_length=20000)
     tickers: list[str] = Field(default_factory=list, max_length=10)
+    kind: str = Field("discussion", pattern="^(discussion|analysis|strategy)$")
+    outlook: str | None = Field(None, pattern="^(bullish|neutral|bearish)$")
+    backtest_run_id: int | None = None
+    valuation_job_id: str | None = Field(None, max_length=40)
 
 
 @router.post("/threads")
@@ -73,8 +86,23 @@ def create_thread(body: ThreadIn, user: User = Depends(current_user), db: Sessio
         raise HTTPException(404, "No such community")
     if c.pro_only and user.plan != "pro":
         raise HTTPException(402, "Pro room")
-    t = Thread(community_id=c.id, author_id=user.id, title=body.title.strip(), body_md=body.body,
-               tickers=[s.upper()[:20] for s in body.tickers])
+    from ..models import BacktestRun, ValuationRun
+
+    tickers = [s.upper()[:20] for s in body.tickers if s.strip()]
+    if body.kind == "analysis" and (not tickers or len(body.body) < 300):
+        raise HTTPException(422, "Analysis articles need at least one ticker and 300+ characters")
+    if body.backtest_run_id is not None:
+        run = db.get(BacktestRun, body.backtest_run_id)
+        if not run or run.user_id != user.id:
+            raise HTTPException(404, "Backtest not found")
+    if body.valuation_job_id:
+        vr = db.scalar(select(ValuationRun).where(ValuationRun.job_id == body.valuation_job_id))
+        if not vr or vr.user_id != user.id:
+            raise HTTPException(404, "Valuation not found")
+    t = Thread(community_id=c.id, author_id=user.id, title=body.title.strip(), body_md=body.body, tickers=tickers,
+               kind=body.kind, outlook=body.outlook if body.kind == "analysis" else None,
+               primary_ticker=tickers[0] if tickers else None, backtest_run_id=body.backtest_run_id,
+               valuation_job_id=body.valuation_job_id)
     db.add(t)
     db.commit()
     return _thread(t)
@@ -86,7 +114,22 @@ def get_thread(thread_id: int, db: Session = Depends(get_db)):
     if not t or t.hidden:
         raise HTTPException(404)
     posts = db.scalars(select(Post).where(Post.thread_id == t.id, Post.hidden.is_(False)).order_by(Post.created_at)).all()
-    return {**_thread(t), "body": t.body_md,
+    attached = {}
+    if t.backtest_run_id:
+        from ..models import BacktestRun
+
+        r = db.get(BacktestRun, t.backtest_run_id)
+        if r:
+            attached["backtest"] = {"id": r.id, "kind": r.kind, "symbol": r.symbol, "strategy": r.strategy, "params": r.params,
+                                    "range": r.range, "statistics": r.statistics, "data_source": r.data_source}
+    if t.valuation_job_id:
+        from ..models import ValuationRun
+
+        v = db.scalar(select(ValuationRun).where(ValuationRun.job_id == t.valuation_job_id))
+        if v and v.share_token:
+            attached["valuation"] = {"ticker": v.ticker, "value_per_share": v.value_per_share, "price": v.price,
+                                     "upside": v.upside, "method": v.method, "share_token": v.share_token}
+    return {**_thread(t), "body": t.body_md, **attached,
             "posts": [{"id": p.id, "author": p.author.handle, "body": p.body_md,
                        "created_at": p.created_at.isoformat() if p.created_at else None} for p in posts]}
 

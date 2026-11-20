@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import research
+from .. import fundamentals, research
 from ..db import get_db
 from ..market.source import SourceError
 from ..models import BuzzSnapshot
@@ -48,6 +48,37 @@ def financials(symbol: str):
 @router.get("/{symbol}/buzz")
 def buzz(symbol: str):
     return _guard(research.buzz, symbol)
+
+
+@router.get("/{symbol}/statements")
+def statements(symbol: str, period: str = Query("annual", pattern="^(annual|quarterly)$")):
+    return fundamentals.statements(symbol, period)
+
+
+@router.get("/{symbol}/dividends")
+def dividends(symbol: str):
+    return _guard(fundamentals.dividends, symbol)
+
+
+@router.get("/{symbol}/earnings")
+def earnings(symbol: str):
+    return fundamentals.earnings(symbol)
+
+
+@router.get("/{symbol}/technicals")
+def technicals(symbol: str):
+    return _guard(fundamentals.technicals, symbol)
+
+
+@router.get("/{symbol}/peers")
+def peers(symbol: str, add: str | None = Query(None, max_length=120)):
+    extra = [s.strip().upper() for s in (add or "").split(",") if s.strip()][:5]
+    return _guard(lambda s: fundamentals.peers(s, extra), symbol)
+
+
+@router.get("/{symbol}/preferreds")
+def preferreds(symbol: str):
+    return fundamentals.preferreds(symbol)
 
 
 @router.get("/{symbol}/headlines")

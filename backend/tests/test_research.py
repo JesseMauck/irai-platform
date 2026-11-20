@@ -49,3 +49,23 @@ def test_buzz_endpoint_and_trending(client):
     assert 0 <= b["score"] <= 100 and b["level"] and "components" in b
     assert client.get("/api/buzz/trending").status_code == 200
     assert client.get("/api/insight/AAPL/filings").json()["filings"] == []  # demo mode: no network
+
+
+def test_ticker_report_datasets(client):
+    t = client.get("/api/insight/AAPL/technicals").json()
+    assert t["trend"] in ("Uptrend", "Downtrend", "Mixed") and 0 <= t["rsi14"] <= 100
+    assert t["bollinger"]["lower"] < t["bollinger"]["middle"] < t["bollinger"]["upper"]
+    p = client.get("/api/insight/AAPL/peers?add=MSFT").json()
+    assert p["rows"][0]["symbol"] == "AAPL" and any(r["symbol"] == "MSFT" for r in p["rows"])
+    for path in ("statements", "dividends", "earnings", "preferreds"):
+        r = client.get(f"/api/insight/AAPL/{path}")
+        assert r.status_code == 200 and r.json()["source"] == "DEMO"
+
+
+def test_rsi_and_ema_math():
+    from app.fundamentals import _ema_series, _rsi
+    assert _rsi([1.0 + i for i in range(30)]) == 100.0
+    assert _rsi([30.0 - i for i in range(30)]) < 1
+    flat_up_down = [10, 11] * 20
+    assert 45 < _rsi(flat_up_down) < 55
+    assert _ema_series([1, 1, 1], 3) == [1, 1, 1]
