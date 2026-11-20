@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
   },
+  // Links from the previous irradiance.ai site
+  async redirects() {
+    return [
+      { source: "/account/signup", destination: "/signup", permanent: true },
+      { source: "/account/signin", destination: "/login", permanent: true },
+      { source: "/account/login", destination: "/login", permanent: true },
+      { source: "/signin", destination: "/login", permanent: true },
+      { source: "/register", destination: "/signup", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
