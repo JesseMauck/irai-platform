@@ -362,3 +362,19 @@ class SavedScreen(TimestampMixin, Base):
     filters: Mapped[dict[str, Any]] = mapped_column(JSON)
     alert_on_new: Mapped[bool] = mapped_column(Boolean, default=False)
     last_symbols: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+
+class BacktestRun(Base):
+    """One Strategy Lab backtest (or optimisation) — stored so members can revisit and share results."""
+    __tablename__ = "backtest_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), default="backtest")  # backtest | optimize
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    strategy: Mapped[str] = mapped_column(String(40))
+    params: Mapped[dict[str, Any]] = mapped_column(JSON)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSON)
+    range: Mapped[str] = mapped_column(String(4))
+    statistics: Mapped[dict[str, Any]] = mapped_column(JSON)
+    data_source: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

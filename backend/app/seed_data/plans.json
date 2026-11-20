@@ -13,7 +13,8 @@
    "Grade letters (blurred detail)",
    "1 watchlist, 10 tickers",
    "Read-only forum access",
-   "1 ValueBot run a month"
+   "1 ValueBot run a month",
+   "5 Strategy Lab backtests a day"
   ],
   "limits": {
    "articles_per_month": 3,
@@ -26,7 +27,9 @@
    "saved_screens": 0,
    "post": false,
    "csv_export": false,
-   "api": false
+   "api": false,
+   "backtests_per_day": 5,
+   "optimize": false
   }
  },
  {
@@ -44,7 +47,8 @@
    "Full monitors, 15-min delayed",
    "Email alerts (20 active)",
    "Post, comment, vote, track trades",
-   "10 ValueBot runs a month"
+   "10 ValueBot runs a month",
+   "100 Strategy Lab backtests a day"
   ],
   "limits": {
    "articles_per_month": null,
@@ -57,7 +61,9 @@
    "saved_screens": 5,
    "post": true,
    "csv_export": false,
-   "api": false
+   "api": false,
+   "backtests_per_day": 100,
+   "optimize": false
   }
  },
  {
@@ -75,7 +81,8 @@
    "Unlimited screens, CSV export",
    "Webhook alerts (100 active)",
    "Verified-trader badge eligibility",
-   "Unlimited ValueBot runs + read-only API"
+   "Unlimited ValueBot runs + read-only API",
+   "Unlimited backtests + parameter optimisation"
   ],
   "limits": {
    "articles_per_month": null,
@@ -88,7 +95,9 @@
    "saved_screens": null,
    "post": true,
    "csv_export": true,
-   "api": true
+   "api": true,
+   "backtests_per_day": null,
+   "optimize": true
   }
  }
 ]

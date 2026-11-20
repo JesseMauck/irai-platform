@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
     { href: "/monitor/fundamental", label: "Fundamental RV", desc: "Cheap for its quality, within peers" },
   ] },
   { href: "/valuebot", label: "ValueBot" },
+  { href: "/lab", label: "Strategy Lab" },
   { href: "/screeners", label: "Screeners" },
   { href: "/community", label: "Community" },
   { href: "/learn", label: "Learn" },

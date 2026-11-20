@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "./Header";
 
 const COLS: [string, [string, string][]][] = [
-  ["Research", [["Articles", "/research"], ["ADR Monitor", "/monitor/adr"], ["ETF Monitor", "/monitor/etf"], ["Fundamental RV", "/monitor/fundamental"], ["ValueBot", "/valuebot"], ["Screeners", "/screeners"]]],
+  ["Research", [["Articles", "/research"], ["ADR Monitor", "/monitor/adr"], ["ETF Monitor", "/monitor/etf"], ["Fundamental RV", "/monitor/fundamental"], ["ValueBot", "/valuebot"], ["Strategy Lab", "/lab"], ["Screeners", "/screeners"]]],
   ["Community", [["Forum", "/community"], ["Trade feed", "/trades"], ["Leaderboards", "/leaderboards"]]],
   ["Company", [["Pricing", "/pricing"], ["Methodology", "/methodology"], ["Learn", "/learn"], ["Account", "/account"]]],
   ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Disclaimer", "/legal/disclaimer"], ["Community guidelines", "/legal/community-guidelines"], ["Disclosure policy", "/legal/disclosure-policy"]]],

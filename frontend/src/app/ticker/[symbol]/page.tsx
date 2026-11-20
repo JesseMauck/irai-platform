@@ -60,6 +60,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={addToWatchlist}>+ Watchlist</Button>
+          <Button variant="outline" href={`/lab?symbol=${encodeURIComponent(symbol)}`}>Backtest</Button>
           {isEquity && <Button href={`/valuebot?ticker=${encodeURIComponent(symbol)}`}>Value with ValueBot</Button>}
         </div>
       </div>

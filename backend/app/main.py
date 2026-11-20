@@ -15,7 +15,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from .db import SessionLocal, init_db  # noqa: E402
-from .routers import auth, billing, community, content, market, me, monitors, valuebot  # noqa: E402
+from .routers import auth, billing, community, content, lab, market, me, monitors, valuebot  # noqa: E402
 from .seed import seed_reference  # noqa: E402
 
 
@@ -31,7 +31,7 @@ app = FastAPI(title="IRAI — Irradiance Research API", version="1.0", lifespan=
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
-for r in (auth, market, monitors, content, community, me, billing, valuebot):
+for r in (auth, market, monitors, content, community, me, billing, valuebot, lab):
     app.include_router(r.router)
 
 

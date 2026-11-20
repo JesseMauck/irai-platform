@@ -1,0 +1,147 @@
+"""Strategy Lab: backtest and optimise StockSharp-style strategies on live daily history for any ticker."""
+from __future__ import annotations
+
+import datetime as dt
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from ..algo import emulator, optimizer
+from ..algo.strategies import REGISTRY, Candle
+from ..db import get_db
+from ..market import service
+from ..market.source import SourceError
+from ..models import BacktestRun, User
+from ..security import current_user, limits, optional_user
+
+router = APIRouter(prefix="/api/lab", tags=["strategy-lab"])
+RANGES = {"1y", "2y", "5y"}
+
+
+class SettingsIn(BaseModel):
+    initial_capital: float = Field(100_000, gt=0, le=1e10)
+    commission_bps: float = Field(1.0, ge=0, le=100)
+    slippage_bps: float = Field(2.0, ge=0, le=200)
+    allow_short: bool = False
+
+
+class BacktestIn(BaseModel):
+    symbol: str = Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9^=.\-]+$")
+    strategy: str
+    params: dict[str, float] = {}
+    range: str = "5y"
+    settings: SettingsIn = SettingsIn()
+
+
+class OptimizeIn(BacktestIn):
+    grid: dict[str, list[float]]  # key -> [min, max, step]
+    metric: str = "sharpe"
+    in_sample: float = Field(0.7, ge=0.4, le=0.9)
+
+
+def _candles(symbol: str, range_: str) -> tuple[list[Candle], str]:
+    if range_ not in RANGES:
+        raise HTTPException(422, f"range must be one of {sorted(RANGES)}")
+    try:
+        c = service.chart(symbol.upper(), range_)
+    except SourceError as e:
+        raise HTTPException(404, str(e))
+    hist = c["history"]
+    if len(hist) < 60:
+        raise HTTPException(422, f"Only {len(hist)} daily bars available for {symbol.upper()}; need at least 60")
+    return [Candle(h["date"], h["close"]) for h in hist], c["quote"].get("source", "LIVE")
+
+
+def _quota(db: Session, user: User | None) -> None:
+    cap = limits(user)["backtests_per_day"]
+    if cap is None:
+        return
+    if user is None:
+        raise HTTPException(401, "Sign in to run backtests")
+    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    n = db.scalar(select(func.count()).select_from(BacktestRun).where(BacktestRun.user_id == user.id,
+                                                                     BacktestRun.created_at >= since)) or 0
+    if n >= cap:
+        raise HTTPException(402, f"Your plan allows {cap} backtests a day. Upgrade for more.")
+
+
+def _series(r: emulator.EmulationResult, step: int) -> dict[str, Any]:
+    eq = r.equity
+    first_close, cap = eq[0]["close"], eq[0]["equity"]
+    peak, dd = cap, []
+    for e in eq:
+        peak = max(peak, e["equity"])
+        dd.append(e["equity"] / peak - 1)
+    idx = list(range(0, len(eq), step)) + ([len(eq) - 1] if (len(eq) - 1) % step else [])
+    return {"dates": [eq[i]["date"] for i in idx], "equity": [eq[i]["equity"] for i in idx],
+            "benchmark": [cap * eq[i]["close"] / first_close for i in idx], "drawdown": [dd[i] for i in idx],
+            "close": [eq[i]["close"] for i in idx], "exposure": [eq[i]["exposure"] for i in idx],
+            "indicators": [r.indicators[i] for i in idx]}
+
+
+@router.get("/strategies")
+def strategies():
+    return [cls.schema() for cls in REGISTRY.values()]
+
+
+@router.post("/backtest")
+def backtest(body: BacktestIn, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    cls = REGISTRY.get(body.strategy)
+    if not cls:
+        raise HTTPException(404, "Unknown strategy")
+    _quota(db, user)
+    candles, source = _candles(body.symbol, body.range)
+    st = emulator.EmulationSettings(**body.settings.model_dump())
+    strat = cls(allow_short=st.allow_short, **body.params)
+    r = emulator.run(strat, candles, st)
+    if user:
+        db.add(BacktestRun(user_id=user.id, symbol=body.symbol.upper(), strategy=cls.KEY, params=strat.params,
+                           settings=body.settings.model_dump(), range=body.range, statistics=r.statistics,
+                           data_source=source))
+        db.commit()
+    return {"symbol": body.symbol.upper(), "strategy": cls.schema(), "params": strat.params, "data_source": source,
+            "statistics": r.statistics, "series": _series(r, max(1, len(candles) // 600)),
+            "fills": [f.__dict__ for f in r.fills[-200:]], "roundtrips": [x.__dict__ for x in r.roundtrips[-200:]]}
+
+
+@router.post("/optimize")
+def optimize(body: OptimizeIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if not limits(user)["optimize"]:
+        raise HTTPException(402, "Parameter optimisation is a Pro feature")
+    cls = REGISTRY.get(body.strategy)
+    if not cls:
+        raise HTTPException(404, "Unknown strategy")
+    if body.metric not in {"sharpe", "return", "max_relative_drawdown", "win_rate"}:
+        raise HTTPException(422, "metric must be sharpe, return, max_relative_drawdown or win_rate")
+    candles, source = _candles(body.symbol, body.range)
+    grid = {}
+    for k, v in body.grid.items():
+        p = next((p for p in cls.PARAMS if p.key == k), None)
+        if not p or len(v) != 3 or v[2] <= 0:
+            raise HTTPException(422, f"grid.{k} must be [min, max, step] for a parameter of {cls.KEY}")
+        grid[k] = [p.clamp(x) for x in optimizer.frange(v[0], v[1], v[2])]
+    try:
+        out = optimizer.optimize(cls.KEY, candles, grid, emulator.EmulationSettings(**body.settings.model_dump()),
+                                 metric=body.metric, in_sample=body.in_sample, fixed=body.params)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if body.metric == "max_relative_drawdown":  # lower is better
+        out["results"].sort(key=lambda r: r["max_relative_drawdown"])
+        out["best"] = out["results"][0]
+    db.add(BacktestRun(user_id=user.id, kind="optimize", symbol=body.symbol.upper(), strategy=cls.KEY,
+                       params=out["best"]["params"], settings=body.settings.model_dump(), range=body.range,
+                       statistics={k: out[k] for k in ("best", "out_of_sample", "combinations")}, data_source=source))
+    db.commit()
+    return {**out, "data_source": source, "symbol": body.symbol.upper()}
+
+
+@router.get("/runs")
+def runs(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    rows = db.scalars(select(BacktestRun).where(BacktestRun.user_id == user.id)
+                      .order_by(BacktestRun.created_at.desc()).limit(50))
+    return [{"id": r.id, "kind": r.kind, "symbol": r.symbol, "strategy": r.strategy, "params": r.params, "range": r.range,
+             "return": (r.statistics or {}).get("return"), "sharpe": (r.statistics or {}).get("sharpe"),
+             "data_source": r.data_source, "created_at": r.created_at.isoformat()} for r in rows]
