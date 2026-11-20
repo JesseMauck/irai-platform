@@ -20,7 +20,7 @@ const ROWS: [string, string, string, string][] = [
 export default function Pricing() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <PageHeader title="Membership pricing" intro="Every plan includes the methodology and the learn library. Essential and Pro start with a 7-day free trial." />
+      <PageHeader title="Membership pricing" intro="Every plan includes the methodology and the learn library. Try Essential or Pro free for 7 days, no card needed. Paid plans are billed securely by Square." />
       <PricingCards />
       <h2 className="mt-16 text-xl font-semibold">Compare plans</h2>
       <div className="mt-4 overflow-x-auto rounded-xl border border-line">

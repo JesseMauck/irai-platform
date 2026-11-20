@@ -166,17 +166,115 @@ def test_billing_dev_mode_and_cancel(client):
     r = client.post("/api/billing/checkout", json={"plan": "pro", "interval": "annual"}, headers=h).json()
     assert r["dev_mode"] and r["plan"] == "pro"
     sub = client.get("/api/billing/subscription", headers=h).json()
-    assert sub["subscription"]["status"] == "trialing" and sub["subscription"]["interval"] == "annual"
+    assert sub["subscription"]["status"] == "active" and sub["subscription"]["interval"] == "annual"
+    assert sub["payments"] == "dev"
     assert client.post("/api/billing/cancel", headers=h).json()["plan"] == "free"
 
 
-def test_stripe_signature():
-    from app.routers.billing import verify_stripe_signature
-    payload, secret, ts = b'{"a":1}', "whsec_test", int(time.time())
-    sig = hmac.new(secret.encode(), f"{ts}.".encode() + payload, hashlib.sha256).hexdigest()
-    assert verify_stripe_signature(payload, f"t={ts},v1={sig}", secret)
-    assert not verify_stripe_signature(payload, f"t={ts},v1={'0' * 64}", secret)
-    assert not verify_stripe_signature(payload, f"t={ts - 3600},v1={sig}", secret)
+def test_trial_once_reminder_and_expiry(client):
+    import datetime as dt
+
+    from app.db import SessionLocal
+    from app.models import Subscription
+    from app.routers.billing import process_trials
+    h = signup(client)
+    assert client.get("/api/billing/subscription", headers=h).json()["trial_available"] is True
+    r = client.post("/api/billing/trial", json={"plan": "essential"}, headers=h).json()
+    assert r["plan"] == "essential"
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "essential"
+    assert client.post("/api/billing/trial", json={"plan": "pro"}, headers=h).status_code == 409  # one trial per member
+    uid = client.get("/api/auth/me", headers=h).json()["id"]
+    with SessionLocal() as db:
+        s = db.query(Subscription).filter_by(user_id=uid).one()
+        s.trial_ends_at = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=30)
+        db.commit()
+        assert process_trials(db)["reminded"] >= 1
+        assert process_trials(db)["reminded"] == 0  # only once
+        s.trial_ends_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+        db.commit()
+        assert process_trials(db)["expired"] >= 1
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "free"
+
+
+def test_square_signature():
+    import base64
+    import hashlib
+    import hmac
+
+    from app.payments.square import verify_signature
+    body, key, url = b'{"type":"subscription.created"}', "sigkey", "https://irradiance.ai/api/billing/webhook/square"
+    good = base64.b64encode(hmac.new(key.encode(), url.encode() + body, hashlib.sha256).digest()).decode()
+    assert verify_signature(body, good, key, url)
+    assert not verify_signature(body, good, key, url + "x")       # URL is part of the signed content
+    assert not verify_signature(body + b" ", good, key, url)        # raw body must match exactly
+    assert not verify_signature(body, good, "", url)
+
+
+def test_square_checkout_webhook_and_cancel(client, monkeypatch):
+    import base64
+    import hashlib
+    import hmac
+    import json as _json
+
+    import httpx
+
+    from app.payments import square as sq_mod
+    from app.routers import billing
+    env = {"SQUARE_ACCESS_TOKEN": "EAAA-test", "SQUARE_ENVIRONMENT": "sandbox", "SQUARE_LOCATION_ID": "LOC1",
+           "SQUARE_WEBHOOK_SIGNATURE_KEY": "whkey", "SQUARE_WEBHOOK_URL": "https://irradiance.ai/api/billing/webhook/square",
+           "SQUARE_PLAN_ESSENTIAL_MONTHLY": "VAR_ESS_M", "SQUARE_PLAN_PRO_MONTHLY": "VAR_PRO_M",
+           "SQUARE_PLAN_ESSENTIAL_ANNUAL": "VAR_ESS_A", "SQUARE_PLAN_PRO_ANNUAL": "VAR_PRO_A"}
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    h = signup(client)
+    me = client.get("/api/auth/me", headers=h).json()
+    calls = []
+
+    def handler(req: httpx.Request):
+        calls.append((req.method, req.url.path, _json.loads(req.content) if req.content else None))
+        assert req.headers["Authorization"] == "Bearer EAAA-test" and req.url.host == "connect.squareupsandbox.com"
+        if req.url.path == "/v2/online-checkout/payment-links":
+            return httpx.Response(200, json={"payment_link": {"id": "PL1", "url": "https://square.link/u/abc", "order_id": "ORD1"}})
+        if req.url.path == "/v2/customers/CUST1":
+            return httpx.Response(200, json={"customer": {"id": "CUST1", "email_address": me["email"].upper()}})
+        if req.url.path == "/v2/subscriptions/SUB1/cancel":
+            return httpx.Response(200, json={"subscription": {"id": "SUB1", "status": "ACTIVE", "canceled_date": "2026-12-20"}})
+        return httpx.Response(404, json={"errors": [{"detail": "nope"}]})
+
+    mock = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(billing, "square_client", lambda: sq_mod.SquareClient(sq_mod.SquareConfig.from_env(), client=mock))
+
+    r = client.post("/api/billing/checkout", json={"plan": "essential"}, headers=h).json()
+    assert r["url"] == "https://square.link/u/abc"
+    body = calls[0][2]
+    assert body["checkout_options"]["subscription_plan_id"] == "VAR_ESS_M"
+    assert body["quick_pay"]["price_money"] == {"amount": 4900, "currency": "USD"}
+    assert body["pre_populated_data"]["buyer_email"] == me["email"]
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "free"  # nothing granted until Square confirms
+
+    def send(event):
+        raw = _json.dumps(event).encode()
+        sig = base64.b64encode(hmac.new(b"whkey", env["SQUARE_WEBHOOK_URL"].encode() + raw, hashlib.sha256).digest()).decode()
+        return client.post("/api/billing/webhook/square", content=raw, headers={"x-square-hmacsha256-signature": sig,
+                                                                                  "content-type": "application/json"})
+
+    sub = {"id": "SUB1", "status": "ACTIVE", "plan_variation_id": "VAR_ESS_M", "customer_id": "CUST1",
+           "charged_through_date": "2026-12-20"}
+    assert client.post("/api/billing/webhook/square", content=b"{}", headers={"x-square-hmacsha256-signature": "bad"}).status_code == 401
+    assert "active" in send({"type": "subscription.created", "data": {"object": {"subscription": sub}}}).json()["result"]
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "essential"
+    send({"type": "subscription.created", "data": {"object": {"subscription": sub}}})  # replay is harmless
+    st = client.get("/api/billing/subscription", headers=h).json()["subscription"]
+    assert st["provider"] == "square" and st["status"] == "active" and st["current_period_end"].startswith("2026-12-20")
+    # upgrade arrives as an update to the same Square subscription
+    send({"type": "subscription.updated", "data": {"object": {"subscription": {**sub, "plan_variation_id": "VAR_PRO_M"}}}})
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "pro"
+    # cancel → Square cancels at period end; access kept until the webhook says CANCELED
+    c = client.post("/api/billing/cancel", headers=h).json()
+    assert c["plan"] == "pro" and c["access_until"].startswith("2026-12-20")
+    assert calls[-1][1] == "/v2/subscriptions/SUB1/cancel"
+    send({"type": "subscription.updated", "data": {"object": {"subscription": {**sub, "status": "CANCELED"}}}})
+    assert client.get("/api/auth/me", headers=h).json()["plan"] == "free"
 
 
 def test_plans_glossary_faq(client):

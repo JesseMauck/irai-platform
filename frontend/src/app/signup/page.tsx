@@ -17,8 +17,7 @@ function SignupForm() {
     try {
       await register({ ...f, handle: f.handle.toLowerCase() });
       if (plan === "essential" || plan === "pro") {
-        const r = await api<{ url: string | null }>("/api/billing/checkout", { method: "POST", json: { plan, interval: "monthly" } });
-        if (r.url) { window.location.href = r.url; return; }
+        await api("/api/billing/trial", { method: "POST", json: { plan } }).catch(() => {});
         await refresh();
       }
       router.push("/account?welcome=1");
@@ -30,7 +29,7 @@ function SignupForm() {
     <div className="mx-auto max-w-md px-4 py-20">
       <Card className="p-8">
         <h1 className="text-2xl font-semibold">Create your account</h1>
-        {plan && plan !== "free" && <p className="mt-1 text-sm text-primary">Starting a 7-day {plan} trial.</p>}
+        {plan && plan !== "free" && <p className="mt-1 text-sm text-primary">Your 7-day {plan} trial starts as soon as you sign up. No card needed.</p>}
         <form onSubmit={submit} className="mt-6 space-y-4">
           {field("display_name", "Name")}{field("handle", "Handle (e.g. quietquant)")}{field("email", "Email", "email")}{field("password", "Password (8+ characters)", "password")}
           <ErrorNote error={err} />

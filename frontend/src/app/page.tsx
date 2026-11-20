@@ -38,7 +38,7 @@ export default function Home() {
             <Button href="/signup?plan=essential">Start 7-day trial →</Button>
             <Button href="/research" variant="outline">See a sample report</Button>
           </div>
-          <p className="mt-3 text-xs text-muted">Card required for trial · reminder email 48 hours before conversion</p>
+          <p className="mt-3 text-xs text-muted">No card needed for the 7-day trial · reminder email 48 hours before it ends</p>
         </div>
       </section>
 

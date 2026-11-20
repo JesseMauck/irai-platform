@@ -14,11 +14,18 @@ export function PricingCards() {
   const { user, refresh } = useAuth();
   const router = useRouter();
 
-  const choose = async (p: Plan) => {
+  const { data: billing } = useApi<{ trial_available: boolean; plan: string }>(user ? "/api/billing/subscription" : null);
+  const trialOpen = !user || billing?.trial_available !== false;
+
+  const choose = async (p: Plan, mode: "trial" | "subscribe") => {
     if (!user) { router.push(`/signup?plan=${p.key}`); return; }
     if (p.key === "free") { router.push("/account"); return; }
-    setBusy(p.key); setErr(null);
+    setBusy(p.key + mode); setErr(null);
     try {
+      if (mode === "trial") {
+        await api("/api/billing/trial", { method: "POST", json: { plan: p.key } });
+        await refresh(); router.push("/account?trial=started"); return;
+      }
       const r = await api<{ url: string | null }>("/api/billing/checkout", { method: "POST", json: { plan: p.key, interval: annual ? "annual" : "monthly" } });
       if (r.url) window.location.href = r.url; else { await refresh(); router.push("/account?checkout=success"); }
     } catch (e) { setErr(e as Error); } finally { setBusy(null); }
@@ -50,9 +57,16 @@ export function PricingCards() {
               <ul className="mb-6 flex-1 space-y-2 text-sm">
                 {p.features.map(f => <li key={f} className="flex gap-2"><span className="text-primary">✓</span><span className="text-slate-300">{f}</span></li>)}
               </ul>
-              <Button variant={featured ? "primary" : "outline"} onClick={() => choose(p)} disabled={current || busy === p.key}>
-                {current ? "Current plan" : busy === p.key ? "…" : p.cta}
-              </Button>
+              {p.key === "free" ? (
+                <Button variant="outline" onClick={() => choose(p, "subscribe")} disabled={current}>{current ? "Current plan" : p.cta}</Button>
+              ) : (
+                <div className="space-y-2">
+                  {trialOpen && !current && <Button variant={featured ? "primary" : "outline"} className="w-full" onClick={() => choose(p, "trial")} disabled={!!busy}>
+                    {busy === p.key + "trial" ? "…" : "Start 7-day free trial"}</Button>}
+                  <Button variant={trialOpen && !current ? "ghost" : featured ? "primary" : "outline"} className="w-full" onClick={() => choose(p, "subscribe")} disabled={!!busy}>
+                    {busy === p.key + "subscribe" ? "…" : current ? `Keep ${p.name}: subscribe ${annual ? "yearly" : "monthly"}` : `Subscribe ${annual ? "yearly" : "monthly"}`}</Button>
+                </div>
+              )}
               <p className="mt-2 text-center text-xs text-muted">{p.note}</p>
             </div>
           );

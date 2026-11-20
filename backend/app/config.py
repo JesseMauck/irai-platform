@@ -54,14 +54,6 @@ class Settings:
     quote_ttl: int = field(default_factory=lambda: int(os.environ.get("IRAI_QUOTE_TTL", "30")))
     history_ttl: int = field(default_factory=lambda: int(os.environ.get("IRAI_HISTORY_TTL", "3600")))
     info_ttl: int = field(default_factory=lambda: int(os.environ.get("IRAI_INFO_TTL", "21600")))
-    stripe_secret_key: str = field(default_factory=lambda: os.environ.get("STRIPE_SECRET_KEY", ""))
-    stripe_webhook_secret: str = field(default_factory=lambda: os.environ.get("STRIPE_WEBHOOK_SECRET", ""))
-    stripe_prices: dict = field(default_factory=lambda: {
-        "essential_monthly": os.environ.get("STRIPE_PRICE_ESSENTIAL_MONTHLY", ""),
-        "essential_annual": os.environ.get("STRIPE_PRICE_ESSENTIAL_ANNUAL", ""),
-        "pro_monthly": os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
-        "pro_annual": os.environ.get("STRIPE_PRICE_PRO_ANNUAL", ""),
-    })
     public_url: str = field(default_factory=lambda: os.environ.get("PUBLIC_URL", "http://localhost:3000"))
     leaderboard_min_trades: int = field(default_factory=lambda: int(os.environ.get("IRAI_LEADERBOARD_MIN_TRADES", "20")))
 

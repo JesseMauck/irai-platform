@@ -41,7 +41,7 @@ class User(TimestampMixin, Base):
     plan: Mapped[str] = mapped_column(String(20), default="free")  # free | essential | pro
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     verified_trader: Mapped[bool] = mapped_column(Boolean, default=False)
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(64))
+    payment_customer_id: Mapped[str | None] = mapped_column(String(64))  # Square customer id
     disabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # Sessions issued before this moment are rejected (set on password reset / "sign out everywhere").
     tokens_valid_after: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
@@ -56,11 +56,14 @@ class Subscription(TimestampMixin, Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     plan: Mapped[str] = mapped_column(String(20))
     interval: Mapped[str] = mapped_column(String(10), default="monthly")  # monthly | annual
-    status: Mapped[str] = mapped_column(String(20), default="trialing")  # trialing|active|past_due|canceled
+    status: Mapped[str] = mapped_column(String(20), default="trialing")  # pending|trialing|active|past_due|canceled
     trial_ends_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     current_period_end: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
-    stripe_subscription_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    provider: Mapped[str] = mapped_column(String(12), default="internal", server_default="internal")  # internal | square
+    provider_subscription_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    provider_ref: Mapped[str | None] = mapped_column(String(64), index=True)  # e.g. Square payment link order id
+    trial_reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     user: Mapped[User] = relationship(back_populates="subscriptions")
 
 

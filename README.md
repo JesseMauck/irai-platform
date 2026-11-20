@@ -108,8 +108,18 @@ Linux; the modern cross-platform StockSharp (.NET 8, NuGet) can later run as a s
 | Alerts | — | 20 email | 100 email/webhook |
 | Post / trade / vote | — | ✓ | ✓ + Pro room |
 
-Limits live in `app/seed_data/plans.json`. Billing: set the `STRIPE_*` variables to use Stripe Checkout + the
-signed webhook at `/api/billing/webhook`; without them checkout starts a 7-day trial directly (dev mode).
+Limits live in `app/seed_data/plans.json`.
+
+**Billing (Square).** Every member gets one in-app 7-day trial of Essential or Pro (no card; reminder email two
+days before it ends; the worker downgrades expired trials). Paid plans use Square subscriptions:
+1. Square Developer Dashboard → create an application → copy the access token (sandbox first).
+2. `SQUARE_ACCESS_TOKEN=... python -m app.payments.setup_square --locations` → set `SQUARE_LOCATION_ID`.
+3. `python -m app.payments.setup_square` → creates the plan + 4 variations; set the printed `SQUARE_PLAN_*`.
+4. Add a webhook subscription for `subscription.created` and `subscription.updated` pointing at
+   `https://api.irradiance.ai/api/billing/webhook/square`; set `SQUARE_WEBHOOK_SIGNATURE_KEY` and `SQUARE_WEBHOOK_URL`.
+Checkout opens a Square-hosted page; access is granted only when Square's signed webhook confirms the subscription.
+Members cancel from /account (access continues to the end of the paid period). Without `SQUARE_ACCESS_TOKEN`,
+checkout activates plans directly so the product can be tested locally.
 
 ## Database (27 tables, Alembic-managed)
 

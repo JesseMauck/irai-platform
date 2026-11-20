@@ -17,6 +17,7 @@ import time
 from . import mail
 from .config import settings
 from .db import SessionLocal, init_db
+from .routers.billing import process_trials
 from .routers.me import check_screen_alerts, evaluate_alerts
 
 log = logging.getLogger("irai.worker")
@@ -28,6 +29,8 @@ def tick() -> dict:
         out["alerts"] = len(evaluate_alerts(db))
     with SessionLocal() as db:
         out["screens"] = check_screen_alerts(db)
+    with SessionLocal() as db:
+        out["trials"] = process_trials(db)
     with SessionLocal() as db:
         out["mail"] = mail.deliver_pending(db)
     return out

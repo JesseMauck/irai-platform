@@ -13,7 +13,7 @@
  },
  {
   "q": "Can I cancel or downgrade?",
-  "a": "Yes. Upgrades apply immediately with proration; downgrades take effect at the end of the billing period, and we show exactly what changes before you confirm."
+  "a": "Yes, any time from your account page. You keep access until the end of the period you've paid for, then move to the Free plan."
  },
  {
   "q": "Why do some signals say “not tradable”?",
@@ -25,6 +25,6 @@
  },
  {
   "q": "How does the 7-day trial work?",
-  "a": "Essential and Pro start with a 7-day trial. You get full access immediately; you can cancel before it ends and you won't be charged."
+  "a": "Essential and Pro each come with one 7-day free trial and no card is needed. We email you two days before it ends; if you don't subscribe, your account simply returns to the Free plan. Paid memberships are billed securely by Square."
  }
 ]

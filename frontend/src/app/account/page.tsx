@@ -10,7 +10,7 @@ import { Button, Card, ErrorNote, PageHeader, SourceBadge } from "@/components/u
 
 interface WL { id: number; name: string; symbols: string[]; quotes: Record<string, Quote> }
 interface AlertRow { id: number; symbol: string; kind: string; threshold: number; channel: string; last_triggered_at: string | null }
-interface Sub { plan: string; subscription: { plan: string; interval: string; status: string; trial_ends_at: string | null; cancel_at_period_end: boolean } | null }
+interface Sub { plan: string; payments: string; trial_available: boolean; subscription: { plan: string; interval: string; status: string; provider: string; trial_ends_at: string | null; current_period_end: string | null; cancel_at_period_end: boolean } | null }
 
 export default function Account() {
   const { user, ready, refresh } = useAuth();
@@ -25,7 +25,10 @@ export default function Account() {
   const add = async () => { setErr(null); try { await api(`/api/me/watchlists/${wls![0].id}/items`, { method: "POST", json: { symbol: sym } }); setSym(""); reloadWl(); } catch (e) { setErr(e as Error); } };
   const remove = async (s: string) => { await api(`/api/me/watchlists/${wls![0].id}/items/${s}`, { method: "DELETE" }); reloadWl(); };
   const addAlert = async () => { setErr(null); try { await api("/api/me/alerts", { method: "POST", json: { ...al, threshold: parseFloat(al.threshold) } }); reloadAlerts(); } catch (e) { setErr(e as Error); } };
-  const cancel = async () => { await api("/api/billing/cancel", { method: "POST" }); await refresh(); reloadSub(); };
+  const cancel = async () => {
+    if (!confirm("Cancel your membership? You keep access until the end of the period you've paid for.")) return;
+    await api("/api/billing/cancel", { method: "POST" }); await refresh(); reloadSub();
+  };
   const wl = wls?.[0];
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -49,10 +52,11 @@ export default function Account() {
         <div className="space-y-6">
           <Card className="p-5">
             <h2 className="font-semibold">Subscription</h2>
-            {sub?.subscription ? <div className="mt-2 text-sm text-muted"><div className="capitalize text-fg">{sub.subscription.plan} · {sub.subscription.interval} · {sub.subscription.status}</div>
-              {sub.subscription.trial_ends_at && <div>Trial ends {new Date(sub.subscription.trial_ends_at).toLocaleDateString()}</div>}
-              <button onClick={cancel} className="mt-3 text-down">Cancel subscription</button></div>
-              : <p className="mt-2 text-sm text-muted">Free plan. <Link href="/pricing" className="text-primary">Start a trial</Link></p>}
+            {sub?.subscription ? <div className="mt-2 space-y-1 text-sm text-muted"><div className="capitalize text-fg">{sub.subscription.plan} · {sub.subscription.status === "trialing" ? "free trial" : sub.subscription.interval}</div>
+              {sub.subscription.status === "trialing" && sub.subscription.trial_ends_at && <div>Trial ends {new Date(sub.subscription.trial_ends_at).toLocaleDateString()}. <Link href="/pricing" className="text-primary">Subscribe to keep access</Link></div>}
+              {sub.subscription.provider === "square" && sub.subscription.current_period_end && <div>{sub.subscription.cancel_at_period_end ? "Access until" : "Renews"} {new Date(sub.subscription.current_period_end).toLocaleDateString()} · billed by Square</div>}
+              {!sub.subscription.cancel_at_period_end && <button onClick={cancel} className="mt-2 text-down">{sub.subscription.status === "trialing" ? "End trial" : "Cancel membership"}</button>}</div>
+              : <p className="mt-2 text-sm text-muted">Free plan. <Link href="/pricing" className="text-primary">{sub?.trial_available ? "Start a 7-day free trial" : "See plans"}</Link></p>}
           </Card>
           <Card className="p-5">
             <h2 className="font-semibold">Alerts</h2>
