@@ -283,3 +283,59 @@ def moderation_log(_: User = Depends(require_admin), db: Session = Depends(get_d
     return [{"id": m.id, "target_type": m.target_type, "target_id": m.target_id, "action": m.action, "reason": m.reason,
              "created_at": m.created_at.isoformat()}
             for m in db.scalars(select(ModerationLog).order_by(ModerationLog.id.desc()).limit(200))]
+
+
+# ── payments (Square) ─────────────────────────────────────────────────────────────────────────────
+@router.get("/billing/square")
+def square_status(_: User = Depends(require_admin)):
+    """What is configured, without revealing any secret."""
+    from ..payments.square import SquareConfig
+    cfg = SquareConfig.from_env()
+    out = {"token_set": bool(cfg.access_token), "environment": cfg.environment, "location_id": cfg.location_id or None,
+           "plans": {k: bool(v) for k, v in cfg.plan_variations.items()},
+           "webhook_signature_key_set": bool(cfg.webhook_signature_key), "webhook_url": cfg.webhook_url or None,
+           "expected_webhook_url": f"{settings_public_api()}/api/billing/webhook/square",
+           "webhook_events": ["subscription.created", "subscription.updated"]}
+    out["ready"] = out["token_set"] and bool(cfg.location_id) and all(out["plans"].values()) and out["webhook_signature_key_set"]
+    return out
+
+
+def settings_public_api() -> str:
+    import os
+    return os.environ.get("PUBLIC_API_URL", "https://api.irradiance.ai")
+
+
+def _square():
+    from ..payments.square import SquareClient, SquareConfig
+    cfg = SquareConfig.from_env()
+    if not cfg.access_token:
+        raise HTTPException(409, "Set SQUARE_ACCESS_TOKEN on the API service first")
+    return SquareClient(cfg)
+
+
+@router.get("/billing/square/locations")
+def square_locations(_: User = Depends(require_admin)):
+    from ..payments.square import SquareError
+    try:
+        return [{"id": loc["id"], "name": loc.get("name"), "status": loc.get("status"), "currency": loc.get("currency")}
+                for loc in _square().list_locations()]
+    except SquareError as e:
+        raise HTTPException(502, f"Square: {e}")
+
+
+@router.post("/billing/square/setup")
+def square_setup(_: User = Depends(require_admin)):
+    """Create the membership plan + 4 variations in Square from plans.json prices. Returns the variation IDs to
+    set as SQUARE_PLAN_* (they are identifiers, not secrets). Refuses to run twice once plans are configured."""
+    from ..payments.square import SquareError
+    sq = _square()
+    if all(sq.cfg.plan_variations.values()):
+        raise HTTPException(409, "Square plans are already configured")
+    p = plans()
+    prices = {f"{k}_monthly": int(p[k]["monthly"] * 100) for k in ("essential", "pro")}
+    prices.update({f"{k}_annual": int(p[k]["annual"] * 100) for k in ("essential", "pro")})
+    try:
+        ids = sq.create_plans(prices)
+    except SquareError as e:
+        raise HTTPException(502, f"Square: {e}")
+    return {"variables": {f"SQUARE_PLAN_{k.upper()}": v for k, v in ids.items()}}

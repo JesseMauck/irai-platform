@@ -17,7 +17,7 @@ interface AdminArticle { id?: number; slug: string; title: string; category: str
 interface Coverage { adr_pairs: Record<string, string | number | boolean>[]; etf_funds: { symbol: string; name: string; category: string; active: boolean }[];
   peer_groups: { id: number; name: string; sector: string; members: { id: number; symbol: string; name: string }[] }[] }
 
-const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation"] as const;
+const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing"] as const;
 
 export default function Admin() {
   const { user, ready } = useAuth();
@@ -30,7 +30,7 @@ export default function Admin() {
       <PageHeader title="Admin" intro="Business metrics, members, research, coverage and moderation." />
       <div className="mb-6 flex gap-1 border-b border-line">{TABS.map(t => <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm ${t === tab ? "border-b-2 border-primary text-fg" : "text-muted"}`}>{t}</button>)}</div>
       {tab === "Overview" && <Overview />}{tab === "Users" && <Users />}{tab === "Articles" && <Articles />}
-      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}
+      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}
     </div>
   );
 }
@@ -152,5 +152,43 @@ function Moderation() {
       <table className="w-full text-sm"><tbody className="divide-y divide-line">{data?.map(m => <tr key={m.id}><td className="px-3 py-2 capitalize">{m.action}</td><td className="px-3 py-2">{m.target_type} #{m.target_id}</td><td className="px-3 py-2 text-muted">{m.reason}</td><td className="px-3 py-2 text-muted">{ago(m.created_at)}</td></tr>)}
         {data?.length === 0 && <tr><td className="p-6 text-center text-muted">No moderation actions yet.</td></tr>}</tbody></table>
     </Card>
+  );
+}
+
+interface SquareStatus { token_set: boolean; environment: string; location_id: string | null; plans: Record<string, boolean>;
+  webhook_signature_key_set: boolean; webhook_url: string | null; expected_webhook_url: string; webhook_events: string[]; ready: boolean }
+
+function Billing() {
+  const { data: st, reload } = useApi<SquareStatus>("/api/admin/billing/square");
+  const [locs, setLocs] = useState<{ id: string; name: string; status: string }[] | null>(null);
+  const [vars, setVars] = useState<Record<string, string> | null>(null);
+  const [err, setErr] = useState<Error | null>(null);
+  const run = async <T,>(fn: () => Promise<T>, then: (v: T) => void) => { setErr(null); try { then(await fn()); reload(); } catch (e) { setErr(e as Error); } };
+  if (!st) return null;
+  const Row = ({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) => (
+    <li className="flex gap-3 py-2"><span className={ok ? "text-up" : "text-down"}>{ok ? "✓" : "○"}</span><div><div>{label}</div>{hint && <div className="text-xs text-muted">{hint}</div>}</div></li>);
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="p-5">
+        <h3 className="font-semibold">Square payments {st.ready ? <span className="ml-2 text-sm text-up">ready</span> : <span className="ml-2 text-sm text-muted">setup</span>}</h3>
+        <ul className="mt-3 divide-y divide-line text-sm">
+          <Row ok={st.token_set} label={`Access token (${st.environment})`} hint="Railway → api → Variables: SQUARE_ACCESS_TOKEN, SQUARE_ENVIRONMENT" />
+          <Row ok={!!st.location_id} label={st.location_id ? `Location ${st.location_id}` : "Location"} hint="Find it below, then set SQUARE_LOCATION_ID" />
+          <Row ok={Object.values(st.plans).every(Boolean)} label="Subscription plans" hint="Create them below, then set the four SQUARE_PLAN_* variables" />
+          <Row ok={st.webhook_signature_key_set && !!st.webhook_url} label="Webhook" hint={`Square Developer Dashboard → Webhooks → add ${st.expected_webhook_url} for ${st.webhook_events.join(", ")}; set SQUARE_WEBHOOK_SIGNATURE_KEY and SQUARE_WEBHOOK_URL`} />
+        </ul>
+        <ErrorNote error={err} />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="outline" disabled={!st.token_set} onClick={() => run(() => api<{ id: string; name: string; status: string }[]>("/api/admin/billing/square/locations"), setLocs)}>Find locations</Button>
+          <Button disabled={!st.token_set || !st.location_id || Object.values(st.plans).every(Boolean)} onClick={() => run(() => api<{ variables: Record<string, string> }>("/api/admin/billing/square/setup", { method: "POST" }), r => setVars(r.variables))}>Create subscription plans</Button>
+        </div>
+      </Card>
+      <Card className="p-5 font-mono text-xs">
+        <h3 className="mb-2 font-sans font-semibold">Values to set on Railway (not secret)</h3>
+        {locs?.map(l => <div key={l.id}>SQUARE_LOCATION_ID={l.id} <span className="text-muted"># {l.name} ({l.status})</span></div>)}
+        {vars && Object.entries(vars).map(([k, v]) => <div key={k}>{k}={v}</div>)}
+        {!locs && !vars && <p className="font-sans text-muted">Results appear here.</p>}
+      </Card>
+    </div>
   );
 }

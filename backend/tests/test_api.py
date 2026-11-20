@@ -514,3 +514,35 @@ def test_security_headers_request_id_and_rate_limit(client, monkeypatch):
     assert codes[:10] == [401] * 10 and codes[-1] == 429
     assert client.post("/api/auth/login", json={"email": "rl@test.io", "password": "x" * 9},
                        headers={"X-Forwarded-For": "203.0.113.10"}).status_code == 401  # other IPs unaffected
+
+
+def test_admin_square_setup(client, monkeypatch):
+    import httpx
+
+    from app.payments import square as sq_mod
+    from app.routers import admin as admin_mod
+    h, _ = _admin(client)
+    st = client.get("/api/admin/billing/square", headers=h).json()
+    assert st["ready"] is False and "token_set" in st and "EAAA" not in str(st)
+    assert client.post("/api/admin/billing/square/setup", headers=h).status_code == 409  # no token yet
+    monkeypatch.setenv("SQUARE_ACCESS_TOKEN", "EAAA-secret")
+    seen = {}
+
+    def handler(req: httpx.Request):
+        import json as _j
+        if req.url.path == "/v2/locations":
+            return httpx.Response(200, json={"locations": [{"id": "L1", "name": "Irradiance", "status": "ACTIVE", "currency": "USD"}]})
+        body = _j.loads(req.content)
+        seen["body"] = body
+        vars_ = body["object"]["subscription_plan_data"]["subscription_plan_variations"]
+        return httpx.Response(200, json={"id_mappings": [{"client_object_id": v["id"], "object_id": "ID_" + v["id"][1:]} for v in vars_]})
+
+    mock = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(admin_mod, "_square", lambda: sq_mod.SquareClient(sq_mod.SquareConfig.from_env(), client=mock))
+    assert client.get("/api/admin/billing/square/locations", headers=h).json()[0]["id"] == "L1"
+    out = client.post("/api/admin/billing/square/setup", headers=h).json()["variables"]
+    assert out["SQUARE_PLAN_PRO_ANNUAL"] == "ID_pro_annual" and len(out) == 4
+    prices = {v["id"]: v["subscription_plan_variation_data"]["phases"][0]["pricing"]["price_money"]["amount"]
+              for v in seen["body"]["object"]["subscription_plan_data"]["subscription_plan_variations"]}
+    assert prices["#essential_monthly"] == 4900 and prices["#pro_annual"] == 100000
+    assert client.get("/api/admin/billing/square", headers=signup(client)).status_code == 403
