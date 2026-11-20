@@ -14,7 +14,7 @@ from ..db import get_db
 from ..market import engines
 import datetime as dt
 
-from ..models import AdrPair, EtfFund, GradeSnapshot, PeerGroup, User
+from ..models import AdrPair, AdrSignal, EtfFund, GradeSnapshot, PeerGroup, User
 from ..security import limits, optional_user, require_plan
 
 router = APIRouter(prefix="/api/monitors", tags=["monitors"])
@@ -44,10 +44,69 @@ def _gate(rows: list[dict], user: User | None, strip: tuple[str, ...] = ()) -> d
             "plan": user.plan if user else "free"}
 
 
+SCAN_FRESH_MINUTES = 15
+
+
+def latest_scan(db: Session, max_age_minutes: float = SCAN_FRESH_MINUTES) -> list[dict[str, Any]]:
+    """Latest scanner row per pair, if the background scan is fresh; [] otherwise."""
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=max_age_minutes)
+    rows = db.scalars(select(AdrSignal).where(AdrSignal.scanned_at >= cutoff).order_by(AdrSignal.scanned_at.desc())).all()
+    seen, out = set(), []
+    for r in rows:
+        if r.adr_symbol in seen:
+            continue
+        seen.add(r.adr_symbol)
+        out.append({**r.payload, "scanned_at": r.scanned_at.isoformat()})
+    active = {p.adr_symbol for p in db.scalars(select(AdrPair).where(AdrPair.active))}
+    return [r for r in out if r.get("adr_symbol") in active]
+
+
+def opportunity_score(r: dict[str, Any]) -> float:
+    """Rank: size of the dislocation in sigmas, discounted by confidence and by known frictions."""
+    z = abs(r.get("z") or 0.0)
+    conf = (r.get("confidence") or 0.0) / 100
+    return round(z * conf * (1.0 if r.get("tradable") else 0.6), 3)
+
+
+def _adr_rows(db: Session) -> list[dict[str, Any]]:
+    rows = latest_scan(db)
+    if len(rows) < len(_pairs(db)) * 0.8:  # scanner not running yet (or stale): compute now
+        rows = [{k: v for k, v in r.items() if k != "premium_history"} for r in engines.build_adr_monitor(_pairs(db))]
+    for r in rows:
+        r["opportunity"] = opportunity_score(r)
+    rows.sort(key=lambda r: -abs(r.get("z") or 0))
+    return rows
+
+
 @router.get("/adr")
 def adr(user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
-    rows = engines.build_adr_monitor(_pairs(db))
-    return _gate([{k: v for k, v in r.items() if k != "premium_history"} for r in rows], user)
+    return _gate(_adr_rows(db), user)
+
+
+@router.get("/adr/opportunities")
+def adr_opportunities(min_abs_z: float = 1.5, tradable_only: bool = False, country: str | None = None,
+                      sector: str | None = None, limit: int = 12, user: User | None = Depends(optional_user),
+                      db: Session = Depends(get_db)):
+    """What the scanner currently flags, best first. Free members see the top 3."""
+    rows = [r for r in _adr_rows(db) if abs(r.get("z") or 0) >= min_abs_z and r.get("source") not in ("DEMO", "ERROR")
+            and (not tradable_only or r.get("tradable")) and (not country or r.get("country") == country)
+            and (not sector or r.get("sector") == sector)]
+    rows.sort(key=lambda r: -r["opportunity"])
+    lim = limits(user).get("monitor_rows")
+    shown = rows[: min(limit, 3 if lim is not None else limit)]
+    scanned = max((r.get("scanned_at") or "" for r in rows), default=None)
+    return {"rows": shown, "total": len(rows), "locked": max(0, min(limit, len(rows)) - len(shown)), "scanned_at": scanned or None,
+            "countries": sorted({p["country"] for p in _pairs(db)}), "sectors": sorted({p["sector"] for p in _pairs(db) if p.get("sector")})}
+
+
+@router.get("/adr/{adr_symbol}/signals")
+def adr_signals(adr_symbol: str, days: int = 7, db: Session = Depends(get_db)):
+    """Scanner history for one pair: premium, deviation and z through time."""
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=min(max(days, 1), 30))
+    rows = db.scalars(select(AdrSignal).where(AdrSignal.adr_symbol == adr_symbol.upper(), AdrSignal.scanned_at >= cutoff)
+                      .order_by(AdrSignal.scanned_at)).all()
+    return [{"t": r.scanned_at.isoformat(), "premium": r.premium, "deviation": r.deviation, "z": r.z,
+             "source": r.source, "confidence": r.confidence} for r in rows]
 
 
 @router.get("/adr/{adr_symbol}")

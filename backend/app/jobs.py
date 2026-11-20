@@ -24,7 +24,65 @@ log = logging.getLogger("irai.worker")
 
 
 PREWARM_EVERY = int(os.environ.get("IRAI_PREWARM_SECONDS", "300"))
+ADR_SCAN_EVERY = int(os.environ.get("IRAI_ADR_SCAN_SECONDS", "180"))
+BUZZ_BATCH = int(os.environ.get("IRAI_BUZZ_BATCH", "12"))
 _last_prewarm = 0.0
+_last_adr_scan = 0.0
+_buzz_cursor = 0
+
+
+def scan_adrs(db) -> dict:
+    """Continuous ADR scanner: price every active pair, store one signal row each, prune > 7 days."""
+    import datetime as dt
+
+    from sqlalchemy import delete
+
+    from .market import engines
+    from .models import AdrSignal
+    from .routers.monitors import _pairs
+
+    rows = engines.build_adr_monitor(_pairs(db))
+    now = dt.datetime.now(dt.timezone.utc)
+    for r in rows:
+        payload = {k: v for k, v in r.items() if k != "premium_history"}
+        db.add(AdrSignal(adr_symbol=r["adr_symbol"], scanned_at=now, premium=r.get("premium"), deviation=r.get("deviation"),
+                         z=r.get("z"), source=r.get("source", "ERROR"), confidence=r.get("confidence"),
+                         tradable=bool(r.get("tradable")), payload=payload))
+    db.execute(delete(AdrSignal).where(AdrSignal.scanned_at < now - dt.timedelta(days=7)))
+    db.commit()
+    flagged = [r for r in rows if abs(r.get("z") or 0) >= 2 and r.get("source") not in ("DEMO", "ERROR")]
+    return {"pairs": len(rows), "flagged": len(flagged)}
+
+
+def scan_buzz(db, batch: int = BUZZ_BATCH, pause: float = 2.5) -> dict:
+    """Refresh buzz for the next `batch` covered symbols (round-robin), at a pace GDELT tolerates."""
+    global _buzz_cursor
+    import datetime as dt
+
+    from . import research
+    from .models import BuzzSnapshot
+
+    syms = coverage_symbols(db)
+    syms = [s for s in syms if not s.startswith("^") and not s.endswith("=X")]
+    if not syms:
+        return {"scored": 0}
+    done = 0
+    for _ in range(min(batch, len(syms))):
+        sym = syms[_buzz_cursor % len(syms)]
+        _buzz_cursor += 1
+        try:
+            b = research.buzz(sym, with_headlines=False)
+        except Exception:  # noqa: BLE001
+            continue
+        row = db.get(BuzzSnapshot, sym) or BuzzSnapshot(symbol=sym)
+        row.name, row.kind, row.score, row.level = b.get("name"), b.get("kind"), b["score"], b["level"]
+        row.components = {**b["components"], **b["inputs"], "tone": b.get("tone")}
+        row.as_of = dt.datetime.now(dt.timezone.utc)
+        db.merge(row)
+        done += 1
+        time.sleep(pause)
+    db.commit()
+    return {"scored": done}
 
 
 def coverage_symbols(db) -> list[str]:
@@ -69,8 +127,15 @@ def prewarm(db, pause: float = 0.4) -> dict:
 
 
 def tick() -> dict:
-    global _last_prewarm
+    global _last_prewarm, _last_adr_scan
     out = {}
+    if time.time() - _last_adr_scan >= ADR_SCAN_EVERY:
+        _last_adr_scan = time.time()
+        with SessionLocal() as db:
+            out["adr_scan"] = scan_adrs(db)
+    if settings.live:
+        with SessionLocal() as db:
+            out["buzz"] = scan_buzz(db)
     if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
         _last_prewarm = time.time()
         with SessionLocal() as db:

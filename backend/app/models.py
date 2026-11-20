@@ -96,6 +96,7 @@ class AdrPair(TimestampMixin, Base):
     shortable_local: Mapped[bool] = mapped_column(Boolean, default=True)
     round_trip_cost_bps: Mapped[float] = mapped_column(Float, default=35.0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sector: Mapped[str | None] = mapped_column(String(60))
 
 
 class EtfFund(TimestampMixin, Base):
@@ -397,3 +398,30 @@ class BacktestRun(Base):
     statistics: Mapped[dict[str, Any]] = mapped_column(JSON)
     data_source: Mapped[str] = mapped_column(String(10))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class BuzzSnapshot(Base):
+    """Latest media/market attention reading per symbol (refreshed by the worker)."""
+    __tablename__ = "buzz_snapshots"
+    symbol: Mapped[str] = mapped_column(String(20), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(200))
+    kind: Mapped[str | None] = mapped_column(String(12))  # equity | etf | cef | bond | adr | index | fx | crypto
+    score: Mapped[float] = mapped_column(Float)
+    level: Mapped[str] = mapped_column(String(10))
+    components: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    as_of: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class AdrSignal(Base):
+    """One scan of one ADR pair by the continuous scanner; the latest row per pair drives 'opportunities'."""
+    __tablename__ = "adr_signals"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    adr_symbol: Mapped[str] = mapped_column(String(20), index=True)
+    scanned_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    premium: Mapped[float | None] = mapped_column(Float)
+    deviation: Mapped[float | None] = mapped_column(Float)
+    z: Mapped[float | None] = mapped_column(Float)
+    source: Mapped[str] = mapped_column(String(8))
+    confidence: Mapped[float | None] = mapped_column(Float)
+    tradable: Mapped[bool] = mapped_column(Boolean, default=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

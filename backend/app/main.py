@@ -18,7 +18,7 @@ from sqlalchemy import text  # noqa: E402
 
 from .db import SessionLocal, init_db  # noqa: E402
 from .middleware import RateLimit, RequestContext, configure_logging  # noqa: E402
-from .routers import admin, auth, billing, community, content, lab, market, me, monitors, valuebot  # noqa: E402
+from .routers import admin, auth, billing, community, content, insight, lab, market, me, monitors, valuebot  # noqa: E402
 from .seed import seed_reference  # noqa: E402
 
 
@@ -40,8 +40,9 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
                    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["*"])
 app.add_middleware(RequestContext)
 
-for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin):
+for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin, insight):
     app.include_router(r.router)
+app.include_router(insight.buzz_router)
 
 
 @app.get("/api/health")

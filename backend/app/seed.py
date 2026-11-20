@@ -30,8 +30,11 @@ def seed_reference(db: Session) -> dict[str, int]:
         if not db.get(Instrument, row["symbol"]):
             db.add(Instrument(**row)); n["instruments"] += 1
     for row in _load("adr_pairs.json"):
-        if not db.scalar(select(AdrPair).where(AdrPair.adr_symbol == row["adr_symbol"])):
+        have = db.scalar(select(AdrPair).where(AdrPair.adr_symbol == row["adr_symbol"]))
+        if not have:
             db.add(AdrPair(**row)); n["adr_pairs"] += 1
+        elif have.sector is None and row.get("sector"):
+            have.sector = row["sector"]  # backfill new columns without touching operator edits
     for row in _load("etf_funds.json"):
         if not db.get(EtfFund, row["symbol"]):
             db.add(EtfFund(**row)); n["etf_funds"] += 1

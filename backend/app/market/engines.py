@@ -107,6 +107,14 @@ def adr_row(pair: dict[str, Any]) -> dict[str, Any]:
         if imp:
             prem_hist.append({"date": d, "premium": a_h[d] / imp - 1})
     ph = [p["premium"] for p in prem_hist]
+    # Sanity-check the configured depositary ratio against history: ADR / (local in USD) should hover
+    # near the ratio. A large gap almost always means the ratio (or a split/bonus issue) is stale.
+    implied_ratio = None
+    ratios = [a_h[d] / (l_h[d] / loc_div * (f_h[d] if f_h is not None else 1.0)) for d in dates[-120:]
+              if l_h[d] and (f_h is None or f_h[d])]
+    if len(ratios) >= 20:
+        implied_ratio = statistics.median(ratios)
+    ratio_suspect = implied_ratio is not None and abs(implied_ratio / ratio - 1) > 0.25
     basis = statistics.median(ph) if len(ph) >= 20 else None
     dev = (premium - basis) if (premium is not None and basis is not None) else None
     sd = statistics.pstdev([p - basis for p in ph]) if basis is not None and len(ph) >= 20 else None
@@ -156,6 +164,9 @@ def adr_row(pair: dict[str, Any]) -> dict[str, Any]:
         reasons.append("Demo data: live feed unavailable")
     if basis is None:
         reasons.append("Not enough shared history to estimate the basis")
+    if ratio_suspect:
+        reasons.append(f"Depositary ratio needs review: prices imply about {implied_ratio:.3g} local shares per ADR, not {ratio:g}")
+        conf = min(conf, 20.0)
 
     return {
         "adr_symbol": adr_sym, "local_symbol": loc_sym, "name": pair["name"], "country": pair["country"],
@@ -164,6 +175,7 @@ def adr_row(pair: dict[str, Any]) -> dict[str, Any]:
         "fx": fx, "fx_symbol": fx_sym, "implied_usd": implied,
         "premium": premium, "basis": basis, "deviation": dev, "z": z,
         "half_life_days": hl, "history_days": len(ph), "source": src, "confidence": conf,
+        "implied_ratio": implied_ratio, "ratio_suspect": ratio_suspect, "sector": pair.get("sector"),
         "tradable": not reasons, "reasons": reasons, "as_of": aq.get("market_time"),
         "premium_history": prem_hist[-180:],
     }

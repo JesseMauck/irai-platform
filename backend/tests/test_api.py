@@ -598,3 +598,17 @@ def test_coverage_endpoint(client):
     assert r.status_code == 200
     body = r.json()
     assert body["adr"] and body["etf"] and body["equities"] and body["articles"]
+
+
+def test_adr_scanner_and_opportunities(client):
+    from app.db import SessionLocal
+    from app.jobs import scan_adrs
+    with SessionLocal() as db:
+        out = scan_adrs(db)
+    assert out["pairs"] >= 60
+    rows = client.get("/api/monitors/adr").json()["rows"]
+    assert rows and "opportunity" in rows[0] and "scanned_at" in rows[0]
+    opp = client.get("/api/monitors/adr/opportunities?min_abs_z=0").json()
+    assert "countries" in opp and len(opp["rows"]) <= 3  # anonymous: top 3
+    sig = client.get(f"/api/monitors/adr/{rows[0]['adr_symbol']}/signals").json()
+    assert sig and "z" in sig[0]
