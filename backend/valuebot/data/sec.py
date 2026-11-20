@@ -117,11 +117,24 @@ def _annual_series(facts: dict, tag: str, instant: bool) -> dict[str, float]:
 
 
 def _first(facts: dict, tags: list[str], instant: bool) -> tuple[dict[str, float], str | None]:
-    for tag in tags:
-        s = _annual_series(facts, tag, instant)
-        if s:
-            return s, tag
-    return {}, None
+    """Best series for a line item across candidate tags.
+
+    Companies switch tags over time (Microsoft reported `Revenues` until ~2010, then
+    `RevenueFromContractWithCustomerExcludingAssessedTax`). Taking the first tag that has *any* data
+    silently returns a decade-old series, so: pick the tag whose data is most recent (ties → more
+    history, then the candidate order), and back-fill earlier periods it lacks from the other tags.
+    """
+    found = [(tag, s) for tag in tags if (s := _annual_series(facts, tag, instant))]
+    if not found:
+        return {}, None
+    order = {t: i for i, t in enumerate(tags)}
+    found.sort(key=lambda ts: (max(ts[1]), len(ts[1]), -order[ts[0]]), reverse=True)
+    best_tag, best = found[0]
+    merged = dict(best)
+    for _, other in found[1:]:
+        for end, v in other.items():
+            merged.setdefault(end, v)
+    return merged, best_tag
 
 
 def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
@@ -172,8 +185,12 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
             url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{doc}"
             filings.append({"form": form, "date": date, "url": url})
 
+    latest = history[-1]["period_end"] if history else None
+    stale = latest is not None and (dt.date.today() - dt.date.fromisoformat(latest)).days > 550
     return {
         "cik": cik,
+        "latest_period_end": latest,
+        "stale": stale,
         "name": facts.get("entityName") or tm[t]["name"],
         "sic_description": subs.get("sicDescription"),
         "fiscal_year_end": subs.get("fiscalYearEnd"),

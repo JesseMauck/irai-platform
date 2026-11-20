@@ -1,0 +1,383 @@
+[
+ {
+  "slug": "ai-semiconductors",
+  "name": "AI & semiconductors",
+  "description": "Compute for AI training and inference: accelerators, foundry, memory, equipment and networking.",
+  "tickers": [
+   "NVDA",
+   "AMD",
+   "TSM",
+   "ASML",
+   "AVGO",
+   "MU",
+   "INTC",
+   "AMAT",
+   "LRCX",
+   "SMH"
+  ],
+  "keywords": [
+   "AI chips",
+   "semiconductor",
+   "data center"
+  ],
+  "drivers": [
+   {
+    "name": "Hyperscaler capex",
+    "why": "Cloud and AI spending sets accelerator and memory demand."
+   },
+   {
+    "name": "Export controls on China",
+    "why": "US/Dutch/Japanese rules cap sales of advanced chips and tools."
+   },
+   {
+    "name": "Foundry capacity & advanced packaging",
+    "why": "Leading-edge nodes and CoWoS capacity are the bottleneck.",
+    "symbol": "TSM"
+   },
+   {
+    "name": "Memory pricing (HBM/DRAM)",
+    "why": "High-bandwidth memory supply drives memory-maker margins.",
+    "symbol": "MU"
+   },
+   {
+    "name": "Semiconductor cycle",
+    "why": "Inventory and pricing cycles swing earnings for the whole group.",
+    "symbol": "SMH"
+   },
+   {
+    "name": "US 10-year yield",
+    "why": "Long-duration growth valuations are sensitive to discount rates.",
+    "symbol": "^TNX"
+   }
+  ]
+ },
+ {
+  "slug": "glp1-obesity",
+  "name": "GLP-1 & obesity drugs",
+  "description": "Weight-loss and diabetes therapies and the supply chain, payers and industries they disrupt.",
+  "tickers": [
+   "LLY",
+   "NVO",
+   "AMGN",
+   "VKTX",
+   "PFE",
+   "TMO"
+  ],
+  "keywords": [
+   "GLP-1",
+   "obesity drug",
+   "Wegovy",
+   "Zepbound"
+  ],
+  "drivers": [
+   {
+    "name": "Supply and manufacturing capacity",
+    "why": "Fill-finish capacity limits how many patients can be treated."
+   },
+   {
+    "name": "Payer and Medicare coverage",
+    "why": "Reimbursement decisions set the addressable market."
+   },
+   {
+    "name": "Pricing pressure and negotiation",
+    "why": "US drug-price negotiation and compounded copies affect net price."
+   },
+   {
+    "name": "Clinical readouts",
+    "why": "Oral pills and next-generation molecules can reshuffle share."
+   }
+  ]
+ },
+ {
+  "slug": "energy-transition",
+  "name": "Energy transition & power demand",
+  "description": "Utilities, renewables, grid and nuclear as electrification and data centres lift power demand.",
+  "tickers": [
+   "NEE",
+   "CEG",
+   "VST",
+   "ENPH",
+   "FSLR",
+   "NGG",
+   "ICLN",
+   "URA"
+  ],
+  "keywords": [
+   "power demand",
+   "renewable energy",
+   "nuclear power",
+   "grid"
+  ],
+  "drivers": [
+   {
+    "name": "Electricity demand from data centres",
+    "why": "New load growth after decades of flat demand."
+   },
+   {
+    "name": "Interest rates",
+    "why": "Capital-intensive projects are priced off borrowing costs.",
+    "symbol": "^TNX"
+   },
+   {
+    "name": "Subsidies and tax credits",
+    "why": "Policy support changes project economics."
+   },
+   {
+    "name": "Uranium and gas prices",
+    "why": "Fuel costs set generator margins.",
+    "symbol": "URA"
+   }
+  ]
+ },
+ {
+  "slug": "china-internet",
+  "name": "China internet & consumer",
+  "description": "Chinese platform companies listed in the US and Hong Kong: e-commerce, gaming, search, travel and EVs.",
+  "tickers": [
+   "BABA",
+   "JD",
+   "BIDU",
+   "NTES",
+   "TCOM",
+   "PDD",
+   "NIO",
+   "LI",
+   "KWEB"
+  ],
+  "keywords": [
+   "China tech",
+   "Chinese stocks",
+   "Beijing regulation"
+  ],
+  "drivers": [
+   {
+    "name": "Beijing policy and stimulus",
+    "why": "Regulation and consumer support set sentiment and earnings."
+   },
+   {
+    "name": "US\u2013China relations and delisting risk",
+    "why": "Tariffs, sanctions and audit rules affect ADR access."
+   },
+   {
+    "name": "Consumer confidence",
+    "why": "Spending and property sentiment drive platform volumes."
+   },
+   {
+    "name": "ADR vs Hong Kong spreads",
+    "why": "Dual listings let you see where demand sits; see the ADR Monitor."
+   }
+  ]
+ },
+ {
+  "slug": "japan-reform",
+  "name": "Japan corporate reform",
+  "description": "Governance reform, buybacks and higher rates lifting Japanese banks, trading houses and exporters.",
+  "tickers": [
+   "TM",
+   "SONY",
+   "MUFG",
+   "HMC",
+   "NMR",
+   "IX",
+   "EWJ",
+   "DXJ"
+  ],
+  "keywords": [
+   "Japan stocks",
+   "Bank of Japan",
+   "Tokyo Stock Exchange reform"
+  ],
+  "drivers": [
+   {
+    "name": "Bank of Japan policy",
+    "why": "Rate rises help bank margins and move the yen."
+   },
+   {
+    "name": "USD/JPY",
+    "why": "A weak yen lifts exporters' yen earnings.",
+    "symbol": "JPY=X"
+   },
+   {
+    "name": "Exchange governance push",
+    "why": "Pressure to raise price-to-book drives buybacks and unwinds."
+   }
+  ]
+ },
+ {
+  "slug": "rates-and-bonds",
+  "name": "Rates, bonds & income",
+  "description": "Treasuries, credit and income funds as the rate cycle turns.",
+  "tickers": [
+   "TLT",
+   "IEF",
+   "SHY",
+   "LQD",
+   "HYG",
+   "AGG",
+   "BND",
+   "EMB"
+  ],
+  "keywords": [
+   "Treasury yields",
+   "Federal Reserve",
+   "bond market"
+  ],
+  "drivers": [
+   {
+    "name": "Fed policy path",
+    "why": "Rate expectations move the short end."
+   },
+   {
+    "name": "10-year Treasury yield",
+    "why": "The benchmark for duration and mortgage rates.",
+    "symbol": "^TNX"
+   },
+   {
+    "name": "Inflation prints",
+    "why": "CPI and PCE surprises reprice the curve."
+   },
+   {
+    "name": "Credit spreads",
+    "why": "Corporate stress shows up first in high yield.",
+    "symbol": "HYG"
+   },
+   {
+    "name": "Treasury supply",
+    "why": "Deficits and auction sizes push term premium."
+   }
+  ]
+ },
+ {
+  "slug": "cybersecurity",
+  "name": "Cybersecurity",
+  "description": "Security software and services as attacks, regulation and AI raise spending.",
+  "tickers": [
+   "CRWD",
+   "PANW",
+   "FTNT",
+   "ZS",
+   "NET",
+   "OKTA",
+   "CIBR"
+  ],
+  "keywords": [
+   "cybersecurity",
+   "ransomware",
+   "data breach"
+  ],
+  "drivers": [
+   {
+    "name": "Major breaches and incidents",
+    "why": "High-profile attacks accelerate budgets \u2014 and expose vendors."
+   },
+   {
+    "name": "Disclosure and compliance rules",
+    "why": "SEC incident disclosure and EU rules mandate spend."
+   },
+   {
+    "name": "Platform consolidation",
+    "why": "Buyers favour fewer vendors; pricing power shifts."
+   }
+  ]
+ },
+ {
+  "slug": "defense-aerospace",
+  "name": "Defense & aerospace",
+  "description": "Defense primes, munitions and commercial aerospace.",
+  "tickers": [
+   "LMT",
+   "RTX",
+   "NOC",
+   "GD",
+   "BA",
+   "ITA"
+  ],
+  "keywords": [
+   "defense spending",
+   "military aid",
+   "Pentagon budget"
+  ],
+  "drivers": [
+   {
+    "name": "Defense budgets",
+    "why": "NATO and US appropriations set multi-year demand."
+   },
+   {
+    "name": "Geopolitical conflict",
+    "why": "Wars drive munitions and replenishment orders."
+   },
+   {
+    "name": "Supply chain and labour",
+    "why": "Engine and parts shortages limit deliveries."
+   }
+  ]
+ },
+ {
+  "slug": "crypto-digital-assets",
+  "name": "Crypto & digital assets",
+  "description": "Bitcoin, Ethereum and listed companies and funds exposed to them.",
+  "tickers": [
+   "BTC-USD",
+   "ETH-USD",
+   "COIN",
+   "MSTR",
+   "IBIT"
+  ],
+  "keywords": [
+   "bitcoin",
+   "crypto regulation",
+   "stablecoin"
+  ],
+  "drivers": [
+   {
+    "name": "ETF flows",
+    "why": "Spot ETF creations and redemptions move demand.",
+    "symbol": "IBIT"
+   },
+   {
+    "name": "Regulation",
+    "why": "SEC/CFTC rules and stablecoin law shape access."
+   },
+   {
+    "name": "Liquidity and real rates",
+    "why": "Crypto trades as a high-beta liquidity asset.",
+    "symbol": "^TNX"
+   }
+  ]
+ },
+ {
+  "slug": "european-banks",
+  "name": "European banks",
+  "description": "Large European lenders and their US-listed ADRs.",
+  "tickers": [
+   "HSBC",
+   "BCS",
+   "LYG",
+   "SAN",
+   "BBVA",
+   "ING",
+   "DB",
+   "UBS"
+  ],
+  "keywords": [
+   "European banks",
+   "ECB rates",
+   "bank capital"
+  ],
+  "drivers": [
+   {
+    "name": "ECB and BoE rates",
+    "why": "Net interest margins follow policy rates."
+   },
+   {
+    "name": "EUR/USD",
+    "why": "Translates euro earnings for US holders.",
+    "symbol": "EURUSD=X"
+   },
+   {
+    "name": "Capital rules and buybacks",
+    "why": "Basel endgame and stress tests set payout capacity."
+   }
+  ]
+ }
+]

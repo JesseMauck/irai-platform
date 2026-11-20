@@ -35,6 +35,12 @@ def seed_reference(db: Session) -> dict[str, int]:
             db.add(AdrPair(**row)); n["adr_pairs"] += 1
         elif have.sector is None and row.get("sector"):
             have.sector = row["sector"]  # backfill new columns without touching operator edits
+    from .models import ResearchTheme
+
+    for row in _load("themes.json"):
+        t = db.scalar(select(ResearchTheme).where(ResearchTheme.slug == row["slug"]))
+        if not t:
+            db.add(ResearchTheme(**row, owner_id=None, public=True)); n["themes"] = n.get("themes", 0) + 1
     for row in _load("etf_funds.json"):
         if not db.get(EtfFund, row["symbol"]):
             db.add(EtfFund(**row)); n["etf_funds"] += 1

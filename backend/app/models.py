@@ -425,3 +425,29 @@ class AdrSignal(Base):
     confidence: Mapped[float | None] = mapped_column(Float)
     tradable: Mapped[bool] = mapped_column(Boolean, default=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class ResearchTheme(TimestampMixin, Base):
+    """An investment theme: curated (owner_id NULL) or a member's own custom research workspace."""
+    __tablename__ = "research_themes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slug: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(Text, default="")
+    tickers: Mapped[list[str]] = mapped_column(JSON, default=list)
+    keywords: Mapped[list[str]] = mapped_column(JSON, default=list)       # news query terms
+    drivers: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)  # [{name, why, symbol?}]
+    notes_md: Mapped[str | None] = mapped_column(Text)
+    public: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
+
+class Pin(Base):
+    """Something a member pinned to their research workspace."""
+    __tablename__ = "pins"
+    __table_args__ = (UniqueConstraint("user_id", "kind", "ref"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(12))  # theme | watchlist | ticker | report | screen
+    ref: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
