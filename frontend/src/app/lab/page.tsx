@@ -119,15 +119,15 @@ function Lab() {
             <Card className="p-4">
               <h3 className="mb-2 text-sm font-semibold">Equity vs buy-and-hold</h3>
               <LineChart dates={res.series.dates} height={260} format={v => `$${(v / 1000).toFixed(0)}k`}
-                series={[{ values: res.series.equity, color: "#f5a524", label: "Strategy" }, { values: res.series.benchmark, color: "#94a3b8", dashed: true, label: "Buy & hold" }]} />
+                series={[{ values: res.series.equity, color: "#f5a524", label: "Strategy" }, { values: res.series.benchmark, color: "var(--color-muted)", dashed: true, label: "Buy & hold" }]} />
             </Card>
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Price and indicators</h3>
                 <LineChart dates={res.series.dates} height={200} format={v => num(v, 2)}
-                  series={[{ values: res.series.close, color: "#e5e7eb", label: res.symbol },
+                  series={[{ values: res.series.close, color: "var(--color-fg)", label: res.symbol },
                     ...indKeys.map((k, i) => ({ values: res.series.indicators.map(x => x[k] ?? null), color: IND_COLORS[i % 4], label: k }))]} /></Card>
               <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Drawdown</h3>
-                <LineChart dates={res.series.dates} height={200} format={v => `${(v * 100).toFixed(0)}%`} series={[{ values: res.series.drawdown, color: "#f07538", label: "Drawdown" }]} /></Card>
+                <LineChart dates={res.series.dates} height={200} format={v => `${(v * 100).toFixed(0)}%`} series={[{ values: res.series.drawdown, color: "var(--color-down)", label: "Drawdown" }]} /></Card>
             </div>
             <Card className="p-5">
               <h3 className="font-semibold">Statistics</h3>

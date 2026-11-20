@@ -9,6 +9,7 @@
   --color-accent: #1b2740;
   --color-line: #1e2a44;
   --color-fg: #e5e7eb;
+  --color-fg-2: #cbd5e1;
   --color-muted: #94a3b8;
   --color-primary: #f5a524;
   --color-primary-fg: #221503;
@@ -22,8 +23,33 @@
 }
 
 html { color-scheme: dark; }
+
+/* Light theme: same tokens, light values. Set by the theme toggle (data-theme on <html>). */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f7f8fb;
+  --color-card: #ffffff;
+  --color-card-2: #f1f4f9;
+  --color-accent: #eef2f8;
+  --color-line: #e2e8f0;
+  --color-fg: #0f172a;
+  --color-fg-2: #334155;
+  --color-muted: #64748b;
+  --color-primary: #f59e0b;
+  --color-primary-fg: #221503;
+  --color-up: #0f9d6e;
+  --color-down: #d9480f;
+  --color-data-1: #0072b2;
+  --color-data-2: #c77c00;
+  --color-data-3: #0f9d6e;
+  --color-data-4: #b0508a;
+}
+html[data-theme="light"] .glass { background: #ffffffcc; border-color: #0f172a14; }
+
+
 body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
+.logo-ai { background: linear-gradient(90deg, #f29b4b, #e5645f); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: .08em; }
 .solar-text { background: linear-gradient(100deg, #f5a524, #f2545b); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .solar-bg { background: linear-gradient(100deg, #f5a524, #f2545b); }
 .glass { background: #1b274080; border: 1px solid #8ba8f024; backdrop-filter: blur(12px); }
@@ -36,7 +62,7 @@ body { background: var(--color-bg); color: var(--color-fg); font-family: var(--f
 @media (prefers-reduced-motion: reduce) { .animate-ticker { animation: none; } }
 
 .prose-irai h2 { font-size: 1.25rem; font-weight: 600; margin: 1.75rem 0 .5rem; }
-.prose-irai p { color: #cbd5e1; line-height: 1.75; margin: .75rem 0; }
-.prose-irai ol, .prose-irai ul { padding-left: 1.25rem; color: #cbd5e1; line-height: 1.75; }
+.prose-irai p { color: var(--color-fg-2); line-height: 1.75; margin: .75rem 0; }
+.prose-irai ol, .prose-irai ul { padding-left: 1.25rem; color: var(--color-fg-2); line-height: 1.75; }
 .prose-irai ol { list-style: decimal; } .prose-irai ul { list-style: disc; }
-.prose-irai strong { color: #f3f4f6; }
+.prose-irai strong { color: var(--color-fg); }

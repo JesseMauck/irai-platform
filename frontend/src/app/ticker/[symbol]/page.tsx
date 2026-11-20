@@ -74,7 +74,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
             </div>
             {first && <span className={`text-sm num ${tone(last - first)}`}>{pct(last / first - 1)} over {range}</span>}
           </div>
-          <LineChart height={300} dates={hist.map(h => h.date)} series={[{ values: closes, color: last >= first ? "#2fbf8f" : "#f07538", label: symbol }]} format={v => num(v, v < 10 ? 3 : 2)} />
+          <LineChart height={300} dates={hist.map(h => h.date)} series={[{ values: closes, color: last >= first ? "var(--color-up)" : "var(--color-down)", label: symbol }]} format={v => num(v, v < 10 ? 3 : 2)} />
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold">Key statistics</h2>
@@ -99,7 +99,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
         <Card className="p-5 lg:col-span-2">
           <h2 className="font-semibold">About</h2>
           <p className="mt-2 text-sm text-muted">{[info.sector, info.industry, info.country].filter(Boolean).join(" · ")}</p>
-          <p className="mt-3 line-clamp-6 text-sm leading-relaxed text-slate-300">{info.summary ?? "No description available."}</p>
+          <p className="mt-3 line-clamp-6 text-sm leading-relaxed text-fg-2">{info.summary ?? "No description available."}</p>
           {info.target_mean_price && <p className="mt-3 text-sm text-muted">Analyst mean target {num(info.target_mean_price)} · consensus {info.recommendation ?? "—"}</p>}
         </Card>
         <Card className="p-5">

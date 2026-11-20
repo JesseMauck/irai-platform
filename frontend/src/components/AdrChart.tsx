@@ -14,7 +14,7 @@ export function AdrChart({ row, height = 220 }: { row: AdrRow; height?: number }
       band={{ lo: h.map(() => b - 2 * sd), hi: h.map(() => b + 2 * sd), color: "#56b4e91a" }}
       series={[
         { values: h.map(p => p.premium), color: "#f5a524", label: "Premium" },
-        { values: h.map(() => b), color: "#94a3b8", dashed: true, label: "Basis" },
+        { values: h.map(() => b), color: "var(--color-muted)", dashed: true, label: "Basis" },
       ]} />
   );
 }

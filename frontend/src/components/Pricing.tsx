@@ -55,7 +55,7 @@ export function PricingCards() {
                 {annual && p.annual > 0 && <div className="text-xs text-muted">${p.annual} billed yearly</div>}
               </div>
               <ul className="mb-6 flex-1 space-y-2 text-sm">
-                {p.features.map(f => <li key={f} className="flex gap-2"><span className="text-primary">✓</span><span className="text-slate-300">{f}</span></li>)}
+                {p.features.map(f => <li key={f} className="flex gap-2"><span className="text-primary">✓</span><span className="text-fg-2">{f}</span></li>)}
               </ul>
               {p.key === "free" ? (
                 <Button variant="outline" onClick={() => choose(p, "subscribe")} disabled={current}>{current ? "Current plan" : p.cta}</Button>

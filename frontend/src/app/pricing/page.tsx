@@ -26,7 +26,7 @@ export default function Pricing() {
       <div className="mt-4 overflow-x-auto rounded-xl border border-line">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-card text-left"><tr><th className="p-3">Feature</th><th className="p-3">Free</th><th className="p-3">Essential</th><th className="p-3">Pro</th></tr></thead>
-          <tbody className="divide-y divide-line">{ROWS.map(r => <tr key={r[0]}>{r.map((c, i) => <td key={i} className={`p-3 ${i ? "text-slate-300" : "font-medium"}`}>{c}</td>)}</tr>)}</tbody>
+          <tbody className="divide-y divide-line">{ROWS.map(r => <tr key={r[0]}>{r.map((c, i) => <td key={i} className={`p-3 ${i ? "text-fg-2" : "font-medium"}`}>{c}</td>)}</tr>)}</tbody>
         </table>
       </div>
       <ul className="mt-4 space-y-1 text-sm text-muted">

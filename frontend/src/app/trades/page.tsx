@@ -38,7 +38,7 @@ export default function Trades() {
               <span className="rounded bg-accent px-2 py-0.5 text-xs text-muted">{t.verification}</span><SourceBadge source={t.entry_source} />
               <span className="ml-auto text-sm text-muted">{t.status === "open" ? `Open · ${ago(t.created_at)}` : `Closed · ${ago(t.closed_at)}`}</span>
             </div>
-            <p className="mt-2 text-sm text-slate-300">{t.thesis}</p>
+            <p className="mt-2 text-sm text-fg-2">{t.thesis}</p>
             <div className="mt-2 flex items-center gap-4 text-xs text-muted num">
               <span>@{t.author}</span><span>entry {num(t.entry_long)}{t.entry_short != null && ` / ${num(t.entry_short)}`}</span>
               {t.exit_long != null && <span>exit {num(t.exit_long)}{t.exit_short != null && ` / ${num(t.exit_short)}`}</span>}

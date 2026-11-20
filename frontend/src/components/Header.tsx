@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
+import { ThemeToggle } from "./ThemeToggle";
 import { TickerSearch } from "./TickerSearch";
 
 interface NavItem { href?: string; label: string; desc?: string; children?: NavItem[] }
@@ -23,20 +24,34 @@ const NAV: NavItem[] = [
 ];
 
 /** The Irradiance mark: a solar disc with three rays (matches irradiance.ai). */
-export function LogoMark({ className = "size-5" }: { className?: string }) {
+/** Irradiance mark: the "i" with a rising arrow, crimson → amber. Matches the brand artwork in both themes. */
+export function LogoMark({ className = "h-7 w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
-      <defs><linearGradient id="irr-solar" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stopColor="#F5A524" /><stop offset="1" stopColor="#F2545B" /></linearGradient></defs>
-      <circle cx="12" cy="12" r="4.5" fill="url(#irr-solar)" />
-      <g stroke="url(#irr-solar)" strokeWidth="2" strokeLinecap="round"><path d="M12 2.5v3.2" /><path d="M4.7 4.7l2.3 2.3" /><path d="M19.3 4.7L17 7" /></g>
+    <svg viewBox="15 13 39 33" fill="none" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id="irr-mark" x1="17" y1="44" x2="51" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#C8364F" /><stop offset="0.55" stopColor="#E0605A" /><stop offset="1" stopColor="#F2923A" />
+        </linearGradient>
+      </defs>
+      <circle cx="27.8" cy="17.6" r="3" fill="url(#irr-mark)" />
+      <path d="M24.6 24.4h6.2l-0.9 14.6h-6.1z" fill="url(#irr-mark)" />
+      <path d="M17.6 44c2.6-1.4 5.2-2.4 7.6-2.2 2.6.2 4.7 2.2 7.2 1.6 2.6-.6 4-3 5.7-5.6l5.2-8.2"
+        stroke="url(#irr-mark)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M51 16.4l-12 5.2 3.4 2.4-2.2 3.4 4.6 2.8 2.2-3.4 3.4 2.4z" fill="url(#irr-mark)" />
     </svg>
   );
 }
 
+/** Full logo: mark + IRRADIANCE.AI wordmark. Wordmark follows the theme (light text on dark, dark text on light). */
 export function Logo() {
   return (
-    <Link href="/" aria-label="Irradiance home" className="shrink-0">
-      <span className="inline-flex items-center gap-2"><LogoMark /><span className="text-lg font-semibold tracking-tight text-fg">irradiance</span></span>
+    <Link href="/" aria-label="Irradiance.AI home" className="shrink-0">
+      <span className="inline-flex items-center gap-2">
+        <LogoMark />
+        <span className="text-[1.15rem] font-semibold italic leading-none tracking-tight text-fg">
+          IRRADIANCE<span className="logo-ai">.AI</span>
+        </span>
+      </span>
     </Link>
   );
 }
@@ -70,6 +85,7 @@ export function Header() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <TickerSearch />
+          <ThemeToggle />
           {user ? (
             <>
               {user.is_admin && <Link href="/admin" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">Admin</Link>}

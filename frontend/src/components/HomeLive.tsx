@@ -61,7 +61,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
       <dl className="mt-5 divide-y divide-line text-sm">
         {rows.map(([k, v]) => <div key={k} className="flex justify-between gap-4 py-2"><dt className="text-muted">{k}</dt><dd className="text-right num">{v}</dd></div>)}
       </dl>
-      <p className="mt-4 rounded-lg bg-accent/60 p-3 text-sm text-slate-300">
+      <p className="mt-4 rounded-lg bg-accent/60 p-3 text-sm text-fg-2">
         <span className="font-medium text-fg">Plain language:</span> {g.name} trades at {x(g.multiple)} against a peer median of {x(g.peer_median_multiple)}.
         After adjusting for quality, the residual sits at the {ord(g.rv_percentile)} percentile — {cheap ? "cheap for what it is, not merely cheap" : "rich for what it is, not merely expensive"}.
       </p>

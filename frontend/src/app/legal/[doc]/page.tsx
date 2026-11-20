@@ -18,7 +18,7 @@ export default async function Legal({ params }: { params: Promise<{ doc: string 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <PageHeader title={d[0]} intro="Last updated November 2026" />
-      <div className="space-y-4 text-slate-300">{d[1].map(p => <p key={p}>{p}</p>)}</div>
+      <div className="space-y-4 text-fg-2">{d[1].map(p => <p key={p}>{p}</p>)}</div>
     </div>
   );
 }

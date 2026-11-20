@@ -59,7 +59,7 @@ export default function Home() {
             <Link key={e.href} href={e.href} className="group rounded-xl border border-line bg-card p-6 transition hover:border-primary/50">
               <h3 className="font-semibold group-hover:text-primary">{e.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{e.body}</p>
-              <ul className="mt-4 space-y-1 text-sm text-slate-300">{e.points.map(x => <li key={x}>– {x}</li>)}</ul>
+              <ul className="mt-4 space-y-1 text-sm text-fg-2">{e.points.map(x => <li key={x}>– {x}</li>)}</ul>
             </Link>
           ))}
         </div>
@@ -88,7 +88,7 @@ export default function Home() {
             <span className="text-xs uppercase tracking-wide text-primary">ValueBot</span>
             <h2 className="mt-2 text-2xl font-semibold">Put your thesis to the test</h2>
             <p className="mt-3 text-muted">Pick any public company and tell its story — growth, profitability, reinvestment, risk, moat. ValueBot pulls SEC filings and live market data, measures earnings right, and runs an 18-stage narrative-and-numbers valuation.</p>
-            <ul className="mt-4 space-y-1 text-sm text-slate-300">
+            <ul className="mt-4 space-y-1 text-sm text-fg-2">
               <li>• FCFF DCF, excess-return (banks) or dividend discount, picked automatically</li>
               <li>• Possible / plausible / probable story tests</li>
               <li>• Break-evens, Monte Carlo and an exact reverse DCF</li>
@@ -96,7 +96,7 @@ export default function Home() {
             </ul>
             <div className="mt-6"><Button href="/valuebot">Value a company →</Button></div>
           </div>
-          <div className="rounded-lg border border-line bg-bg p-5 font-mono text-xs leading-6 text-slate-300">
+          <div className="rounded-lg border border-line bg-bg p-5 font-mono text-xs leading-6 text-fg-2">
             <div className="text-muted">$ valuebot AAPL --stance bearish</div>
             {["Resolve company", "Pull filings and market data", "Estimate cost of capital", "Measure earnings right", "Translate the story into numbers", "Run the valuation", "Test the story", "Break-evens, scenarios and simulation", "Build the Excel model", "Write the report"].map(s => (
               <div key={s}><span className="text-up">✓</span> {s}</div>
