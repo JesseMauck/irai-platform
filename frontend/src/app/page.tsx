@@ -58,7 +58,7 @@ export default async function Home() {
           <p className="mt-3 text-xs text-muted">No card needed for the trial · cancel any time · research and education, not investment advice</p>
           <dl className="mt-12 grid max-w-3xl grid-cols-2 gap-6 text-sm md:grid-cols-4">
             {[["18-stage", "DCF engine per valuation"], ["SEC EDGAR", "filings read for every model"], ["14 ADR pairs", "tracked against home markets"], ["Excel", "models you can open and edit"]].map(([k, v]) => (
-              <div key={k}><dt className="text-lg font-semibold text-fg">{k}</dt><dd className="text-muted">{v}</dd></div>
+              <div key={k}><dt className="stat text-xl text-fg">{k}</dt><dd className="text-muted">{v}</dd></div>
             ))}
           </dl>
         </div>

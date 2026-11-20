@@ -54,7 +54,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           </div>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{symbol} <span className="text-xl font-normal text-muted">{info.name ?? q.name}</span></h1>
           <div className="mt-2 flex items-baseline gap-3 num">
-            <span className="text-4xl font-semibold">{num(q.price, q.price < 10 ? 4 : 2)}</span>
+            <span className="stat text-4xl">{num(q.price, q.price < 10 ? 4 : 2)}</span>
             <span className={`text-lg ${tone(q.change)}`}>{q.change != null ? `${q.change > 0 ? "+" : ""}${num(q.change)}` : ""} ({pct(q.change_pct)})</span>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
             <p className="mt-3 select-none text-sm text-muted blur-sm">EV/EBITDA 00.0x vs peer median 00.0x · quality 00th</p>
             <p className="mt-3 text-sm">Percentiles, residuals and peer multiples are on <Link href="/pricing" className="text-primary">Essential</Link>.</p>
           </> : grade ? <>
-            <div className="mt-3 flex items-center gap-3"><GradeChip grade={grade.grade} /><span className="text-2xl font-semibold num">{ord(grade.rv_percentile)}</span><span className="text-sm text-muted">in {grade.peer_group}</span></div>
+            <div className="mt-3 flex items-center gap-3"><GradeChip grade={grade.grade} /><span className="stat text-2xl">{ord(grade.rv_percentile)}</span><span className="text-sm text-muted">in {grade.peer_group}</span></div>
             <p className="mt-2 text-sm text-muted">{grade.multiple_name} {grade.multiple?.toFixed(1)}x vs peer median {grade.peer_median_multiple?.toFixed(1)}x · quality {ord(grade.quality_percentile)}</p>
             <ul className="mt-3 divide-y divide-line text-sm">
               {grade.peers.map(p => (

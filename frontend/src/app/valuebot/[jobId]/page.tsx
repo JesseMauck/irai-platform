@@ -73,7 +73,7 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
             {[["Value / share", num(r.result.value_per_share)], ["Price", num(r.result.price)], ["Upside", pct(r.result.upside, 1)],
               ["P(undervalued)", pct(r.probabilistic.simulation.prob_undervalued ?? null, 0, false)],
               ["Bear – Bull", `${num(r.sensitivity.scenarios.bear.value_per_share, 0)} – ${num(r.sensitivity.scenarios.bull.value_per_share, 0)}`]].map(([k, v]) => (
-              <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className={`mt-1 text-2xl font-semibold num ${k === "Upside" ? (r.result.upside >= 0 ? "text-up" : "text-down") : ""}`}>{v}</div></Card>
+              <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className={`mt-1 stat text-2xl ${k === "Upside" ? (r.result.upside >= 0 ? "text-up" : "text-down") : ""}`}>{v}</div></Card>
             ))}
           </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-3">

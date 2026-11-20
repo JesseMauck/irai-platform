@@ -42,7 +42,7 @@ function Overview() {
     ["ValueBot runs (30d)", String(s.valuebot_runs_30d)], ["Backtests (30d)", String(s.backtests_30d)], ["Threads / trades", `${s.threads} / ${s.trades}`]];
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">{tiles.map(([k, v]) => <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="text-2xl font-semibold num">{v}</div></Card>)}</div>
+      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">{tiles.map(([k, v]) => <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="stat text-2xl">{v}</div></Card>)}</div>
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-5"><h3 className="font-semibold">Members by plan</h3><ul className="mt-2 text-sm">{Object.entries(s.users.by_plan).map(([k, v]) => <li key={k} className="flex justify-between capitalize"><span>{k}</span><span className="num">{v}</span></li>)}</ul></Card>
         <Card className="p-5"><h3 className="font-semibold">Subscriptions</h3><ul className="mt-2 text-sm">{s.subscriptions.map((x, i) => <li key={i} className="flex justify-between capitalize"><span>{x.plan} · {x.interval} · {x.status}</span><span className="num">{x.count}</span></li>)}{!s.subscriptions.length && <li className="text-muted">None yet</li>}</ul></Card>

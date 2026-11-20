@@ -34,7 +34,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
   if (g.locked) return (
     <Card className="relative overflow-hidden p-6">
       <h3 className="text-sm text-muted">Relative Value — <span className="font-semibold text-fg">{g.symbol}</span></h3>
-      <div className="mt-3 flex items-end gap-3"><div className="select-none text-4xl font-semibold blur-sm">88th percentile</div><GradeChip grade={g.grade} /></div>
+      <div className="mt-3 flex items-end gap-3"><div className="select-none stat text-4xl blur-sm">88th percentile</div><GradeChip grade={g.grade} /></div>
       <div className="mt-5 select-none space-y-2 blur-sm">{["Peer group", "Multiple", "Quality composite", "Residual", "Coverage confidence"].map(k => <div key={k} className="flex justify-between text-sm"><span className="text-muted">{k}</span><span>00.0x vs 00.0x</span></div>)}</div>
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-card via-card/95 to-transparent p-6 pt-16 text-center">
         <p className="text-sm">The grade letter is free. Percentiles, residuals and the full explanation are on Essential.</p>
@@ -57,7 +57,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
         <h3 className="text-sm text-muted">Relative Value — <Link href={`/ticker/${g.symbol}`} className="font-semibold text-fg hover:text-primary">{g.symbol}</Link></h3>
         <SourceBadge source={g.source} />
       </div>
-      <div className="mt-3 flex items-end gap-3"><div className="text-4xl font-semibold num">{ord(g.rv_percentile)} percentile</div><GradeChip grade={g.grade} /></div>
+      <div className="mt-3 flex items-end gap-3"><div className="stat text-4xl num">{ord(g.rv_percentile)} percentile</div><GradeChip grade={g.grade} /></div>
       <dl className="mt-5 divide-y divide-line text-sm">
         {rows.map(([k, v]) => <div key={k} className="flex justify-between gap-4 py-2"><dt className="text-muted">{k}</dt><dd className="text-right num">{v}</dd></div>)}
       </dl>

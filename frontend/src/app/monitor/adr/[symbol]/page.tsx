@@ -18,7 +18,7 @@ export default function AdrPair({ params }: { params: Promise<{ symbol: string }
         <PageHeader title={`${r.adr_symbol} vs ${r.local_symbol}`} intro={`${r.name} · ${r.country} · 1 ADR = ${r.ratio} local share(s)`}><SourceBadge source={r.source} /></PageHeader>
         <div className="grid gap-4 md:grid-cols-4">
           {[["Premium", pct(r.premium)], ["Structural basis", pct(r.basis)], ["Z-score", signed(r.z)], ["Half-life", r.half_life_days ? `${r.half_life_days.toFixed(1)} days` : "—"]].map(([k, v]) => (
-            <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="mt-1 text-2xl font-semibold num">{v}</div></Card>
+            <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="mt-1 stat text-2xl">{v}</div></Card>
           ))}
         </div>
         <Card className="mt-4 p-4"><AdrChart row={r} height={300} /></Card>

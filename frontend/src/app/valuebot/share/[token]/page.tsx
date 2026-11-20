@@ -18,7 +18,7 @@ export default function SharedRun({ params }: { params: Promise<{ token: string 
         <p className="text-sm text-muted">Shared ValueBot report · {r.method_title} · {r.date}</p>
         <h1 className="mt-1 text-3xl font-semibold">{r.sections.title || `${r.company.name} (${r.company.ticker})`}</h1>
         <div className="mt-6 grid grid-cols-3 gap-3">{[["Value / share", num(r.result.value_per_share)], ["Price", num(r.result.price)], ["Upside", pct(r.result.upside, 1)]].map(([k, v]) =>
-          <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="text-2xl font-semibold num">{v}</div></Card>)}</div>
+          <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="stat text-2xl">{v}</div></Card>)}</div>
         {r.section_titles.filter(([k]) => r.sections[k]).map(([k, t]) => <section key={k} className="mt-8"><h2 className="text-xl font-semibold">{t}</h2><div className="prose-irai"><ReactMarkdown>{r.sections[k]}</ReactMarkdown></div></section>)}
         {r.files.xlsx && <a href={`/api/valuebot/share/${token}/files/${r.files.xlsx}`} className="mt-8 inline-block text-primary">Download the Excel model →</a>}
         <p className="mt-10 text-xs text-muted">AI-assisted valuation for research and education — not investment advice.</p>

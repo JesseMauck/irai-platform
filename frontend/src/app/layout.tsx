@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter/opsz-italic.css";
+import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Footer } from "@/components/Footer";

@@ -12,7 +12,7 @@ export function Footer() {
   return (
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-5">
-        <div className="md:col-span-1"><Logo /><p className="mt-3 text-sm text-muted">Illuminating the market research.</p></div>
+        <div className="md:col-span-1"><Logo /><p className="stat mt-3 text-sm text-fg-2">Illuminating the market research.</p></div>
         {COLS.map(([h, links]) => (
           <div key={h}>
             <h3 className="text-sm font-semibold">{h}</h3>

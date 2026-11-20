@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-bg: #0b1220;
   --color-card: #101a2c;
@@ -50,6 +51,11 @@ html[data-theme="light"] .glass { background: #ffffffcc; border-color: #0f172a14
 body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 
 .logo-ai { background: linear-gradient(90deg, #f29b4b, #e5645f); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: .08em; }
+/* Type system: Space Grotesk (bold) for headlines, big numbers and the footer label; Inter for everything else. */
+h1, h2, h3, .stat { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; }
+h4, h5, h6 { font-family: var(--font-sans); }
+.stat { font-variant-numeric: tabular-nums; }
+
 .solar-text { background: linear-gradient(100deg, #f5a524, #f2545b); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .solar-bg { background: linear-gradient(100deg, #f5a524, #f2545b); }
 .glass { background: #1b274080; border: 1px solid #8ba8f024; backdrop-filter: blur(12px); }

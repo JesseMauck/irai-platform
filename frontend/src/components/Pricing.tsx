@@ -50,7 +50,7 @@ export function PricingCards() {
               <h3 className="text-lg font-semibold">{p.name}</h3>
               <p className="text-sm text-muted">{p.tagline}</p>
               <div className="my-5 num">
-                <span className="text-4xl font-semibold">${annual ? Math.round(p.annual / 12) : p.monthly}</span>
+                <span className="stat text-4xl">${annual ? Math.round(p.annual / 12) : p.monthly}</span>
                 <span className="text-muted">/mo</span>
                 {annual && p.annual > 0 && <div className="text-xs text-muted">${p.annual} billed yearly</div>}
               </div>

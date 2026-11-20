@@ -16,7 +16,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
       {!a ? <Skeleton rows={10} /> : <>
         <div className="mt-6 flex flex-wrap items-center gap-2 text-xs"><Pill tone="primary">{a.category}</Pill>
           {a.tickers.map(t => <Link key={t} href={`/ticker/${t}`} className="text-muted hover:text-primary">${t}</Link>)}</div>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">{a.title}</h1>
+        <h1 className="mt-3 stat text-4xl tracking-tight">{a.title}</h1>
         <p className="mt-3 text-lg text-muted">{a.summary}</p>
         <p className="mt-4 text-sm text-muted">{a.author} · {new Date(a.published_at).toLocaleDateString()} · {a.read_minutes} min read
           {a.free_remaining != null && !a.locked && ` · ${a.free_remaining} free article(s) left this month`}</p>
