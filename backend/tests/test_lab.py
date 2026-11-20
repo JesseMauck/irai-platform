@@ -153,3 +153,38 @@ def test_api_daily_quota_and_optimize_gating(client):
     assert out["combinations"] == 9 and out["best"]["params"]["short"] in (5, 10, 15)
     bad = {**body, "grid": {"short": [5, 15]}}
     assert client.post("/api/lab/optimize", json=bad, headers=_user(client, "pro")).status_code == 422
+
+
+def test_montecarlo_engine_math():
+    import numpy as np
+    from app.algo.montecarlo import simulate
+    rng = np.random.default_rng(1)
+    r = rng.normal(0.0004, 0.01, size=(1000, 1))
+    out = simulate(r, np.array([1.0]), start_value=100, horizon=252, paths=4000, method="gbm", target=130, stop=80)
+    # median terminal ≈ 100·exp((mu - σ²/2)·252) for log-drift estimated from data
+    # GBM: log price is normal with mean 252·E[log r], so the median terminal is S0·exp(252·E[log r]).
+    lr = np.log1p(r[:, 0])
+    assert abs(out["terminal"]["50"] / (100 * np.exp(252 * lr.mean())) - 1) < 0.03
+    # zero drift = zero arithmetic expected return: the mean terminal value stays at S0
+    z0 = simulate(r, np.array([1.0]), start_value=100, horizon=252, paths=20000, method="gbm", drift="zero")
+    assert abs(z0["expected_terminal"] / 100 - 1) < 0.02
+    assert out["fan"]["5"][-1] < out["fan"]["50"][-1] < out["fan"]["95"][-1]
+    assert 0 <= out["prob_touch_target"] <= 1 and out["prob_touch_stop"] >= 0 and out["var_95"] > 0
+    assert out["cvar_95"] >= out["var_95"]
+    vol = out["ann_vol_hist"]
+    assert abs(vol - 0.01 * np.sqrt(252)) < 0.02
+    boot = simulate(np.hstack([r, r * 0.5]), np.array([0.5, 0.5]), start_value=1e4, horizon=21, paths=500, method="bootstrap")
+    assert len(boot["fan"]["50"]) == 21 and boot["start_value"] == 1e4
+
+
+def test_montecarlo_api(client):
+    assert client.post("/api/lab/montecarlo", json={"holdings": [{"symbol": "AAPL"}]}).status_code == 401
+    h = _user(client, "pro")
+    r = client.post("/api/lab/montecarlo", json={"holdings": [{"symbol": "AAPL"}], "horizon_days": 63, "paths": 500,
+                                                 "target": 1e9, "stop": 1}, headers=h)
+    assert r.status_code == 200, r.text
+    b = r.json()
+    assert b["mode"] == "price" and b["prob_touch_target"] == 0 and len(b["fan"]["50"]) == 63
+    p = client.post("/api/lab/montecarlo", json={"holdings": [{"symbol": "AAPL", "weight": 0.6}, {"symbol": "MSFT", "weight": 0.4}],
+                                                 "method": "student_t", "start_value": 50000, "horizon_days": 21, "paths": 300}, headers=h).json()
+    assert p["mode"] == "portfolio" and p["weights"] == [0.6, 0.4]

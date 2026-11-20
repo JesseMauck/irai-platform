@@ -145,3 +145,67 @@ def runs(user: User = Depends(current_user), db: Session = Depends(get_db)):
     return [{"id": r.id, "kind": r.kind, "symbol": r.symbol, "strategy": r.strategy, "params": r.params, "range": r.range,
              "return": (r.statistics or {}).get("return"), "sharpe": (r.statistics or {}).get("sharpe"),
              "data_source": r.data_source, "created_at": r.created_at.isoformat()} for r in rows]
+
+
+# ── Monte Carlo ──────────────────────────────────────────────────────────────────────────────────
+class Holding(BaseModel):
+    symbol: str = Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9^=.\-]+$")
+    weight: float = Field(1.0, gt=0)
+
+
+class MonteCarloIn(BaseModel):
+    holdings: list[Holding] = Field(min_length=1, max_length=10)
+    method: str = Field("bootstrap", pattern="^(bootstrap|gbm|student_t)$")
+    drift: str = Field("historical", pattern="^(historical|zero)$")
+    horizon_days: int = Field(252, ge=5, le=1260)
+    paths: int = Field(2000, ge=100, le=20000)
+    range: str = "5y"
+    start_value: float | None = Field(None, gt=0)
+    target: float | None = Field(None, gt=0)
+    stop: float | None = Field(None, gt=0)
+    seed: int = 7
+
+
+@router.post("/montecarlo")
+def montecarlo(body: MonteCarloIn, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    """Simulate future values of one ticker (price) or a weighted portfolio (value of start_value)."""
+    import numpy as np
+
+    from ..algo.montecarlo import simulate
+
+    _quota(db, user)
+    cap_paths = 2000 if limits(user)["backtests_per_day"] is not None else 20000
+    paths = min(body.paths, cap_paths)
+    if body.range not in RANGES:
+        raise HTTPException(422, f"range must be one of {sorted(RANGES)}")
+    series, sources, prices = {}, set(), {}
+    for h in body.holdings:
+        sym = h.symbol.upper()
+        try:
+            c = service.chart(sym, body.range)
+        except SourceError as e:
+            raise HTTPException(404, str(e))
+        series[sym] = {x["date"]: x["close"] for x in c["history"]}
+        sources.add(c["quote"].get("source", "LIVE"))
+        prices[sym] = c["quote"]["price"]
+    dates = sorted(set.intersection(*[set(v) for v in series.values()]))
+    if len(dates) < 61:
+        raise HTTPException(422, "Not enough overlapping daily history (need 60+ shared days)")
+    px = np.array([[series[s][d] for s in series] for d in dates], dtype=float)
+    rets = px[1:] / px[:-1] - 1
+    w = np.array([h.weight for h in body.holdings], dtype=float)
+    single = len(body.holdings) == 1
+    start = prices[next(iter(series))] if single and not body.start_value else (body.start_value or 10_000.0)
+    try:
+        out = simulate(rets, w, start_value=start, horizon=body.horizon_days, paths=paths, method=body.method,
+                       drift=body.drift, seed=body.seed, target=body.target, stop=body.stop)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    src = "DEMO" if "DEMO" in sources else ("STALE" if "STALE" in sources else "LIVE")
+    db.add(BacktestRun(user_id=user.id if user else None, kind="montecarlo", symbol=",".join(series)[:20], strategy=body.method,
+                       params=body.model_dump(), settings={"paths": paths, "horizon_days": body.horizon_days}, range=body.range,
+                       statistics={k: out[k] for k in ("prob_gain", "var_95", "cvar_95", "expected_terminal")}, data_source=src))
+    db.commit()
+    return {**out, "symbols": list(series), "weights": (w / w.sum()).round(4).tolist(), "mode": "price" if single and not body.start_value else "portfolio",
+            "history_days": len(dates), "history_start": dates[0], "history_end": dates[-1], "source": src, "paths_capped": paths < body.paths,
+            "note": "Simulated outcomes from historical behaviour; not a forecast. Past volatility and correlation may not persist."}
