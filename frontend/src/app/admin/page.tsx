@@ -158,10 +158,13 @@ function Moderation() {
 interface SquareStatus { token_set: boolean; environment: string; location_id: string | null; plans: Record<string, boolean>;
   webhook_signature_key_set: boolean; webhook_url: string | null; expected_webhook_url: string; webhook_events: string[]; ready: boolean }
 
+interface SquareVariation { id: string; name: string; plan: string; cadence: string; amount_cents: number | null; suggested: string | null }
+
 function Billing() {
   const { data: st, reload } = useApi<SquareStatus>("/api/admin/billing/square");
   const [locs, setLocs] = useState<{ id: string; name: string; status: string }[] | null>(null);
   const [vars, setVars] = useState<Record<string, string> | null>(null);
+  const [found, setFound] = useState<SquareVariation[] | null>(null);
   const [err, setErr] = useState<Error | null>(null);
   const run = async <T,>(fn: () => Promise<T>, then: (v: T) => void) => { setErr(null); try { then(await fn()); reload(); } catch (e) { setErr(e as Error); } };
   if (!st) return null;
@@ -180,6 +183,7 @@ function Billing() {
         <ErrorNote error={err} />
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="outline" disabled={!st.token_set} onClick={() => run(() => api<{ id: string; name: string; status: string }[]>("/api/admin/billing/square/locations"), setLocs)}>Find locations</Button>
+          <Button variant="outline" disabled={!st.token_set} onClick={() => run(() => api<{ variations: SquareVariation[]; variables: Record<string, string> }>("/api/admin/billing/square/plans"), r => { setFound(r.variations); setVars(r.variables); })}>Find existing plans</Button>
           <Button disabled={!st.token_set || !st.location_id || Object.values(st.plans).every(Boolean)} onClick={() => run(() => api<{ variables: Record<string, string> }>("/api/admin/billing/square/setup", { method: "POST" }), r => setVars(r.variables))}>Create subscription plans</Button>
         </div>
       </Card>
@@ -187,7 +191,14 @@ function Billing() {
         <h3 className="mb-2 font-sans font-semibold">Values to set on Railway (not secret)</h3>
         {locs?.map(l => <div key={l.id}>SQUARE_LOCATION_ID={l.id} <span className="text-muted"># {l.name} ({l.status})</span></div>)}
         {vars && Object.entries(vars).map(([k, v]) => <div key={k}>{k}={v}</div>)}
-        {!locs && !vars && <p className="font-sans text-muted">Results appear here.</p>}
+        {found && <div className="mt-3 font-sans">
+          <div className="mb-1 text-muted">Plans found in Square ({found.length})</div>
+          {found.length === 0 && <p className="text-muted">None yet — use “Create subscription plans”.</p>}
+          {found.map(v => <div key={v.id} className="flex flex-wrap gap-x-3 border-t border-line py-1">
+            <span>{v.plan} — {v.name}</span><span className="text-muted">{v.cadence}{v.amount_cents != null ? ` · $${(v.amount_cents / 100).toFixed(2)}` : ""}</span>
+            <span className="font-mono">{v.id}</span><span className={v.suggested ? "text-up" : "text-muted"}>{v.suggested ?? "not matched"}</span></div>)}
+        </div>}
+        {!locs && !vars && !found && <p className="font-sans text-muted">Results appear here.</p>}
       </Card>
     </div>
   );

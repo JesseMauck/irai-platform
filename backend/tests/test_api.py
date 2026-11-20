@@ -546,3 +546,12 @@ def test_admin_square_setup(client, monkeypatch):
               for v in seen["body"]["object"]["subscription_plan_data"]["subscription_plan_variations"]}
     assert prices["#essential_monthly"] == 4900 and prices["#pro_annual"] == 100000
     assert client.get("/api/admin/billing/square", headers=signup(client)).status_code == 403
+
+
+def test_guess_square_plan_key():
+    from app.routers.admin import guess_plan_key
+    prices = {"essential_monthly": 4900, "essential_annual": 49000, "pro_monthly": 10000, "pro_annual": 100000}
+    assert guess_plan_key({"plan": "Irradiance", "name": "Pro (annual)", "cadence": "ANNUAL"}, prices) == "pro_annual"
+    assert guess_plan_key({"plan": "Essential", "name": "Monthly", "cadence": "MONTHLY"}, prices) == "essential_monthly"
+    assert guess_plan_key({"plan": "Membership", "name": "Tier B", "cadence": "MONTHLY", "amount_cents": 10000}, prices) == "pro_monthly"
+    assert guess_plan_key({"plan": "Other", "name": "X", "cadence": "WEEKLY", "amount_cents": 1}, prices) is None

@@ -323,6 +323,48 @@ def square_locations(_: User = Depends(require_admin)):
         raise HTTPException(502, f"Square: {e}")
 
 
+def _plan_prices() -> dict[str, int]:
+    p = plans()
+    prices = {f"{k}_monthly": int(p[k]["monthly"] * 100) for k in ("essential", "pro")}
+    prices.update({f"{k}_annual": int(p[k]["annual"] * 100) for k in ("essential", "pro")})
+    return prices
+
+
+def guess_plan_key(v: dict, prices: dict[str, int]) -> str | None:
+    """Map a Square variation to essential/pro × monthly/annual by name, else by cadence + price."""
+    text = f"{v.get('plan', '')} {v.get('name', '')}".lower()
+    cadence = (v.get("cadence") or "").upper()
+    interval = "annual" if cadence == "ANNUAL" or "annual" in text or "year" in text else (
+        "monthly" if cadence == "MONTHLY" or "month" in text else None)
+    plan = "pro" if "pro" in text else ("essential" if "essential" in text else None)
+    if plan and interval:
+        return f"{plan}_{interval}"
+    for key, cents in prices.items():
+        if v.get("amount_cents") == cents and (interval is None or key.endswith(interval)):
+            return key
+    return None
+
+
+@router.get("/billing/square/plans")
+def square_plans(_: User = Depends(require_admin)):
+    """List subscription plans already in Square and suggest which SQUARE_PLAN_* each one fills."""
+    from ..payments.square import SquareError
+    prices = _plan_prices()
+    try:
+        found = _square().list_plans()
+    except SquareError as e:
+        raise HTTPException(502, f"Square: {e}") from e
+    for v in found:
+        v["suggested"] = guess_plan_key(v, prices)
+    suggested = {}
+    for v in found:
+        k = v["suggested"]
+        if k and k not in suggested:
+            suggested[k] = v["id"]
+    return {"variations": found, "expected_prices_cents": prices,
+            "variables": {f"SQUARE_PLAN_{k.upper()}": vid for k, vid in sorted(suggested.items())}}
+
+
 @router.post("/billing/square/setup")
 def square_setup(_: User = Depends(require_admin)):
     """Create the membership plan + 4 variations in Square from plans.json prices. Returns the variation IDs to
@@ -331,9 +373,7 @@ def square_setup(_: User = Depends(require_admin)):
     sq = _square()
     if all(sq.cfg.plan_variations.values()):
         raise HTTPException(409, "Square plans are already configured")
-    p = plans()
-    prices = {f"{k}_monthly": int(p[k]["monthly"] * 100) for k in ("essential", "pro")}
-    prices.update({f"{k}_annual": int(p[k]["annual"] * 100) for k in ("essential", "pro")})
+    prices = _plan_prices()
     try:
         ids = sq.create_plans(prices)
     except SquareError as e:

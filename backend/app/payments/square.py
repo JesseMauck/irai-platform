@@ -134,5 +134,39 @@ class SquareClient:
         ids = {m["client_object_id"].lstrip("#"): m["object_id"] for m in res.get("id_mappings", [])}
         return {k: ids[k] for k in prices if k in ids}
 
+    def list_plans(self) -> list[dict[str, Any]]:
+        """Existing subscription plan variations in the catalog (e.g. made in the Square Dashboard)."""
+        plans: dict[str, str] = {}
+        variations: list[dict[str, Any]] = []
+        cursor = ""
+        for _ in range(20):
+            q = "/v2/catalog/list?types=SUBSCRIPTION_PLAN,SUBSCRIPTION_PLAN_VARIATION" + (f"&cursor={cursor}" if cursor else "")
+            res = self._req("GET", q)
+            for o in res.get("objects", []):
+                if o.get("is_deleted"):
+                    continue
+                if o["type"] == "SUBSCRIPTION_PLAN":
+                    plans[o["id"]] = o.get("subscription_plan_data", {}).get("name", "")
+                    for v in o.get("subscription_plan_data", {}).get("subscription_plan_variations", []) or []:
+                        variations.append(v)
+                elif o["type"] == "SUBSCRIPTION_PLAN_VARIATION":
+                    variations.append(o)
+            cursor = res.get("cursor", "")
+            if not cursor:
+                break
+        out, seen = [], set()
+        for v in variations:
+            if v["id"] in seen or v.get("is_deleted"):
+                continue
+            seen.add(v["id"])
+            d = v.get("subscription_plan_variation_data", {})
+            phases = d.get("phases") or [{}]
+            last = phases[-1]
+            money = (last.get("pricing") or {}).get("price_money") or last.get("recurring_price_money") or {}
+            out.append({"id": v["id"], "name": d.get("name", ""), "plan": plans.get(d.get("subscription_plan_id", ""), ""),
+                        "cadence": last.get("cadence", ""), "amount_cents": money.get("amount"),
+                        "phases": len(phases)})
+        return out
+
     def list_locations(self) -> list[dict[str, Any]]:
         return self._req("GET", "/v2/locations").get("locations", [])
