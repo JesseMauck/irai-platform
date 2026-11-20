@@ -18,6 +18,7 @@ from valuebot import pipeline
 from valuebot.api import JobRequest
 from valuebot.api import router as valuebot_router
 
+from .. import mail
 from ..db import SessionLocal, get_db
 from ..models import ValuationRun, User
 from ..security import current_user, limits
@@ -83,6 +84,14 @@ def record_finished(job: dict) -> None:
         r.method, r.prob_undervalued = s.get("method"), s.get("prob_undervalued")
         r.error = (job.get("error") or "")[:500] or None
         r.finished_at = dt.datetime.now(dt.timezone.utc)
+        want = (job.get("request") or {}).get("email")
+        owner = db.get(User, r.user_id) if r.user_id else None
+        if want and owner:
+            verdict = (f"value {r.value_per_share:,.2f} vs price {r.price:,.2f}" if r.status == "done" and r.value_per_share
+                       else f"status {r.status}")
+            mail.enqueue(db, owner.email, f"Your {r.ticker} valuation is ready",
+                         f"ValueBot finished {r.ticker}: {verdict}.\n\n{mail.link('/valuebot/' + r.job_id)}{mail.FOOTER}",
+                         "valuebot_done")
         db.commit()
 
 

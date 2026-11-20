@@ -43,6 +43,8 @@ class User(TimestampMixin, Base):
     verified_trader: Mapped[bool] = mapped_column(Boolean, default=False)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(64))
     disabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Sessions issued before this moment are rejected (set on password reset / "sign out everywhere").
+    tokens_valid_after: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
     subscriptions: Mapped[list[Subscription]] = relationship(back_populates="user", cascade="all, delete-orphan")
     watchlists: Mapped[list[Watchlist]] = relationship(back_populates="user", cascade="all, delete-orphan")

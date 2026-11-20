@@ -32,7 +32,8 @@ def verify_password(pw: str, hashed: str) -> bool:
 
 def create_token(user: User) -> str:
     now = dt.datetime.now(dt.timezone.utc)
-    return jwt.encode({"sub": str(user.id), "iat": now, "exp": now + dt.timedelta(hours=settings.jwt_ttl_hours)},
+    return jwt.encode({"sub": str(user.id), "iat": int(now.timestamp()),
+                       "exp": now + dt.timedelta(hours=settings.jwt_ttl_hours)},
                       settings.jwt_secret, algorithm="HS256")
 
 
@@ -51,7 +52,16 @@ def optional_user(request: Request, db: Session = Depends(get_db)) -> User | Non
         data = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
     except jwt.PyJWTError:
         return None
-    return db.get(User, int(data["sub"]))
+    user = db.get(User, int(data["sub"]))
+    if user is None or user.disabled:
+        return None
+    if user.tokens_valid_after:
+        valid_after = user.tokens_valid_after
+        if valid_after.tzinfo is None:
+            valid_after = valid_after.replace(tzinfo=dt.timezone.utc)
+        if data.get("iat", 0) < int(valid_after.timestamp()):
+            return None
+    return user
 
 
 def current_user(user: User | None = Depends(optional_user)) -> User:

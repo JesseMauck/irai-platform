@@ -21,7 +21,8 @@ from .seed import seed_reference  # noqa: E402
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    init_db()
+    if settings.auto_create_tables:
+        init_db()
     with SessionLocal() as db:
         seed_reference(db)
     yield

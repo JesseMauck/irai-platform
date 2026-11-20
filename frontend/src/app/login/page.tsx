@@ -25,7 +25,7 @@ function LoginForm() {
           <ErrorNote error={err} />
           <Button type="submit" className="w-full">Sign in</Button>
         </form>
-        <p className="mt-4 text-sm text-muted">New here? <Link href="/signup" className="text-primary">Create an account</Link></p>
+        <p className="mt-4 flex justify-between text-sm text-muted"><span>New here? <Link href="/signup" className="text-primary">Create an account</Link></span><Link href="/forgot" className="hover:text-fg">Forgot password?</Link></p>
       </Card>
     </div>
   );

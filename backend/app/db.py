@@ -17,6 +17,11 @@ def make_engine(url: str):
     kw = {"pool_pre_ping": True}
     if url.startswith("sqlite"):
         kw["connect_args"] = {"check_same_thread": False}
+    elif url.startswith("postgresql"):
+        # Supabase's pooler (PgBouncer, transaction mode, port 6543) can't keep server-side prepared
+        # statements across transactions; disable them so either pooled or direct URLs work.
+        kw["connect_args"] = {"prepare_threshold": None}
+        kw["pool_size"], kw["max_overflow"] = 5, 10
     eng = create_engine(url, **kw)
     if url.startswith("sqlite"):
         @event.listens_for(eng, "connect")

@@ -210,3 +210,74 @@ def test_valuebot_run_recorded_and_quota(client):
     assert client.post("/api/valuebot/jobs", json={"ticker": "DEMO"}, headers=h).status_code == 402
     assert client.post("/api/valuebot/jobs", json={"ticker": "../../x"}, headers=h).status_code == 422
     assert client.get("/api/valuebot/jobs/../../etc").status_code == 404
+
+
+def test_password_reset_flow_and_outbox(client):
+    from sqlalchemy import select
+
+    from app import mail
+    from app.db import SessionLocal
+    from app.models import EmailOutbox
+    h = signup(client)
+    me = client.get("/api/auth/me", headers=h).json()
+    with SessionLocal() as db:
+        kinds = [r.kind for r in db.scalars(select(EmailOutbox).where(EmailOutbox.to_addr == me["email"]))]
+    assert "welcome" in kinds
+    # unknown email gets the same answer (no account enumeration)
+    a = client.post("/api/auth/forgot", json={"email": "nobody-here@test.io"}).json()
+    b = client.post("/api/auth/forgot", json={"email": me["email"]}).json()
+    assert a == b
+    sent = []
+    with SessionLocal() as db:
+        mail.deliver_pending(db, sender=sent.append)
+    reset_mail = next(m for m in sent if m.kind == "password_reset" and m.to_addr == me["email"])
+    token = reset_mail.body_text.split("token=")[1].split()[0]
+    time.sleep(1.1)  # old session's iat must be strictly before the reset second
+    r = client.post("/api/auth/reset", json={"token": token, "password": "brand-new-pass-1"})
+    assert r.status_code == 200
+    new_hdr = {"Authorization": f"Bearer {r.json()['token']}"}
+    client.cookies.clear()
+    assert client.get("/api/auth/me", headers=h).status_code == 401       # old session revoked
+    assert client.get("/api/auth/me", headers=new_hdr).status_code == 200
+    assert client.post("/api/auth/reset", json={"token": token, "password": "another-pass-2"}).status_code == 400  # single use
+    assert client.post("/api/auth/login", json={"email": me["email"], "password": "brand-new-pass-1"}).status_code == 200
+    client.cookies.clear()
+
+
+def test_mail_retry_backoff_then_fail():
+    from app import mail
+    from app.db import SessionLocal
+    from app.models import EmailOutbox
+    with SessionLocal() as db:
+        row = mail.enqueue(db, "x@test.io", "s", "b", "test")
+        db.commit()
+        rid = row.id
+
+    def boom(r):
+        if r.id == rid:
+            raise OSError("smtp down")
+
+    with SessionLocal() as db:
+        mail.deliver_pending(db, sender=boom)
+        r = db.get(EmailOutbox, rid)
+        assert r.status == "pending" and r.attempts == 1 and "smtp down" in r.last_error
+        for _ in range(4):
+            r.next_attempt_at = r.created_at  # pretend the backoff elapsed
+            db.commit()
+            mail.deliver_pending(db, sender=boom)
+            db.refresh(r)
+        assert r.status == "failed" and r.attempts == mail.MAX_ATTEMPTS
+
+
+def test_email_alert_enqueued(client):
+    from sqlalchemy import select
+
+    from app.db import SessionLocal
+    from app.models import EmailOutbox
+    from app.routers.me import evaluate_alerts
+    e = signup(client, "essential")
+    me = client.get("/api/auth/me", headers=e).json()
+    client.post("/api/me/alerts", json={"symbol": "NVDA", "kind": "price_above", "threshold": 0.01}, headers=e)
+    with SessionLocal() as db:
+        evaluate_alerts(db)
+        assert db.scalar(select(EmailOutbox).where(EmailOutbox.to_addr == me["email"], EmailOutbox.kind == "alert"))

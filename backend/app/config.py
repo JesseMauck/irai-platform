@@ -23,14 +23,25 @@ def _load_dotenv() -> None:
 _load_dotenv()
 
 
+def normalise_db_url(url: str) -> str:
+    """Accept the plain URLs Supabase/Railway/Heroku hand out and select the psycopg 3 driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def _list(name: str, default: str) -> list[str]:
     return [x.strip() for x in os.environ.get(name, default).split(",") if x.strip()]
 
 
 @dataclass(frozen=True)
 class Settings:
-    database_url: str = field(default_factory=lambda: os.environ.get(
-        "DATABASE_URL", f"sqlite:///{BACKEND_DIR / 'irai.db'}"))
+    database_url: str = field(default_factory=lambda: normalise_db_url(os.environ.get(
+        "DATABASE_URL", f"sqlite:///{BACKEND_DIR / 'irai.db'}")))
+    # Create tables on startup (handy for SQLite dev). Production Postgres uses `alembic upgrade head`.
+    auto_create_tables: bool = field(default_factory=lambda: os.environ.get(
+        "IRAI_AUTO_CREATE_TABLES", "1" if not os.environ.get("DATABASE_URL", "sqlite").startswith("postgres") else "0") == "1")
     # JWT signing key. MUST be set in production; a random per-process key is used otherwise
     # (which logs everyone out on restart).
     jwt_secret: str = field(default_factory=lambda: os.environ.get("IRAI_JWT_SECRET") or secrets.token_urlsafe(48))

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import mail
 from ..db import get_db
 from ..market import engines, service
 from ..models import AdrPair, Alert, AlertEvent, User, Watchlist, WatchlistItem
@@ -186,6 +187,12 @@ def evaluate_alerts(db: Session, cooldown_minutes: int = 60) -> list[dict]:
                                                 "value": value, "message": msg}, timeout=5)
             except httpx.HTTPError:
                 pass
+        elif a.channel == "email":
+            owner = db.get(User, a.user_id)
+            if owner and not owner.disabled:
+                mail.enqueue(db, owner.email, f"Alert: {a.symbol}",
+                             f"{msg}\n\nOpen {a.symbol}: {mail.link('/ticker/' + a.symbol)}\n"
+                             f"Manage alerts: {mail.link('/account')}{mail.FOOTER}", "alert")
         fired.append({"alert_id": a.id, "message": msg})
     db.commit()
     return fired
