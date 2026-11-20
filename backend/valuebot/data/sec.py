@@ -116,6 +116,31 @@ def _annual_series(facts: dict, tag: str, instant: bool) -> dict[str, float]:
     return {k: v for k, (_, v) in out.items()}
 
 
+def _ttm_series(facts: dict, tag: str, instant: bool) -> dict[str, float]:
+    """Trailing-twelve-month value from 10-Q data, for registrants with no annual report yet (new holding
+    companies, recent IPOs). Duration items: sum of the latest four non-overlapping ~3-month quarters
+    (a fiscal Q4 is derived from a 10-K when one exists). Instant items: the latest balance."""
+    node = facts.get("facts", {}).get("us-gaap", {}).get(tag)
+    if not node:
+        return {}
+    obs = [o for o in (node.get("units", {}).get("USD") or []) if o.get("form") in {"10-Q", "10-Q/A", "6-K"}]
+    if instant:
+        pts = sorted((o["end"], float(o["val"])) for o in obs if "start" not in o)
+        return {pts[-1][0]: pts[-1][1]} if pts else {}
+    q = {}
+    for o in obs:
+        if "start" in o and 80 <= _days(o["start"], o["end"]) <= 100:
+            if o["end"] not in q or o.get("filed", "") > q[o["end"]][0]:
+                q[o["end"]] = (o.get("filed", ""), float(o["val"]), o["start"])
+    ends = sorted(q)
+    if len(ends) < 4:
+        return {}
+    last4 = ends[-4:]
+    if _days(q[last4[0]][2], last4[-1]) > 380:  # gaps: not four consecutive quarters
+        return {}
+    return {last4[-1]: sum(q[e][1] for e in last4)}
+
+
 def _first(facts: dict, tags: list[str], instant: bool) -> tuple[dict[str, float], str | None]:
     """Best series for a line item across candidate tags.
 
@@ -149,14 +174,34 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
 
     series: dict[str, dict[str, float]] = {}
     tags_used: dict[str, str] = {}
+    annual = any(_first(facts, DURATION_TAGS[k], False)[0] for k in ("revenue", "net_income"))
     for key, tags in DURATION_TAGS.items():
         series[key], tag = _first(facts, tags, instant=False)
+        if not annual:
+            series[key], tag = {}, None
+            for t2 in tags:
+                if (ttm := _ttm_series(facts, t2, False)):
+                    series[key], tag = ttm, t2 + " (TTM from 10-Qs)"
+                    break
         if tag:
             tags_used[key] = tag
     for key, tags in INSTANT_TAGS.items():
         series[key], tag = _first(facts, tags, instant=True)
+        if not annual:
+            series[key], tag = {}, None
+            for t2 in tags:
+                if (latest := _ttm_series(facts, t2, True)):
+                    series[key], tag = latest, t2 + " (latest 10-Q)"
+                    break
         if tag:
             tags_used[key] = tag
+    if not annual:
+        # Align instant balances with the TTM period end so rows line up.
+        end = next(iter(series["revenue"] or series["net_income"] or {}), None)
+        if end:
+            for key in INSTANT_TAGS:
+                if series[key]:
+                    series[key] = {end: next(iter(series[key].values()))}
 
     ends = sorted(series["revenue"].keys())[-years:] if series["revenue"] else sorted(series["net_income"].keys())[-years:]
     history = []
@@ -190,6 +235,7 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
     return {
         "cik": cik,
         "latest_period_end": latest,
+        "basis": "annual" if annual else "ttm_10q",
         "stale": stale,
         "name": facts.get("entityName") or tm[t]["name"],
         "sic_description": subs.get("sicDescription"),
