@@ -1,8 +1,11 @@
 # IRAI — Irradiance research platform + ValueBot
 
-Subscription research site modelled on irradiance.ai: live ADR / ETF / Fundamental-RV monitors, a ticker page
-for **any symbol you type**, research articles, community with price-captured trade posts, leaderboards,
-Free / Essential / Pro membership — with **ValueBot** (narrative-and-numbers DCF engine) built in.
+Subscription research site for irradiance.ai: live ADR / ETF / Fundamental-RV monitors, a ticker page for
+**any symbol you type**, research articles, community with price-captured trade posts, leaderboards,
+Free / Essential / Pro membership — with **ValueBot** (narrative-and-numbers DCF engine) and the
+**Strategy Lab** (StockSharp-model backtesting and optimisation) built in.
+
+Production layout: **Vercel** (frontend/) · **Railway** (backend API + worker) · **Supabase** (PostgreSQL).
 
 ```
 frontend/   Next.js 15 (App Router) · TypeScript · Tailwind v4        → http://localhost:3000
@@ -71,6 +74,28 @@ and re-run `python -m app.seed` (idempotent). Verify ADR ratios against the depo
   reverse DCF → Excel with live formulas + bull/bear/market-implied → report HTML/PDF). Without
   `ANTHROPIC_API_KEY` the narrative uses templates; with it, Claude drafts theses, researches and writes.
 
+## Strategy Lab (StockSharp integration)
+
+`backend/app/algo/` ports the model of [JesseMauck/stocksharp-algo-trade-platform](https://github.com/JesseMauck/stocksharp-algo-trade-platform)
+(StockSharp, Apache-2.0; see `app/algo/NOTICE-StockSharp.txt`): S# indicators (SMA, EMA, SMMA, RSI, Bollinger, MACD,
+Highest/Lowest), candle-driven strategies with Position/Volume semantics (the SMA crossover reproduces the S#
+`SmaStrategy` sample, including reversals), a history emulator (next-bar fills, commission, slippage), the
+StatisticManager metrics, and a grid optimiser (S# BatchEmulation) with an out-of-sample check. `/lab` runs it on
+live daily history for any ticker. The original repo is a 2019 .NET Framework 4.x/WPF codebase that won't build on
+Linux; the modern cross-platform StockSharp (.NET 8, NuGet) can later run as a sidecar behind the same
+`/api/lab` contract if tick-level emulation or broker connectors are needed. No order routing: research only.
+
+## Operations
+
+* **Migrations:** `cd backend && alembic upgrade head` (the Docker image runs it on start). New change:
+  edit `app/models.py`, then `alembic revision --autogenerate -m "..."`, review, commit.
+* **Worker:** one process: `python -m app.jobs worker` (alerts, saved-screen alerts, email outbox).
+* **Email:** set `SMTP_*` (Resend, Postmark, SendGrid…). Without it, mail is logged.
+* **Admin:** `/admin` for users with `is_admin` — metrics, plans, articles, coverage, moderation log.
+* **API:** Pro members create read-only keys on /account; send `X-API-Key` on GET requests.
+* **CI:** `.github/workflows/ci.yml` runs backend tests on SQLite and Postgres, a migration drift check,
+  and frontend typecheck/lint/build.
+
 ## Plans (enforced server-side)
 
 | | Free | Essential $49 | Pro $100 |
@@ -86,9 +111,9 @@ and re-run `python -m app.seed` (idempotent). Verify ADR ratios against the depo
 Limits live in `app/seed_data/plans.json`. Billing: set the `STRIPE_*` variables to use Stripe Checkout + the
 signed webhook at `/api/billing/webhook`; without them checkout starts a 7-day trial directly (dev mode).
 
-## Database (21 tables)
+## Database (27 tables, Alembic-managed)
 
-`users · subscriptions · instruments · adr_pairs · etf_funds · peer_groups · peer_members · grade_snapshots ·
+`users · subscriptions · api_keys · password_resets · email_outbox · saved_screens · backtest_runs · moderation_log · instruments · adr_pairs · etf_funds · peer_groups · peer_members · grade_snapshots ·
 quotes · articles · article_views · watchlists · watchlist_items · alerts · alert_events · communities · threads
 · posts · votes · trade_posts · valuation_runs`. See `backend/app/models.py` / `backend/schema.sql`.
 Trade posts store the entry price captured from the feed at publish time; there is no edit route.
@@ -101,7 +126,8 @@ Render/Fly cron, or a GitHub Action). Webhook alerts POST JSON to the user's URL
 ## Tests
 
 ```bash
-cd backend && pytest                       # 53 tests: platform API, market engines, ValueBot (incl. Excel parity)
+cd backend && pytest                       # 77 tests: platform API, market engines, Strategy Lab, ValueBot (incl. Excel parity)
+IRAI_TEST_DATABASE_URL=postgresql://user@localhost/irai_test pytest   # same suite on Postgres
 cd frontend && npx tsc --noEmit && npm run lint && npm run build
 python e2e/test_e2e.py http://localhost:3000 e2e-screenshots   # browser flow (needs both servers; pip install playwright)
 ```

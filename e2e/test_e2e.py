@@ -7,9 +7,9 @@ from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3000"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "e2e-screenshots"
-PAGES = ["/", "/monitor/adr", "/monitor/adr/TM", "/monitor/etf", "/monitor/fundamental", "/ticker/NVDA", "/research",
-         "/research/reading-the-adr-basis", "/screeners", "/community", "/trades", "/leaderboards", "/learn",
-         "/pricing", "/methodology", "/valuebot"]
+PAGES = ["/", "/monitor/adr", "/monitor/adr/TM", "/monitor/etf", "/monitor/fundamental", "/monitor/pairs", "/ticker/NVDA",
+         "/research", "/research/reading-the-adr-basis", "/screeners", "/community", "/trades", "/leaderboards", "/learn",
+         "/pricing", "/methodology", "/valuebot", "/lab", "/forgot", "/login", "/signup"]
 
 
 def main():
@@ -54,13 +54,33 @@ def main():
 
         pg.goto(BASE + "/valuebot?ticker=DEMO", wait_until="networkidle")
         pg.wait_for_selector("text=Suggested method")
+        pg.click("text=Market size")  # Refine step: market sizing drives revenue growth
+        boxes = pg.locator("text=Total market today").locator("input")
+        boxes.fill("60")
+        pg.locator("text=Year-10 market share").locator("input").fill("15")
+        pg.locator("text=Market growth").locator("input").fill("8")
         pg.click("text=Run valuation")
         pg.wait_for_function("/^\\/valuebot\\/2/.test(location.pathname)")
         t0 = time.time()
         pg.wait_for_selector("text=Value / share", timeout=180_000)
         pg.wait_for_timeout(800)
         pg.screenshot(path=f"{OUT}/valuebot_report.png", full_page=True)
-        print(f"ok valuebot run ({time.time() - t0:.0f}s)")
+        print(f"ok valuebot run with market sizing ({time.time() - t0:.0f}s)")
+        assert "market" in pg.inner_text("body").lower()
+
+        # Strategy Lab backtest (StockSharp port)
+        pg.goto(BASE + "/lab?symbol=AAPL", wait_until="networkidle")
+        pg.click("text=Run backtest")
+        pg.wait_for_selector("text=Equity vs buy-and-hold", timeout=30_000)
+        pg.screenshot(path=f"{OUT}/lab.png", full_page=True)
+        print("ok strategy lab backtest")
+
+        # custom screen (Essential)
+        pg.goto(BASE + "/screeners", wait_until="networkidle")
+        pg.locator("text=RV percentile ≥").locator("input").fill("50")
+        pg.click("text=Preview")
+        pg.wait_for_selector("text=Saved screens")
+        print("ok custom screen preview")
 
         # trade post captures live price
         pg.goto(BASE + "/trades", wait_until="networkidle")
@@ -70,6 +90,25 @@ def main():
         pg.click("text=Publish at live price")
         pg.wait_for_selector("text=Close at live price")
         print("ok trade post")
+
+        # admin console
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        ad = ctx.new_page()
+        ad.on("pageerror", lambda e: errors.append(f"{ad.url}: {e}"))
+        ad.goto(BASE + "/login")
+        ad.fill("input[type=email]", "admin@irai-demo.com")
+        ad.fill("input[type=password]", "irai-demo-2026")
+        ad.click("button[type=submit]")
+        ad.wait_for_function("location.pathname === '/account'")
+        ad.goto(BASE + "/admin", wait_until="networkidle")
+        ad.wait_for_selector("text=Members by plan")
+        for tab in ("Users", "Articles", "Coverage", "Moderation"):
+            ad.click(f"button:has-text('{tab}')")
+            ad.wait_for_timeout(400)
+        ad.screenshot(path=f"{OUT}/admin.png")
+        ad.goto(BASE + "/monitor/pairs", wait_until="networkidle")
+        ad.wait_for_selector("main >> text=Cheap for quality")  # (the header menu also mentions score spreads, hidden)
+        print("ok admin console + pair ideas (Pro)")
         b.close()
     real = [e for e in errors if "401" not in e and "402" not in e and "Failed to load resource" not in e]
     if real:
