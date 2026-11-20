@@ -7,11 +7,13 @@ import { useApi } from "@/lib/hooks";
 import { ago, compact, num, pct } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { cleanRefinements, EMPTY_REFINE, type Driver, type Refinements, ValueBotRefine } from "@/components/ValueBotRefine";
 
 interface Company {
   ticker: string; name: string; price: number; currency: string; sector: string | null; industry: string | null;
   market_cap: number | null; demo: boolean; suggested_method: string; method_reason: string;
   latest: { fiscal_year: number; revenue: number; revenue_growth: number; operating_margin: number; roic: number | null };
+  drivers: Record<string, Driver[]>;
 }
 interface Run { id: string; ticker: string; status: string; value_per_share: number | null; price: number | null; upside: number | null; created_at: string }
 const STORIES = [
@@ -32,6 +34,8 @@ function ValueBotForm() {
   const [thesis, setThesis] = useState("");
   const [stories, setStories] = useState<Record<string, string>>({});
   const [method, setMethod] = useState("auto");
+  const [refine, setRefine] = useState<Refinements>(EMPTY_REFINE);
+  const [emailMe, setEmailMe] = useState(false);
   const [err, setErr] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => { const id = setTimeout(() => setDebounced(ticker.trim().toUpperCase()), 400); return () => clearTimeout(id); }, [ticker]);
@@ -51,7 +55,7 @@ function ValueBotForm() {
     if (!user) { router.push("/login?next=/valuebot"); return; }
     setBusy(true); setErr(null);
     try {
-      const r = await api<{ id: string }>("/api/valuebot/jobs", { method: "POST", json: { ticker: debounced, stance, thesis, stories, method } });
+      const r = await api<{ id: string }>("/api/valuebot/jobs", { method: "POST", json: { ticker: debounced, stance, thesis, stories, method, email: emailMe && user ? user.email : null, ...cleanRefinements(refine) } });
       router.push(`/valuebot/${r.id}`);
     } catch (e) { setErr(e as Error); setBusy(false); }
   };
@@ -97,13 +101,19 @@ function ValueBotForm() {
               ))}
             </div>
           </Card>
+          <Card className="p-6">
+            <span className="text-sm font-medium">3 · Refine (optional)</span>
+            <p className="mb-2 text-xs text-muted">Leave everything blank to let ValueBot set data-driven defaults from the filings.</p>
+            <ValueBotRefine drivers={co ? co.drivers[method === "auto" ? co.suggested_method : method] ?? [] : []} value={refine} onChange={setRefine} />
+          </Card>
           <Card className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <span className="text-sm font-medium">3 · Method</span>
+              <span className="text-sm font-medium">4 · Method</span>
               <select value={method} onChange={e => setMethod(e.target.value)} className="ml-3 rounded-lg border border-line bg-bg px-3 py-2 text-sm">
                 <option value="auto">Auto</option><option value="fcff">FCFF DCF</option><option value="excess_return">Excess return (financials)</option><option value="ddm">Dividend discount</option>
               </select>
             </div>
+            <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" checked={emailMe} onChange={e => setEmailMe(e.target.checked)} />Email me when it&apos;s done</label>
             <Button onClick={submit} disabled={!co || busy}>{busy ? "Starting…" : user ? "Run valuation →" : "Sign in to run →"}</Button>
           </Card>
           <ErrorNote error={err} />

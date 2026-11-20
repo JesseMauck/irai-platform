@@ -1,0 +1,6 @@
+.env
+irai.db*
+runs/
+__pycache__/
+.pytest_cache/
+tests/

@@ -404,3 +404,15 @@ def test_admin_articles_coverage_moderation(client):
     assert all(x["id"] != t["id"] for x in client.get("/api/community/threads").json())
     assert client.get(f"/api/community/threads/{t['id']}").status_code == 404
     assert client.get("/api/admin/moderation-log", headers=h).json()[0]["reason"] == "Promotion"
+
+
+def test_security_headers_request_id_and_rate_limit(client, monkeypatch):
+    r = client.get("/api/health", headers={"X-Request-ID": "abc123"})
+    assert r.json()["database"] == "ok" and r.headers["X-Request-ID"] == "abc123"
+    assert r.headers["X-Content-Type-Options"] == "nosniff" and r.headers["X-Frame-Options"] == "DENY"
+    monkeypatch.setenv("IRAI_RATE_LIMIT", "1")
+    codes = [client.post("/api/auth/login", json={"email": "rl@test.io", "password": "x" * 9},
+                         headers={"X-Forwarded-For": "203.0.113.9"}).status_code for _ in range(12)]
+    assert codes[:10] == [401] * 10 and codes[-1] == 429
+    assert client.post("/api/auth/login", json={"email": "rl@test.io", "password": "x" * 9},
+                       headers={"X-Forwarded-For": "203.0.113.10"}).status_code == 401  # other IPs unaffected

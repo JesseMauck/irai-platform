@@ -8,11 +8,17 @@ services:
     build: ./backend
     env_file: ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://irai:irai@db:5432/irai
+      DATABASE_URL: postgresql://irai:irai@db:5432/irai
       VALUEBOT_DATA_DIR: /data/runs
     volumes: [runs:/data/runs]
     depends_on: [db]
     ports: ["8000:8000"]
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    environment: { DATABASE_URL: "postgresql://irai:irai@db:5432/irai" }
+    command: ["python", "-m", "app.jobs", "worker"]
+    depends_on: [api]
   web:
     build: { context: ./frontend, args: { BACKEND_URL: "http://api:8000" } }
     depends_on: [api]

@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import mail
+from ..config import settings
 from ..db import get_db
 from ..models import PasswordReset, User, Watchlist
 from ..security import create_token, current_user, hash_password, limits, verify_password
@@ -38,7 +39,8 @@ def user_out(u: User) -> dict:
 
 def _session(resp: Response, u: User) -> dict:
     tok = create_token(u)
-    resp.set_cookie("irai_token", tok, httponly=True, samesite="lax", max_age=72 * 3600)
+    resp.set_cookie("irai_token", tok, httponly=True, samesite="lax", max_age=settings.jwt_ttl_hours * 3600,
+                    secure=settings.public_url.startswith("https://"))
     return {"token": tok, "user": user_out(u)}
 
 
