@@ -1,5 +1,5 @@
 // Typed client for the IRAI FastAPI backend. All calls go to same-origin /api (proxied by Next).
-export type Source = "LIVE" | "PROXY" | "STALE" | "DEMO" | "ERROR";
+export type Source = "LIVE" | "PROXY" | "EOD" | "STALE" | "DEMO" | "ERROR";
 
 export interface Quote {
   symbol: string; name: string; price: number; prev_close: number | null; change: number | null;

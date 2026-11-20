@@ -16,6 +16,7 @@ from typing import Any
 
 from ..config import settings
 from ..db import SessionLocal
+from .opendata import OpenDataSource
 from .source import DemoSource, MarketSource, RateLimited, SourceError, YahooSource, parallel
 
 _lock = threading.Lock()
@@ -61,6 +62,7 @@ def _live_call(fn):
     return out
 _source: MarketSource | None = None
 _demo = DemoSource()
+_open = OpenDataSource()
 
 
 def get_source() -> MarketSource:
@@ -185,6 +187,13 @@ def chart(symbol: str, range_: str = "1y") -> dict[str, Any]:
         except SourceError:
             if src is _demo:
                 raise
+            if settings.live and _open.supports(symbol):
+                try:
+                    data = _open.chart(symbol, range_)
+                    _persist(data["quote"], data["history"])
+                    return _Short(data)
+                except SourceError:
+                    pass
             stored = _stored(symbol)
             if stored:
                 return _Short({"quote": stored, "history": _stored_history(symbol)})

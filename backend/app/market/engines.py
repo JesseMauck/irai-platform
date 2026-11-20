@@ -113,7 +113,10 @@ def adr_row(pair: dict[str, Any]) -> dict[str, Any]:
     z = dev / sd if dev is not None and sd else None
     hl = half_life([p - basis for p in ph]) if basis is not None else None
 
-    sources = {aq.get("source"), lq.get("source"), (fx_c or {"quote": {"source": "LIVE"}})["quote"].get("source")}
+    fx_src = (fx_c or {"quote": {"source": "LIVE"}})["quote"].get("source")
+    # End-of-day FX (ECB) is fine for the PROXY case; with an open local market it makes the estimate stale.
+    sources = {aq.get("source"), lq.get("source"), "LIVE" if fx_src == "EOD" and not lq.get("market_open") else fx_src}
+    sources = {"STALE" if s == "EOD" else s for s in sources}
     loc_age = _age_minutes(lq.get("market_time"))
     if "DEMO" in sources:
         src = "DEMO"

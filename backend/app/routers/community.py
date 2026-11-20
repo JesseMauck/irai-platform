@@ -164,7 +164,7 @@ def create_trade(body: TradeIn, user: User = Depends(current_user), db: Session 
     _can_post(user)
     long_px, src = _live_price(body.long.upper())
     short_px, src2 = (_live_price(body.short.upper()) if body.short else (None, src))
-    source = "DEMO" if "DEMO" in (src, src2) else ("STALE" if "STALE" in (src, src2) else "LIVE")
+    source = "DEMO" if "DEMO" in (src, src2) else ("STALE" if {"STALE", "EOD"} & {src, src2} else "LIVE")
     t = TradePost(author_id=user.id, long_symbol=body.long.upper(), short_symbol=body.short.upper() if body.short else None,
                   thesis=body.thesis, entry_long=long_px, entry_short=short_px, entry_source=source,
                   verification="timestamp-verified" if source == "LIVE" else "self-reported")

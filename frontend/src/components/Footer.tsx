@@ -24,7 +24,7 @@ export function Footer() {
         <p className="mx-auto max-w-7xl px-4 py-6 text-xs leading-relaxed text-muted">
           Research and education only. Not investment advice. Irradiance is a publisher of impersonal research for a general paid
           readership; it does not provide personalized recommendations and does not execute trades. Past performance does not guarantee
-          future results. Market data may be delayed and is labelled by source (LIVE, PROXY, STALE, DEMO). Market data display is
+          future results. Market data may be delayed and is labelled by source (LIVE, PROXY, EOD, STALE, DEMO). Market data display is
           subject to vendor and exchange agreements.
         </p>
         <p className="mx-auto max-w-7xl px-4 pb-6 text-xs text-muted">© 2026 Irradiance Research, Inc.

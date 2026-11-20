@@ -5,7 +5,7 @@ export function SourceBadge({ source }: { source: Source | string | undefined })
   const s = (source ?? "—").toUpperCase();
   const cls: Record<string, string> = {
     LIVE: "bg-up/15 text-up ring-up/30", PROXY: "bg-data-1/15 text-data-1 ring-data-1/30",
-    STALE: "bg-down/15 text-down ring-down/30", DEMO: "bg-muted/15 text-muted ring-muted/30",
+    STALE: "bg-down/15 text-down ring-down/30", EOD: "bg-primary/15 text-primary ring-primary/30", DEMO: "bg-muted/15 text-muted ring-muted/30",
     ERROR: "bg-red-500/15 text-red-400 ring-red-500/30",
   };
   return <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ring-1 ${cls[s] ?? cls.DEMO}`}>{s}</span>;
@@ -66,7 +66,7 @@ export function LockedRows({ locked, what = "rows" }: { locked: number; what?: s
 }
 
 export function DataNote({ children }: { children?: React.ReactNode }) {
-  return <p className="mt-3 text-xs text-muted">{children ?? "Live data from Yahoo Finance (US quotes usually real-time; many non-US exchanges delayed 15–20 min). STALE = last stored price; DEMO = synthetic fallback. Research and education only — not investment advice."}</p>;
+  return <p className="mt-3 text-xs text-muted">{children ?? "LIVE = market feed (US quotes usually real-time; many non-US exchanges delayed 15–20 min). EOD = official end-of-day open data (ECB FX reference rates, U.S. Treasury yields). STALE = last stored price. DEMO = synthetic placeholder shown only when no real data is available. Research and education only — not investment advice."}</p>;
 }
 
 export function TickerLink({ symbol, className = "" }: { symbol: string; className?: string }) {
