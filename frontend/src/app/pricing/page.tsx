@@ -1,7 +1,9 @@
+import { pageMeta } from "@/lib/seo";
 import { Faq, PricingCards } from "@/components/Pricing";
 import { PageHeader } from "@/components/ui";
 
-export const metadata = { title: "Pricing" };
+export const metadata = pageMeta("Pricing — Free, Essential and Pro plans",
+  "Start free, or try Essential ($49/mo) or Pro ($100/mo) free for 7 days with no card. ValueBot valuations, full ADR, ETF and relative-value monitors, screeners and the Strategy Lab.", "/pricing");
 
 const ROWS: [string, string, string, string][] = [
   ["Articles", "Headlines + 3 full / month", "Unlimited", "Unlimited"],
@@ -20,7 +22,7 @@ const ROWS: [string, string, string, string][] = [
 export default function Pricing() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <PageHeader title="Membership pricing" intro="Every plan includes the methodology and the learn library. Try Essential or Pro free for 7 days, no card needed. Paid plans are billed securely by Square." />
+      <PageHeader title="Simple pricing for research you can check" intro="Start free with live quotes, one ValueBot valuation a month and the full methodology. Try Essential or Pro free for 7 days — no card needed — then pay monthly or save two months with annual billing. Payments are processed securely by Square, and you can cancel from your account at any time." />
       <PricingCards />
       <h2 className="mt-16 text-xl font-semibold">Compare plans</h2>
       <div className="mt-4 overflow-x-auto rounded-xl border border-line">

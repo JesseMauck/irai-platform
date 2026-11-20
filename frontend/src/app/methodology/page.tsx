@@ -1,6 +1,8 @@
+import { pageMeta } from "@/lib/seo";
 import { PageHeader } from "@/components/ui";
 
-export const metadata = { title: "Methodology" };
+export const metadata = pageMeta("Methodology — how every number is calculated",
+  "The formulas behind Irradiance.AI: ADR premium and structural basis, ETF NAV tiers, quality-adjusted relative-value regressions, and ValueBot's DCF stages.", "/methodology");
 
 const SECTIONS: [string, string, [string, string][]][] = [
   ["ADR Monitor", "Premium = ADR price ÷ (local price × depositary ratio × spot FX) − 1. Quotes in pence or cents are converted to major units first.", [

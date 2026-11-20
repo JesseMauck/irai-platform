@@ -75,3 +75,15 @@ def glossary():
 @router.get("/faq")
 def faq():
     return json.loads((DATA / "faq.json").read_text())
+
+
+@router.get("/coverage")
+def coverage(db: Session = Depends(get_db)):
+    """Covered symbols straight from the database (no market calls) — used for the sitemap."""
+    from ..models import AdrPair, EtfFund, PeerMember
+
+    return {"adr": sorted(db.scalars(select(AdrPair.adr_symbol)).all()),
+            "etf": sorted(db.scalars(select(EtfFund.symbol)).all()),
+            "equities": sorted(set(db.scalars(select(PeerMember.symbol)).all())),
+            "articles": [{"slug": a.slug, "published_at": a.published_at.date().isoformat() if a.published_at else None}
+                         for a in db.scalars(select(Article).order_by(Article.published_at.desc()))]}

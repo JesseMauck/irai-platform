@@ -563,3 +563,10 @@ def test_worker_coverage_symbols():
     with SessionLocal() as db:
         syms = coverage_symbols(db)
     assert len(syms) == len(set(syms)) and len(syms) > 20
+
+
+def test_coverage_endpoint(client):
+    r = client.get("/api/coverage")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["adr"] and body["etf"] and body["equities"] and body["articles"]
