@@ -169,7 +169,7 @@ class ArticleView(Base):
     __table_args__ = (UniqueConstraint("user_id", "article_id", "month"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    article_id: Mapped[int] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"))
+    article_id: Mapped[int] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), index=True)
     month: Mapped[str] = mapped_column(String(7))  # YYYY-MM
 
 
@@ -234,6 +234,12 @@ class Thread(TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(200))
     body_md: Mapped[str] = mapped_column(Text)
     tickers: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # discussion | analysis (long-form, Seeking Alpha style) | strategy (shares a Lab backtest)
+    kind: Mapped[str] = mapped_column(String(12), default="discussion", server_default="discussion", index=True)
+    outlook: Mapped[str | None] = mapped_column(String(10))  # bullish | neutral | bearish (analysis only)
+    primary_ticker: Mapped[str | None] = mapped_column(String(20), index=True)
+    backtest_run_id: Mapped[int | None] = mapped_column(ForeignKey("backtest_runs.id", ondelete="SET NULL"), index=True)
+    valuation_job_id: Mapped[str | None] = mapped_column(String(40))
     score: Mapped[int] = mapped_column(Integer, default=0)
     reply_count: Mapped[int] = mapped_column(Integer, default=0)
     last_activity_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
@@ -246,7 +252,7 @@ class Post(TimestampMixin, Base):
     __tablename__ = "posts"
     id: Mapped[int] = mapped_column(primary_key=True)
     thread_id: Mapped[int] = mapped_column(ForeignKey("threads.id", ondelete="CASCADE"), index=True)
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     body_md: Mapped[str] = mapped_column(Text)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     author: Mapped[User] = relationship()
@@ -289,7 +295,7 @@ class ModerationLog(Base):
     """Every moderation action is logged (community rule: actions are logged and can be appealed)."""
     __tablename__ = "moderation_log"
     id: Mapped[int] = mapped_column(primary_key=True)
-    moderator_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    moderator_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     target_type: Mapped[str] = mapped_column(String(10))
     target_id: Mapped[int] = mapped_column(Integer)
     action: Mapped[str] = mapped_column(String(20))  # hide | unhide
@@ -315,6 +321,12 @@ class ValuationRun(TimestampMixin, Base):
     error: Mapped[str | None] = mapped_column(String(500))
     finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     month: Mapped[str] = mapped_column(String(7), index=True)  # YYYY-MM, for plan quotas
+    # Report library: the member's own title, notes (markdown) and organisation.
+    title: Mapped[str | None] = mapped_column(String(200))
+    notes_md: Mapped[str | None] = mapped_column(Text)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    notes_updated_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 # ── platform ──────────────────────────────────────────────────────────────────────────────────────
