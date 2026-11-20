@@ -122,9 +122,87 @@ def country_premiums() -> dict[str, float] | None:
     return _load(CTRY_URL, "ctryprem.xlsx", parse_country_premiums)
 
 
+# Yahoo Finance industry names → Damodaran industry names. Fuzzy matching alone mis-files common
+# industries (e.g. "Software - Infrastructure" landed on "Software (Internet)", beta 1.59, for Microsoft).
+YAHOO_TO_DAMODARAN = {
+    "software - infrastructure": "Software (System & Application)",
+    "software - application": "Software (System & Application)",
+    "internet content & information": "Software (Internet)",
+    "electronic gaming & multimedia": "Software (Entertainment)",
+    "semiconductors": "Semiconductor",
+    "semiconductor equipment & materials": "Semiconductor Equip",
+    "consumer electronics": "Electronics (Consumer & Office)",
+    "computer hardware": "Computers/Peripherals",
+    "communication equipment": "Telecom. Equipment",
+    "information technology services": "Computer Services",
+    "internet retail": "Retail (Online)",
+    "specialty retail": "Retail (Special Lines)",
+    "discount stores": "Retail (General)",
+    "home improvement retail": "Retail (Building Supply)",
+    "grocery stores": "Retail (Grocery and Food)",
+    "auto manufacturers": "Auto & Truck",
+    "auto parts": "Auto Parts",
+    "banks - diversified": "Bank (Money Center)",
+    "banks - regional": "Banks (Regional)",
+    "capital markets": "Brokerage & Investment Banking",
+    "asset management": "Investments & Asset Management",
+    "insurance - life": "Insurance (Life)",
+    "insurance - property & casualty": "Insurance (Prop/Cas.)",
+    "insurance - diversified": "Insurance (General)",
+    "credit services": "Financial Svcs. (Non-bank & Insurance)",
+    "drug manufacturers - general": "Drugs (Pharmaceutical)",
+    "drug manufacturers - specialty & generic": "Drugs (Pharmaceutical)",
+    "biotechnology": "Drugs (Biotechnology)",
+    "medical devices": "Healthcare Products",
+    "medical instruments & supplies": "Healthcare Products",
+    "diagnostics & research": "Healthcare Products",
+    "healthcare plans": "Healthcare Support Services",
+    "oil & gas integrated": "Oil/Gas (Integrated)",
+    "oil & gas e&p": "Oil/Gas (Production and Exploration)",
+    "oil & gas midstream": "Oil/Gas Distribution",
+    "utilities - regulated electric": "Utility (General)",
+    "utilities - diversified": "Utility (General)",
+    "utilities - renewable": "Power",
+    "telecom services": "Telecom. Services",
+    "entertainment": "Entertainment",
+    "beverages - non-alcoholic": "Beverage (Soft)",
+    "beverages - brewers": "Beverage (Alcoholic)",
+    "beverages - wineries & distilleries": "Beverage (Alcoholic)",
+    "household & personal products": "Household Products",
+    "packaged foods": "Food Processing",
+    "tobacco": "Tobacco",
+    "restaurants": "Restaurant/Dining",
+    "aerospace & defense": "Aerospace/Defense",
+    "railroads": "Transportation (Railroads)",
+    "airlines": "Air Transport",
+    "integrated freight & logistics": "Transportation",
+    "specialty industrial machinery": "Machinery",
+    "farm & heavy construction machinery": "Machinery",
+    "conglomerates": "Diversified",
+    "steel": "Steel",
+    "other industrial metals & mining": "Metals & Mining",
+    "gold": "Precious Metals",
+    "chemicals": "Chemical (Basic)",
+    "specialty chemicals": "Chemical (Specialty)",
+    "reit - specialty": "R.E.I.T.",
+    "reit - industrial": "R.E.I.T.",
+    "reit - retail": "R.E.I.T.",
+    "residential construction": "Homebuilding",
+    "travel services": "Hotel/Gaming",
+    "lodging": "Hotel/Gaming",
+    "resorts & casinos": "Hotel/Gaming",
+    "advertising agencies": "Advertising",
+    "apparel retail": "Retail (Distributors)",
+    "footwear & accessories": "Shoe",
+}
+
+
 def best_match(name: str | None, table: dict[str, Any] | None, cutoff: float = 0.55) -> str | None:
     if not name or not table:
         return None
+    mapped = YAHOO_TO_DAMODARAN.get(name.strip().lower())
+    if mapped and mapped in table:
+        return mapped
     keys = list(table)
     simple = name.replace("—", " ").replace("-", " ")
     hit = difflib.get_close_matches(simple, keys, n=1, cutoff=cutoff)
