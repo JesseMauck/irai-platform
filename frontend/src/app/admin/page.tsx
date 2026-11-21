@@ -18,7 +18,7 @@ interface AdminArticle { id?: number; slug: string; title: string; category: str
 interface Coverage { adr_pairs: Record<string, string | number | boolean>[]; etf_funds: { symbol: string; name: string; category: string; active: boolean }[];
   peer_groups: { id: number; name: string; sector: string; members: { id: number; symbol: string; name: string }[] }[] }
 
-const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing", "ValueBot QA"] as const;
+const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing", "ValueBot QA", "Data cycle"] as const;
 
 export default function Admin() {
   const { user, ready } = useAuth();
@@ -31,7 +31,7 @@ export default function Admin() {
       <PageHeader title="Admin" intro="Business metrics, members, research, coverage and moderation." />
       <div className="mb-6 flex gap-1 border-b border-line">{TABS.map(t => <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm ${t === tab ? "border-b-2 border-primary text-fg" : "text-muted"}`}>{t}</button>)}</div>
       {tab === "Overview" && <Overview />}{tab === "Users" && <Users />}{tab === "Articles" && <Articles />}
-      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}{tab === "ValueBot QA" && <Calibration />}
+      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}{tab === "ValueBot QA" && <Calibration />}{tab === "Data cycle" && <DataCycle />}
     </div>
   );
 }
@@ -251,4 +251,31 @@ function Calibration() {
           <span className="text-muted num">{r.summary ? `${r.summary.ok}/${r.summary.tickers} ok · ${r.summary.flagged} flagged · median ${r.summary.median_ratio?.toFixed(2) ?? "—"}` : r.status}</span></li>)}</ul></Card>}
     </div>
   );
+}
+
+interface DV { id: number; version: string; trigger: string; created_at: string; rows: number; seconds: number | null; included: number; quality: number | null; alerts: string[] | null;
+  drift: Record<string, { psi: number; level: string }> | null; splits: Record<string, { start: string; end: string }> | null;
+  profiles: { symbol: string; rows: number; quality: number; issues: string[] }[] | null }
+
+function DataCycle() {
+  const { data, reload, error } = useApi<{ running: boolean; universe: string[]; features: string[]; versions: DV[] }>("/api/admin/datapipe", 20_000);
+  const [msg, setMsg] = useState<string | null>(null);
+  const run = async (path: string) => { setMsg(null); try { await api(path, { method: "POST" }); setMsg("Started."); setTimeout(reload, 2000); } catch (e) { setMsg((e as Error).message); } };
+  const v = data?.versions[0];
+  return (<div className="space-y-4">
+    <ErrorNote error={error} />
+    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Data cycle</h2>
+      <p className="text-sm text-muted">Nightly after 22:30 UTC: ingestion, profiling, cleaning, features, time splits and drift monitoring on {data?.universe.length ?? "…"} series. The pattern study runs after 23:15 UTC on top of it.</p></div>
+      <div className="flex gap-2"><Button onClick={() => run("/api/admin/datapipe/run")} disabled={data?.running}>{data?.running ? "Running…" : "Run data cycle"}</Button><Button variant="outline" onClick={() => run("/api/admin/patterns/run")}>Run pattern study</Button></div></div>
+      {msg && <p className="mt-2 text-sm text-muted">{msg}</p>}</Card>
+    {!data ? <Skeleton rows={6} /> : !v ? <Card className="p-5 text-sm text-muted">No dataset versions yet.</Card> : (<>
+      <div className="grid gap-3 md:grid-cols-4">{[["Version", v.version], ["Series included", String(v.included)], ["Mean quality", num(v.quality, 3)], ["Rows / seconds", `${v.rows.toLocaleString()} / ${num(v.seconds, 0)}`]].map(([l, x]) => <Card key={l} className="p-4"><div className="text-xs text-muted">{l}</div><div className="mt-1 font-semibold num">{x}</div></Card>)}</div>
+      {v.alerts && v.alerts.length > 0 && <Card className="p-4"><div className="text-sm font-medium">Alerts</div><ul className="mt-1 list-disc pl-5 text-sm">{v.alerts.map(a => <li key={a}>{a}</li>)}</ul></Card>}
+      <Card className="p-4"><div className="text-sm font-medium">Drift vs previous version (PSI)</div><div className="mt-2 flex flex-wrap gap-2 text-xs">{Object.entries(v.drift ?? {}).map(([k, d]) => <span key={k} className={`rounded px-2 py-1 ${d.level === "major" ? "bg-down/20 text-down" : d.level === "notable" ? "bg-primary/15 text-primary" : "bg-accent"}`}>{k} {d.psi}</span>)}{!Object.keys(v.drift ?? {}).length && <span className="text-muted">First version: nothing to compare.</span>}</div>
+        {v.splits && <p className="mt-2 text-xs text-muted">Splits: train {v.splits.train?.start} to {v.splits.train?.end} · validation to {v.splits.validation?.end} · test to {v.splits.test?.end}</p>}</Card>
+      <Card className="overflow-x-auto p-0"><table className="w-full text-sm"><thead className="text-xs text-muted"><tr>{["Series", "Rows", "Quality", "Issues"].map(h => <th key={h} className="px-4 py-2 text-left font-normal">{h}</th>)}</tr></thead>
+        <tbody className="divide-y divide-line">{(v.profiles ?? []).slice().sort((a, b) => a.quality - b.quality).map(p => <tr key={p.symbol}><td className="px-4 py-1.5">{p.symbol}</td><td className="px-4 num">{p.rows}</td><td className={`px-4 num ${p.quality < 0.8 ? "text-down" : ""}`}>{num(p.quality, 3)}</td><td className="px-4 text-xs text-muted">{p.issues.join("; ")}</td></tr>)}</tbody></table></Card>
+      <Card className="p-4 text-xs text-muted">History: {data.versions.map(x => `${x.created_at.slice(0, 10)} ${x.version.slice(-10)} (${x.trigger}, q ${num(x.quality, 2)}) ${ago(x.created_at)}`).join(" · ")}</Card>
+    </>)}
+  </div>);
 }

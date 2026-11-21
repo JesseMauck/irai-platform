@@ -53,6 +53,28 @@ class MarketSource(Protocol):
     def search(self, q: str) -> list[dict[str, Any]]: ...
 
 
+def parse_bars(symbol: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Yahoo v8 chart -> OHLCV bars with full UTC timestamps (works for intraday, daily and weekly intervals)."""
+    try:
+        res = payload["chart"]["result"][0]
+    except (KeyError, IndexError, TypeError):
+        raise SourceError(f"No bars for {symbol}")
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0]
+    out = []
+    for i, t in enumerate(res.get("timestamp") or []):
+        c = _num((q.get("close") or [None])[i] if i < len(q.get("close") or []) else None)
+        if c is None or c <= 0:
+            continue
+        g = lambda k: _num((q.get(k) or [None] * (i + 1))[i]) if i < len(q.get(k) or []) else None  # noqa: E731
+        o, h, lo = g("open") or c, g("high") or c, g("low") or c
+        out.append({"t": dt.datetime.fromtimestamp(t, dt.timezone.utc).isoformat(), "o": o, "h": max(h, o, c), "l": min(lo, o, c), "c": c, "v": g("volume") or 0.0})
+    return out
+
+
+BAR_STEPS = {"15m": 15, "1h": 60, "60m": 60, "1d": 1440, "1wk": 10080}
+BAR_COUNTS = {"15m": 60 * 26, "1h": 500 * 7, "60m": 500 * 7, "1d": 2520, "1wk": 1000}
+
+
 def _num(x: Any) -> float | None:
     try:
         f = float(x)
@@ -151,6 +173,21 @@ class YahooSource:
             if status >= 400:
                 raise SourceError(f"{symbol}: HTTP {status}")
             return parse_chart(symbol, r.json())
+        raise RateLimited(f"{symbol}: HTTP {last}")
+
+    def bars(self, symbol: str, range_: str, interval: str) -> list[dict[str, Any]]:
+        params = {"range": range_, "interval": interval, "includePrePost": "false"}
+        last = 0
+        for host in CHART_HOSTS:
+            status, r = self._get(f"{host}/v8/finance/chart/{symbol}", params)
+            last = status
+            if status == 404:
+                raise SourceError(f"Unknown symbol {symbol}")
+            if status == 429:
+                continue
+            if status >= 400:
+                raise SourceError(f"{symbol}: HTTP {status}")
+            return parse_bars(symbol, r.json())
         raise RateLimited(f"{symbol}: HTTP {last}")
 
     def info(self, symbol: str) -> dict[str, Any]:
@@ -254,6 +291,28 @@ class DemoSource:
             return DEMO_LEVELS[symbol]
         rnd = random.Random(_seed(symbol))
         return round(rnd.uniform(15, 400), 2)
+
+    def bars(self, symbol: str, range_: str, interval: str) -> list[dict[str, Any]]:
+        """Synthetic OHLCV at any interval: a random walk with volatility clustering. Labelled DEMO."""
+        symbol = symbol.upper()
+        rnd = random.Random(_seed(symbol + interval))
+        step = BAR_STEPS.get(interval, 1440)
+        n = BAR_COUNTS.get(interval, 2520)
+        per_day = 1440 / step if step < 1440 else 1
+        base_vol = (0.003 if symbol.endswith("=X") else 0.012) * math.sqrt(step / 1440 if step >= 1440 else 1 / per_day * 1.5)
+        px, var, bars = self._base(symbol), base_vol ** 2, []
+        t = dt.datetime.now(dt.timezone.utc).replace(second=0, microsecond=0) - dt.timedelta(minutes=step * n)
+        for _ in range(n):
+            var = 0.94 * var + 0.06 * (base_vol ** 2) * rnd.uniform(0.2, 2.5)
+            sd = math.sqrt(var)
+            o = px * math.exp(rnd.gauss(0, sd * 0.2))
+            c = o * math.exp(rnd.gauss(0.00005, sd))
+            hi = max(o, c) * math.exp(abs(rnd.gauss(0, sd * 0.5)))
+            lo = min(o, c) * math.exp(-abs(rnd.gauss(0, sd * 0.5)))
+            bars.append({"t": t.isoformat(), "o": o, "h": hi, "l": lo, "c": c, "v": rnd.lognormvariate(13, 0.4) * (1 + abs(c / o - 1) / sd)})
+            px = c
+            t += dt.timedelta(minutes=step)
+        return bars
 
     def chart(self, symbol: str, range_: str = "1y", interval: str = "1d") -> dict[str, Any]:
         symbol = symbol.upper()

@@ -307,40 +307,110 @@ def _gdelt(params: dict) -> dict:
     return r.json() if r.text.strip().startswith("{") else {}
 
 
+_buzz_cache: dict[tuple[str, bool], tuple[float, dict[str, Any]]] = {}
+_buzz_refreshing: set[tuple[str, bool]] = set()
+_buzz_gates: dict[tuple[str, bool], threading.Lock] = {}
+BUZZ_FRESH, BUZZ_STALE = 900, 6 * 3600
+_neg: dict[tuple[str, str], float] = {}  # recent provider failures, so a slow or throttled source isn't retried on every click
+
+
+def _soft(kind: str, key: str, ttl: float, fn, fail_ttl: float = 600):
+    """_memo that also remembers failures briefly (GDELT throttles hard and times out)."""
+    t = _neg.get((kind, key))
+    if t and time.time() - t < fail_ttl:
+        raise RuntimeError(f"{kind} recently unavailable")
+    try:
+        return _memo(kind, key, ttl, fn)
+    except Exception:
+        _neg[(kind, key)] = time.time()
+        raise
+
+
 def buzz(symbol: str, with_headlines: bool = True) -> dict[str, Any]:
-    """Attention reading for any instrument the market feed knows (stocks, ETFs, CEFs, bond funds, FX, crypto)."""
+    """Cached with stale-while-revalidate: a reading under 15 minutes old is served as is; an older one (up to 6 hours) is
+    served immediately while a fresh one is computed in the background, so the Buzz tab never waits on news providers."""
     symbol = service.normalise_symbol(symbol)
+    key = (symbol, with_headlines)
+    hit = _buzz_cache.get(key) or (_buzz_cache.get((symbol, True)) if not with_headlines else None)
+    age = time.time() - hit[0] if hit else None
+    if hit and age is not None and age < BUZZ_FRESH:
+        return hit[1]
+    if hit and age is not None and age < BUZZ_STALE:
+        with _lock:
+            go = key not in _buzz_refreshing
+            _buzz_refreshing.add(key)
+        if go:
+            def refresh():
+                try:
+                    _buzz_cache[key] = (time.time(), _compute_buzz(symbol, with_headlines))
+                except Exception:  # noqa: BLE001
+                    pass
+                finally:
+                    _buzz_refreshing.discard(key)
+            threading.Thread(target=refresh, daemon=True, name=f"buzz-{symbol}").start()
+        return {**hit[1], "refreshing": True}
+    with _lock:
+        gate = _buzz_gates.setdefault(key, threading.Lock())
+    with gate:  # concurrent first requests (header meter + Buzz card) share one computation
+        hit = _buzz_cache.get(key)
+        if hit and time.time() - hit[0] < BUZZ_FRESH:
+            return hit[1]
+        out = _compute_buzz(symbol, with_headlines)
+        _buzz_cache[key] = (time.time(), out)
+        return out
+
+
+def _compute_buzz(symbol: str, with_headlines: bool) -> dict[str, Any]:
+    from concurrent.futures import ThreadPoolExecutor
+
     data = service.chart(symbol, "1y")
     q, hist = data["quote"], data["history"]
+    ex = ThreadPoolExecutor(max_workers=5)
     try:
-        info = service.info(symbol)
-    except Exception:  # noqa: BLE001
-        info = {}
-    name = info.get("name") or q.get("name")
-    # market activity
-    avg_vol = info.get("average_volume")
-    vol_ratio = (q["volume"] / avg_vol) if q.get("volume") and avg_vol else None
-    rets = [b["close"] / a["close"] - 1 for a, b in zip(hist, hist[1:]) if a.get("close")]
-    sd = statistics.pstdev(rets[-60:]) if len(rets) >= 20 else None
-    move_sigma = (q["change_pct"] / sd) if sd and q.get("change_pct") is not None else None
-    # filings
-    f7 = 0
-    if settings.live:
-        cutoff = (dt.date.today() - dt.timedelta(days=7)).isoformat()
-        f7 = sum(1 for f in filings(symbol).get("filings", []) if f["date"] >= cutoff and f["form"] in ("8-K", "6-K", "SC 13D", "4"))
-    # news (open data)
-    news_today, baseline, tone, news_err = None, [], None, None
-    if settings.live:
+        f_info = ex.submit(service.info, symbol)
+        f_fil = ex.submit(filings, symbol) if settings.live else None
         try:
-            tl = _memo("gdelt-vol", symbol, 3600, lambda: _gdelt({"query": _news_query(name, symbol), "mode": "timelinevolraw", "timespan": "30d"}))
-            series = parse_gdelt_timeline(tl)
-            if series:
-                news_today, baseline = series[-1], series[:-1]
-            tt = _memo("gdelt-tone", symbol, 3600, lambda: _gdelt({"query": _news_query(name, symbol), "mode": "timelinetone", "timespan": "7d"}))
-            tones = parse_gdelt_timeline(tt)
-            tone = statistics.mean(tones) if tones else None
-        except Exception as e:  # noqa: BLE001
-            news_err = type(e).__name__
+            info = f_info.result(timeout=8)
+        except Exception:  # noqa: BLE001
+            info = {}
+        name = info.get("name") or q.get("name")
+        f_vol = f_tone = f_head = None
+        if settings.live:
+            qry = _news_query(name, symbol)
+            f_vol = ex.submit(_soft, "gdelt-vol", symbol, 3600, lambda: _gdelt({"query": qry, "mode": "timelinevolraw", "timespan": "30d"}))
+            f_tone = ex.submit(_soft, "gdelt-tone", symbol, 3600, lambda: _gdelt({"query": qry, "mode": "timelinetone", "timespan": "7d"}))
+        if with_headlines:
+            f_head = ex.submit(headlines, symbol, name)
+        avg_vol = info.get("average_volume")
+        vol_ratio = (q["volume"] / avg_vol) if q.get("volume") and avg_vol else None
+        rets = [b["close"] / a["close"] - 1 for a, b in zip(hist, hist[1:]) if a.get("close")]
+        sd = statistics.pstdev(rets[-60:]) if len(rets) >= 20 else None
+        move_sigma = (q["change_pct"] / sd) if sd and q.get("change_pct") is not None else None
+        f7 = 0
+        if f_fil:
+            try:
+                cutoff = (dt.date.today() - dt.timedelta(days=7)).isoformat()
+                f7 = sum(1 for f in f_fil.result(timeout=10).get("filings", []) if f["date"] >= cutoff and f["form"] in ("8-K", "6-K", "SC 13D", "4"))
+            except Exception:  # noqa: BLE001
+                f7 = 0
+        news_today, baseline, tone, news_err = None, [], None, None
+        if f_vol:
+            try:
+                series = parse_gdelt_timeline(f_vol.result(timeout=10))
+                if series:
+                    news_today, baseline = series[-1], series[:-1]
+                tones = parse_gdelt_timeline(f_tone.result(timeout=10))
+                tone = statistics.mean(tones) if tones else None
+            except Exception as e:  # noqa: BLE001
+                news_err = type(e).__name__
+        heads = None
+        if f_head:
+            try:
+                heads = f_head.result(timeout=10)
+            except Exception:  # noqa: BLE001
+                heads = []
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)
     s = score_buzz(news_today, baseline, tone, vol_ratio, move_sigma, f7)
     out = {"symbol": symbol, "name": name, "kind": _kind(info, q), **s,
            "inputs": {"news_articles_today": news_today, "news_daily_avg_30d": statistics.mean(baseline) if baseline else None,
@@ -351,7 +421,7 @@ def buzz(symbol: str, with_headlines: bool = True) -> dict[str, Any]:
     if news_err:
         out["news_error"] = news_err
     if with_headlines:
-        out["headlines"] = headlines(symbol, name)
+        out["headlines"] = heads or []
     return out
 
 

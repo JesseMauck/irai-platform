@@ -75,9 +75,12 @@ export class ApiError extends Error {
 }
 
 const TOKEN_KEY = "irai_token";
+/** Short-lived client cache for GET responses, so switching tabs or reopening a panel shows the last reading instantly
+ *  while a fresh one loads. Cleared whenever the signed-in user changes. */
+export const responseCache = new Map<string, { at: number; data: unknown }>();
 export const token = {
   get: () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
-  set: (t: string | null) => { try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch {} },
+  set: (t: string | null) => { responseCache.clear(); try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch {} },
 };
 
 export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {

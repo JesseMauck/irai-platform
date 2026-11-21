@@ -46,8 +46,8 @@ def financials(symbol: str):
 
 
 @router.get("/{symbol}/buzz")
-def buzz(symbol: str):
-    return _guard(research.buzz, symbol)
+def buzz(symbol: str, headlines: bool = True):
+    return _guard(lambda s: research.buzz(s, with_headlines=headlines), symbol)
 
 
 @router.get("/{symbol}/statements")

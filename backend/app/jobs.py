@@ -169,6 +169,18 @@ def tick() -> dict:
         with SessionLocal() as db:
             if signals.due(db, paper.now_et()):
                 out["signals"] = "started" if signals.start_background() else "busy"
+    if settings.live and os.environ.get("IRAI_DATAPIPE", "1") != "0":
+        from .quant import datapipe
+
+        with SessionLocal() as db:
+            if datapipe.due(db):
+                out["datapipe"] = "started" if datapipe.start_background("schedule") else "busy"
+    if settings.live and os.environ.get("IRAI_PATTERNS", "1") != "0":
+        from .quant import engine as pattern_engine
+
+        with SessionLocal() as db:
+            if pattern_engine.due(db):
+                out["patterns"] = "started" if pattern_engine.start_background("schedule") else "busy"
     if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
         _last_prewarm = time.time()
         with SessionLocal() as db:

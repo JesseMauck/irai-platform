@@ -401,3 +401,36 @@ def calibration_start(_: User = Depends(require_admin)):
     if not calibration.start_background("manual"):
         raise HTTPException(409, "A calibration run is already in progress")
     return {"started": True}
+
+
+# ── data Cycle ───────────────────────────────────────────────────────────────────────────────────
+@router.get("/datapipe")
+def datapipe_runs(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..models import DatasetVersion
+    from ..quant import datapipe
+
+    rows = db.scalars(select(DatasetVersion).order_by(DatasetVersion.created_at.desc()).limit(14)).all()
+    return {"running": datapipe._lock.locked(), "universe": datapipe.UNIVERSE, "features": datapipe.FEATURES,
+            "versions": [{"id": v.id, "version": v.version, "trigger": v.trigger, "status": v.status, "created_at": v.created_at.isoformat(),
+                          "rows": v.rows, "seconds": v.seconds, "included": len(v.universe or []), "quality": (v.quality or {}).get("mean"),
+                          "alerts": v.alerts, "drift": v.drift, "splits": v.splits,
+                          "profiles": (v.quality or {}).get("profiles") if i == 0 else None,
+                          "cleaning": (v.quality or {}).get("cleaning") if i == 0 else None} for i, v in enumerate(rows)]}
+
+
+@router.post("/datapipe/run")
+def datapipe_start(_: User = Depends(require_admin)):
+    from ..quant import datapipe
+
+    if not datapipe.start_background("manual"):
+        raise HTTPException(409, "A data cycle is already running")
+    return {"started": True}
+
+
+@router.post("/patterns/run")
+def patterns_start(_: User = Depends(require_admin)):
+    from ..quant import engine
+
+    if not engine.start_background("manual"):
+        raise HTTPException(409, "A pattern study is already running")
+    return {"started": True}

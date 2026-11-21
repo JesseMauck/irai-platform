@@ -54,6 +54,7 @@ export default function Account() {
             <h2 className="font-semibold">Subscription</h2>
             {sub?.subscription ? <div className="mt-2 space-y-1 text-sm text-muted"><div className="capitalize text-fg">{sub.subscription.plan} · {sub.subscription.status === "trialing" ? "free trial" : sub.subscription.interval}</div>
               {sub.subscription.status === "trialing" && sub.subscription.trial_ends_at && <div>Trial ends {new Date(sub.subscription.trial_ends_at).toLocaleDateString()}. <Link href="/pricing" className="text-primary">Subscribe to keep access</Link></div>}
+              {sub.subscription.provider === "comp" && <div>Complimentary access, no charge</div>}
               {sub.subscription.provider === "square" && sub.subscription.current_period_end && <div>{sub.subscription.cancel_at_period_end ? "Access until" : "Renews"} {new Date(sub.subscription.current_period_end).toLocaleDateString()} · billed by Square</div>}
               {!sub.subscription.cancel_at_period_end && <button onClick={cancel} className="mt-2 text-down">{sub.subscription.status === "trialing" ? "End trial" : "Cancel membership"}</button>}</div>
               : <p className="mt-2 text-sm text-muted">Free plan. <Link href="/pricing" className="text-primary">{sub?.trial_available ? "Start a 7-day free trial" : "See plans"}</Link></p>}

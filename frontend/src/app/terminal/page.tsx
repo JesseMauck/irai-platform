@@ -39,6 +39,7 @@ export default function Terminal() {
   const { data: reports } = useApi<Report[]>(user ? "/api/valuebot/library" : null);
   const { data: events } = useApi<AlertEv[]>(user ? "/api/me/alerts/events" : null, 60_000);
   const { data: q } = useApi<Quote>(`/api/market/quote/${encodeURIComponent(sym)}`, 30_000);
+  useApi(`/api/insight/${encodeURIComponent(sym)}/buzz`); // warm Buzz for the selected symbol so the tab opens instantly
   useEffect(() => {
     const first = wls?.[0]?.symbols?.[0];
     if (first) setSym(s => (s === "SPY" ? first : s));

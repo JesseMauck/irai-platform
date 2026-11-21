@@ -670,3 +670,36 @@ class PremiumSignal(Base):
     detail: Mapped[str | None] = mapped_column(String(600))
     data: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DatasetVersion(Base):
+    """One run of the data Cycle: ingestion, profiling, cleaning, features, time splits and drift monitoring."""
+    __tablename__ = "dataset_versions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    version: Mapped[str] = mapped_column(String(40), index=True)
+    trigger: Mapped[str] = mapped_column(String(20), default="schedule")
+    status: Mapped[str] = mapped_column(String(12), default="done", index=True)
+    universe: Mapped[list[str] | None] = mapped_column(JSON)
+    rows: Mapped[int] = mapped_column(Integer, default=0)
+    quality: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    splits: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    feature_stats: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    drift: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    alerts: Mapped[list[str] | None] = mapped_column(JSON)
+    seconds: Mapped[float | None] = mapped_column(Float)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class PatternStudy(Base):
+    """A pattern-recognition study: the nightly grid (every pattern x asset class x timeframe) or a member's own test."""
+    __tablename__ = "pattern_studies"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(12), default="grid", index=True)  # grid | custom
+    trigger: Mapped[str] = mapped_column(String(20), default="schedule")
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str | None] = mapped_column(String(8))
+    n_tests: Mapped[int] = mapped_column(Integer, default=0)
+    passed: Mapped[int] = mapped_column(Integer, default=0)
+    seconds: Mapped[float | None] = mapped_column(Float)
+    results: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

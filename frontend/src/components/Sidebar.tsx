@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   { title: "Research", items: [
     { href: "/earnings", label: "Earnings Hub", icon: "M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h3v3H8z" },
     { href: "/screeners", label: "Screener", icon: "M3 5h18l-7 8v6l-4 2v-8z" },
+    { href: "/patterns", label: "Pattern Lab", icon: "M3 17l4-6 4 3 4-8 6 9M3 21h18", badge: "New" },
     { href: "/macro", label: "Macro map", icon: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" },
     { href: "/heatmap", label: "Heatmaps", icon: "M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" },
     { href: "/options", label: "Options Discover", icon: "M4 19V9M10 19V5M16 19v-7M22 19H2" },

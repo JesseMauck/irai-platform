@@ -205,6 +205,36 @@ def chart(symbol: str, range_: str = "1y") -> dict[str, Any]:
     return _cached("chart:" + range_, symbol, ttl, fetch)
 
 
+TIMEFRAMES = {"15m": ("60d", "15m"), "1h": ("730d", "60m"), "1d": ("10y", "1d"), "1wk": ("max", "1wk")}
+
+
+def bars(symbol: str, timeframe: str = "1d") -> dict[str, Any]:
+    """OHLCV bars with UTC timestamps for one timeframe: {"bars": [...], "source": LIVE|DEMO}. Never labels demo as live."""
+    from .source import SourceError as _SE
+
+    if timeframe not in TIMEFRAMES:
+        raise ValueError(f"timeframe must be one of {sorted(TIMEFRAMES)}")
+    symbol = normalise_symbol(symbol)
+    range_, interval = TIMEFRAMES[timeframe]
+    src = get_source()
+
+    def fetch():
+        if src is _demo or not hasattr(src, "bars"):
+            return {"bars": _demo.bars(symbol, range_, interval), "source": "DEMO"}
+        try:
+            b = _live_call(lambda: src.bars(symbol, range_, interval))
+            if len(b) < 50:
+                raise _SE(f"{symbol}: only {len(b)} bars")
+            return {"bars": b, "source": "LIVE"}
+        except _SE:
+            if settings.demo_fallback:
+                return _Short({"bars": _demo.bars(symbol, range_, interval), "source": "DEMO"})
+            raise
+
+    ttl = 900 if timeframe in ("15m", "1h") else 6 * 3600
+    return _cached("bars:" + timeframe, symbol, ttl, fetch)
+
+
 def quote(symbol: str) -> dict[str, Any]:
     return chart(symbol, "1y")["quote"]
 
