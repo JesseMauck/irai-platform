@@ -221,7 +221,7 @@ def _frac_yield(info: dict[str, Any]) -> float | None:
     fund `yield` fields are fractions, so prefer those."""
     for k in ("trailingAnnualDividendYield", "yield"):
         v = _num(info.get(k))
-        if v is not None and 0 <= v < 1:
+        if v is not None and 0 < v < 1:  # Yahoo reports 0 for some funds that do pay; fall through to the next field
             return v
     v = _num(info.get("dividendYield"))
     return v / 100 if v is not None else None

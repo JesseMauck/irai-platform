@@ -244,6 +244,7 @@ def test_info_units_are_fractions():
     aapl = normalise_info({"dividendYield": 0.41, "trailingAnnualDividendYield": 0.0041})
     assert abs(aapl["dividend_yield"] - 0.0041) < 1e-9
     assert abs(normalise_info({"dividendYield": 2.8})["dividend_yield"] - 0.028) < 1e-9
+    assert abs(normalise_info({"trailingAnnualDividendYield": 0, "yield": 0.079})["dividend_yield"] - 0.079) < 1e-9
     voo = normalise_info({"netExpenseRatio": 0.03})
     assert abs(voo["expense_ratio"] - 0.0003) < 1e-9
     assert abs(normalise_info({"annualReportExpenseRatio": 0.0049, "netExpenseRatio": 0.49})["expense_ratio"] - 0.0049) < 1e-9
