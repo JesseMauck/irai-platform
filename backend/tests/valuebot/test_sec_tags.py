@@ -54,3 +54,19 @@ def test_ttm_from_year_to_date_cash_flows():
     # a gap (missing H1) means no four consecutive quarters → no TTM rather than a wrong one
     gap = [x for x in obs if x["end"] != "2026-06-30"]
     assert _ttm_series({"facts": {"us-gaap": {"X": {"units": {"USD": gap}}}}}, "X", False) == {}
+
+
+def test_quarter_from_half_year_minus_q2_and_merge_predecessor():
+    from valuebot.data.sec import _annual_series, _quarters, merge_facts
+
+    def o(start, end, val, form="10-Q", filed="2026-11-01"):
+        return {"start": start, "end": end, "val": val, "form": form, "filed": filed}
+
+    q = _quarters([o("2026-01-01", "2026-06-30", 21.0), o("2026-04-01", "2026-06-30", 11.0)])
+    assert q["2026-03-31"] == ("2026-01-01", 10.0)
+    new = {"entityName": "NewCo Holdings", "facts": {"us-gaap": {"Revenues": {"units": {"USD": [o("2026-04-01", "2026-06-30", 11.0)]}}}}}
+    old = {"entityName": "OldCo", "facts": {"us-gaap": {"Revenues": {"units": {"USD": [o("2025-01-01", "2025-12-31", 40.0, form="10-K")]}}}}}
+    m = merge_facts(new, old)
+    assert m["entityName"] == "NewCo Holdings"
+    assert len(m["facts"]["us-gaap"]["Revenues"]["units"]["USD"]) == 2
+    assert _annual_series(m, "Revenues", False) == {"2025-12-31": 40.0}

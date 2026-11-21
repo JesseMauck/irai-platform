@@ -19,6 +19,11 @@ SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 FILING_INDEX_URL = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type=10-K"
 
 ANNUAL_FORMS = {"10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
+# Holding-company reorganisations move a ticker to a new SEC registrant (CIK) whose XBRL history starts at the
+# reorganisation. Facts from the predecessor registrant(s) are merged in so annual history continues.
+PREDECESSOR_CIKS: dict[str, list[int]] = {
+    "XOM": [34088],  # ExxonMobil Holdings Corp (2026) ← Exxon Mobil Corporation
+}
 
 # Ordered candidate tags per line item; first tag with data wins.
 DURATION_TAGS: dict[str, list[str]] = {
@@ -143,6 +148,13 @@ def _quarters(obs: list[dict]) -> dict[str, tuple[str, float]]:
         for (e0, v0), (e1, v1) in zip(pts, pts[1:]):
             if 80 <= _days(e0, e1) <= 100 and e1 not in q:
                 q[e1] = (e0, v1 - v0)
+    # a cumulative figure minus the quarter that closes it gives the preceding period: H1 - Q2 = Q1
+    for (st, en), (_, v) in latest.items():
+        if 170 <= _days(st, en) <= 190 and en in q:
+            qs, qv = q[en]
+            prev_end = (dt.date.fromisoformat(qs) - dt.timedelta(days=1)).isoformat()
+            if 80 <= _days(st, prev_end) <= 100 and prev_end not in q and not any(abs(_days(e, prev_end)) <= 10 for e in q):
+                q[prev_end] = (st, v - qv)
     return q
 
 
@@ -190,6 +202,23 @@ def _first(facts: dict, tags: list[str], instant: bool) -> tuple[dict[str, float
     return merged, best_tag
 
 
+def merge_facts(primary: dict, older: dict) -> dict:
+    """Union of two companyfacts documents (successor first). Observations for the same period from both
+    registrants are kept; the series builders already pick the most recently filed value per period."""
+    out = {**primary, "facts": {}}
+    for ns in set(primary.get("facts", {})) | set(older.get("facts", {})):
+        a, b = primary.get("facts", {}).get(ns, {}), older.get("facts", {}).get(ns, {})
+        merged = {}
+        for tag in set(a) | set(b):
+            units: dict[str, list] = {}
+            for src in (b.get(tag), a.get(tag)):
+                for unit, obs in ((src or {}).get("units") or {}).items():
+                    units.setdefault(unit, []).extend(obs)
+            merged[tag] = {**(b.get(tag) or {}), **(a.get(tag) or {}), "units": units}
+        out["facts"][ns] = merged
+    return out
+
+
 def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
     tm = ticker_map()
     t = ticker.upper()
@@ -199,6 +228,11 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
     with _client() as c:
         facts = c.get(FACTS_URL.format(cik=cik)).raise_for_status().json()
         subs = c.get(SUBMISSIONS_URL.format(cik=cik)).raise_for_status().json()
+        for pcik in PREDECESSOR_CIKS.get(t, []):
+            try:
+                facts = merge_facts(facts, c.get(FACTS_URL.format(cik=pcik)).raise_for_status().json())
+            except httpx.HTTPError:
+                pass
 
     series: dict[str, dict[str, float]] = {}
     tags_used: dict[str, str] = {}
