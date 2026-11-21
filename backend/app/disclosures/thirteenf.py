@@ -105,7 +105,29 @@ def info_table(c: httpx.Client, cik: int, accession: str) -> list[dict[str, Any]
     names = [x["name"] for x in ix["directory"]["item"] if x["name"].lower().endswith(".xml") and x["name"] != "primary_doc.xml"]
     if not names:
         raise LookupError("no information table")
-    return parse_info_table(_get(c, f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{names[0]}").text)
+    rows = parse_info_table(_get(c, f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{names[0]}").text)
+    reported = None
+    try:
+        m = re.search(r"<(?:\w+:)?tableValueTotal>\s*([\d.]+)", _get(c, f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/primary_doc.xml").text)
+        reported = float(m.group(1)) if m else None
+    except Exception:  # noqa: BLE001
+        pass
+    return scale_values(rows, reported)
+
+
+def scale_values(rows: list[dict[str, Any]], reported_total: float | None) -> list[dict[str, Any]]:
+    """Some filers still report values in thousands. Detect it from the cover-page total, else from implied share prices."""
+    s = sum(r["value"] for r in rows)
+    thousands = False
+    if reported_total and s:
+        thousands = abs(s * 1000 / reported_total - 1) < 0.02 and abs(s / reported_total - 1) > 0.02
+    if not thousands:
+        px = sorted(r["value"] / r["shares"] for r in rows if r["shares"] and not r.get("put_call"))
+        thousands = bool(px) and px[len(px) // 2] < 0.5  # a median "price" under 50 cents means the values are in $000s
+    if thousands:
+        for r in rows:
+            r["value"] *= 1000
+    return rows
 
 
 def _norm(n: str) -> str:

@@ -81,8 +81,9 @@ def parse_house_text(text: str) -> list[dict[str, Any]]:
         t = t[:end]
     cores = list(CORE.finditer(t))
     out = []
+    consumed = 0  # text already claimed by a record split across a page break
     for i, m in enumerate(cores):
-        before = t[cores[i - 1].end() if i else 0:m.start()]
+        before = t[max(cores[i - 1].end() if i else 0, consumed):m.start()]
         after = t[m.end():cores[i + 1].start() if i + 1 < len(cores) else len(t)]
         tk = list(TICK.finditer(before))
         ticker = atype = None
@@ -95,6 +96,7 @@ def parse_house_text(text: str) -> list[dict[str, Any]]:
             if ta and ta.start() < 200:
                 ticker, atype = ta.group(1), ta.group(2)
                 asset = before + " " + after[:ta.start()]
+                consumed = m.end() + ta.end()
             else:
                 ab = re.search(r"\[([A-Z]{2})\]\s*$", before.strip())
                 atype = ab.group(1) if ab else None
@@ -280,8 +282,10 @@ def refresh(db: Session, max_docs: int = 60, days: int = 120) -> dict[str, Any]:
             db.commit()
             stats["docs"] += 1
             time.sleep(0.3)
+    s = None
     try:
-        with senate_session() as s:
+        s = senate_session()
+        if True:
             for rep in senate_reports(s, since):
                 if budget <= 0:
                     break
@@ -311,6 +315,9 @@ def refresh(db: Session, max_docs: int = 60, days: int = 120) -> dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         log.warning("senate: %s", e)
         stats["senate_error"] = type(e).__name__
+    finally:
+        if s is not None:
+            s.close()
     log.info("congress refresh %s", json.dumps(stats))
     return stats
 

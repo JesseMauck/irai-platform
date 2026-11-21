@@ -18,6 +18,8 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { href: "/bots", label: "Automation", icon: "M9 3h6v3H9zM5 8h14v10H5zM9 12h.01M15 12h.01M9 15h6", pro: true },
     { href: "/strategies", label: "Strategy marketplace", icon: "M3 9l2-5h14l2 5M4 9v11h16V9M3 9h18M9 20v-6h6v6" },
     { href: "/signals", label: "Premium Signals", icon: "M13 2L4 14h7l-1 8 9-12h-7z", badge: "IRAI" },
+    { href: "/congress", label: "Congress Trading", icon: "M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z", badge: "New" },
+    { href: "/smart-money", label: "Smart Money Trackers", icon: "M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.8 6.5 19.5l1-6.3L3 8.9 9 8z", badge: "New" },
     { href: "/trades", label: "Community Trades", icon: "M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12" },
   ] },
   { title: "Research", items: [
