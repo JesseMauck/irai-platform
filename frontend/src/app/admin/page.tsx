@@ -7,6 +7,7 @@ import { ago, num } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, ErrorNote, PageHeader, Skeleton } from "@/components/ui";
 import Link from "next/link";
+import QaTab from "./QaTab";
 
 interface Stats {
   users: { total: number; by_plan: Record<string, number>; new_30d: number }; mrr_active: number; valuebot_runs_30d: number;
@@ -18,7 +19,7 @@ interface AdminArticle { id?: number; slug: string; title: string; category: str
 interface Coverage { adr_pairs: Record<string, string | number | boolean>[]; etf_funds: { symbol: string; name: string; category: string; active: boolean }[];
   peer_groups: { id: number; name: string; sector: string; members: { id: number; symbol: string; name: string }[] }[] }
 
-const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing", "ValueBot QA", "Data cycle"] as const;
+const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing", "ValueBot QA", "Trader QA", "Data cycle"] as const;
 
 export default function Admin() {
   const { user, ready } = useAuth();
@@ -31,7 +32,7 @@ export default function Admin() {
       <PageHeader title="Admin" intro="Business metrics, members, research, coverage and moderation." />
       <div className="mb-6 flex gap-1 border-b border-line">{TABS.map(t => <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm ${t === tab ? "border-b-2 border-primary text-fg" : "text-muted"}`}>{t}</button>)}</div>
       {tab === "Overview" && <Overview />}{tab === "Users" && <Users />}{tab === "Articles" && <Articles />}
-      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}{tab === "ValueBot QA" && <Calibration />}{tab === "Data cycle" && <DataCycle />}
+      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}{tab === "ValueBot QA" && <Calibration />}{tab === "Trader QA" && <QaTab />}{tab === "Data cycle" && <DataCycle />}
     </div>
   );
 }
