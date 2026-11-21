@@ -193,3 +193,17 @@ def test_rate_limit_backs_off_and_serves_fallback(monkeypatch):
     finally:
         service.set_source(None)
         monkeypatch.setattr(service, "_cooldown_until", 0.0)
+
+
+def test_half_life_handles_oscillating_series():
+    from app.market.engines import half_life
+    alt = [(-1) ** i * 0.01 for i in range(80)]  # flips sign every day: AR coefficient ≈ −1
+    assert half_life(alt) is None
+    import random
+    rng = random.Random(3)
+    x, xs = 0.0, []
+    for _ in range(400):
+        x = 0.8 * x + rng.gauss(0, 0.01)
+        xs.append(x)
+    hl = half_life(xs)
+    assert hl is not None and 1.5 < hl < 6  # true half-life ln(0.5)/ln(0.8) ≈ 3.1 days

@@ -82,7 +82,7 @@
   "name": "AstraZeneca",
   "country": "United Kingdom",
   "local_currency": "GBP",
-  "ratio": 0.5,
+  "ratio": 1,
   "shortable_local": true,
   "round_trip_cost_bps": 30,
   "sector": "Pharma"
@@ -192,7 +192,7 @@
   "name": "ORIX",
   "country": "Japan",
   "local_currency": "JPY",
-  "ratio": 5,
+  "ratio": 1,
   "shortable_local": true,
   "round_trip_cost_bps": 40,
   "sector": "Financials"

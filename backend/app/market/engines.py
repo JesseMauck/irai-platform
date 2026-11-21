@@ -60,8 +60,10 @@ def half_life(series: list[float]) -> float | None:
     if denom <= 0:
         return None
     b = float((lag_c * (dx - dx.mean())).sum() / denom)
-    if b >= 0 or b <= -2:
-        return None  # not mean-reverting (or oscillating) in this sample
+    if b >= 0 or b <= -1:
+        # b ≥ 0: not mean-reverting; b ≤ −1: the AR(1) coefficient 1+b is ≤ 0 (over-correcting/oscillating),
+        # so a half-life isn't defined (log(1+b) would be a math domain error).
+        return None
     return -math.log(2) / math.log(1 + b)
 
 
