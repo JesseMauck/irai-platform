@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
     { href: "/lab", label: "Strategy Lab", desc: "Backtest and optimise trading rules" },
     { href: "/lab/montecarlo", label: "Monte Carlo", desc: "Simulate outcomes for a stock or portfolio" },
     { href: "/screeners", label: "Screeners", desc: "Preset and custom screens" },
+    { href: "/portfolio", label: "Portfolio analysis", desc: "Pro: import holdings for risk, income and an AI review" },
     { href: "/algotrader", label: "IRAI AlgoTrader", desc: "Pro add-on: connect your brokerage (coming soon)" },
   ] },
   { href: "/community", label: "Community" },

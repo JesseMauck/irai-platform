@@ -63,11 +63,13 @@ function MonteCarlo() {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<Error | null>(null);
   const portfolio = rows.length > 1;
   // Pick up ?symbol= (and ?symbols=A,B) on first load and on client-side navigation from a ticker page.
-  const qsSym = sp.get("symbol"), qsSyms = sp.get("symbols");
+  const qsSym = sp.get("symbol"), qsSyms = sp.get("symbols"), qsW = sp.get("weights"), qsStart = sp.get("start");
   useEffect(() => {
-    if (qsSyms) setRows(qsSyms.split(",").filter(Boolean).slice(0, 10).map(s => ({ symbol: s.toUpperCase(), weight: "1" })));
+    const ws = (qsW ?? "").split(",");
+    if (qsSyms) setRows(qsSyms.split(",").filter(Boolean).slice(0, 10).map((s, i) => ({ symbol: s.toUpperCase(), weight: ws[i] && parseFloat(ws[i]) > 0 ? ws[i] : "1" })));
     else if (qsSym) setRows([{ symbol: qsSym.toUpperCase(), weight: "1" }]);
-  }, [qsSym, qsSyms]);
+    if (qsStart && parseFloat(qsStart) > 0) setCfg(c => ({ ...c, start: String(Math.round(parseFloat(qsStart))) }));
+  }, [qsSym, qsSyms, qsW, qsStart]);
   const run = async () => {
     setBusy(true); setErr(null);
     const f = (s: string) => (s.trim() ? parseFloat(s) : null);

@@ -387,7 +387,7 @@ def _rows(db: Session, model, col, uid: int, drop: tuple[str, ...] = ()) -> list
 @router.get("/export")
 def export_my_data(user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Everything we hold that is linked to your account, as JSON (secrets excluded)."""
-    from ..models import BacktestRun, Post, Subscription, Thread, TradePost, ValuationRun, Vote
+    from ..models import AnalystReport, BacktestRun, Portfolio, Post, Subscription, Thread, TradePost, ValuationRun, Vote
 
     secret = ("password_hash", "hashed_password", "key_hash", "token_hash")
     profile = {c.name: getattr(user, c.name) for c in User.__table__.columns if c.name not in secret}
@@ -403,6 +403,10 @@ def export_my_data(user: User = Depends(current_user), db: Session = Depends(get
         "threads": _rows(db, Thread, "author_id", user.id), "posts": _rows(db, Post, "author_id", user.id),
         "trade_posts": _rows(db, TradePost, "author_id", user.id), "votes": _rows(db, Vote, "user_id", user.id),
         "subscriptions": _rows(db, Subscription, "user_id", user.id),
+        "analyst_reports": _rows(db, AnalystReport, "user_id", user.id),
+        "portfolios": [{"name": p.name, "source": p.source, "cash": p.cash, "benchmark": p.benchmark,
+                        "holdings": [{"symbol": h.symbol, "quantity": h.quantity, "cost_basis": h.cost_basis} for h in p.holdings]}
+                       for p in db.scalars(select(Portfolio).where(Portfolio.user_id == user.id))],
     }
 
 

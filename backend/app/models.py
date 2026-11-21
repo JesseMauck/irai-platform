@@ -482,3 +482,26 @@ class WaitlistEntry(Base):
     brokers: Mapped[list[str]] = mapped_column(JSON, default=list)
     note: Mapped[str | None] = mapped_column(String(1000))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Portfolio(TimestampMixin, Base):
+    """A member's portfolio: entered by hand, imported from CSV, or (later) synced from a broker connection."""
+    __tablename__ = "portfolios"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    source: Mapped[str] = mapped_column(String(20), default="manual")  # manual | csv | broker
+    cash: Mapped[float] = mapped_column(Float, default=0.0)
+    benchmark: Mapped[str] = mapped_column(String(10), default="SPY")
+    holdings: Mapped[list[Holding]] = relationship(back_populates="portfolio", cascade="all, delete-orphan", order_by="Holding.id")
+
+
+class Holding(Base):
+    __tablename__ = "holdings"
+    __table_args__ = (UniqueConstraint("portfolio_id", "symbol", name="uq_holding_portfolio_symbol"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id", ondelete="CASCADE"), index=True)
+    symbol: Mapped[str] = mapped_column(String(20))
+    quantity: Mapped[float] = mapped_column(Float)
+    cost_basis: Mapped[float | None] = mapped_column(Float)  # per share, in the security's currency
+    portfolio: Mapped[Portfolio] = relationship(back_populates="holdings")

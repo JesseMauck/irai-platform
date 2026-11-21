@@ -37,7 +37,8 @@ export default function AlgoTrader() {
           <h1 className="mt-5 max-w-3xl text-4xl md:text-6xl">IRAI AlgoTrader. Your portfolio, analyzed and automated.</h1>
           <p className="mt-5 max-w-2xl text-lg text-muted">Connect your brokerage accounts to IRAI and get institutional-grade analysis of what you actually own, plus rules-based strategies you design, test and approve.</p>
           <p className="mt-6 max-w-3xl text-base">Seamless connection to <b>Webull, Robinhood, Fidelity, Charles Schwab, <a href="https://www.interactivebrokers.com/en/whyib/overview.php" target="_blank" rel="noopener noreferrer" className="underline decoration-primary/60 underline-offset-2 hover:text-primary">Interactive Brokers</a>, E*TRADE</b> and other top platforms.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><Button href="#waitlist">Join the waitlist</Button><Button variant="outline" href="/pricing">See Pro</Button></div>
+          <div className="mt-8 flex flex-wrap gap-3"><Button href="#waitlist">Join the waitlist</Button><Button variant="outline" href="/portfolio">Try portfolio analysis (Pro)</Button></div>
+          <p className="mt-3 text-sm text-muted">Available today for Pro members: import your positions from a broker CSV and get the full portfolio analysis and AI review, ahead of live connections.</p>
         </div>
       </section>
 
