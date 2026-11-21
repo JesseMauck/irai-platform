@@ -32,7 +32,8 @@
       "optimize": false,
       "grade_detail": false,
       "pair_ideas": false,
-      "analyst_reports_per_day": 1
+      "analyst_reports_per_day": 1,
+      "assistant_messages_per_day": 10
     }
   },
   {
@@ -69,7 +70,8 @@
       "optimize": false,
       "grade_detail": true,
       "pair_ideas": false,
-      "analyst_reports_per_day": 10
+      "analyst_reports_per_day": 10,
+      "assistant_messages_per_day": 60
     }
   },
   {
@@ -82,6 +84,9 @@
     "note": "7-day free trial, no card · upgrades apply immediately",
     "badge": null,
     "features": [
+      "IRAI AlgoTrader: paper-trading bots, AI strategy builder, 57-metric tear sheets",
+      "Portfolio analysis with an AI review",
+      "Analyst Bot and Ask IRAI with the highest limits",
       "Real-time where licensed",
       "Pair ideas and score-spread history",
       "Unlimited screens, CSV export",
@@ -106,7 +111,8 @@
       "optimize": true,
       "grade_detail": true,
       "pair_ideas": true,
-      "analyst_reports_per_day": null
+      "analyst_reports_per_day": null,
+      "assistant_messages_per_day": 300
     }
   }
 ]

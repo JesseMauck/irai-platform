@@ -1,5 +1,6 @@
 "use client";
 // Ticker research panels. Every panel ends with a SourceLine naming where the numbers came from.
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useApi } from "@/lib/hooks";
@@ -418,9 +419,16 @@ export function FilingsPanel({ symbol, limit = 25 }: { symbol: string; limit?: n
 
 export function NewsPanel({ symbol }: { symbol: string }) {
   const { data } = useApi<{ title: string; url: string; published: string; source: string }[]>(`/api/insight/${encodeURIComponent(symbol)}/headlines`);
+  const { data: sum } = useApi<{ summary: string | null; engine: string | null; generated_at: string; sources: { n: number; title: string; url: string }[] }>(`/api/insight/${encodeURIComponent(symbol)}/news-summary`);
   return (
     <Card className="p-5">
       <h2 className="font-semibold">News</h2>
+      {sum?.summary && (
+        <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary">AI summary of the latest headlines</div>
+          <div className="prose-irai mt-1 text-sm"><ReactMarkdown>{sum.summary}</ReactMarkdown></div>
+          <p className="mt-1 text-[11px] text-muted">Written by Claude from the {sum.sources.length} headlines below (numbers refer to them in order); it hasn&apos;t read the full articles. Updated {sum.generated_at.slice(11, 16)} UTC.</p>
+        </div>)}
       {!data ? <Skeleton rows={6} /> : !data.length ? <Empty>No recent headlines (headlines need live mode).</Empty> : (
         <ul className="mt-3 divide-y divide-line">{data.map(h => <li key={h.url} className="py-2"><a href={h.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary">{h.title}</a>
           <div className="text-[11px] text-muted">{h.source}{h.published ? ` · ${h.published.slice(0, 22)}` : ""}</div></li>)}</ul>

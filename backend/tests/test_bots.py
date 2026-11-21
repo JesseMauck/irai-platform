@@ -128,3 +128,9 @@ def test_rules_draft_ignores_percentages_for_params():
     from app.routers.bots import _rules_draft
     d = _rules_draft("RSI 10 day oversold on QQQ with 8% stop loss")
     assert d["params"]["length"] == 10 and d["stop_loss_pct"] == pytest.approx(0.08)
+
+
+def test_rules_draft_golden_cross_defaults():
+    from app.routers.bots import _rules_draft
+    d = _rules_draft("Golden cross on SPY with a 10% stop-loss")
+    assert d["params"] == {"short": 50, "long": 200} and d["stop_loss_pct"] == pytest.approx(0.1)

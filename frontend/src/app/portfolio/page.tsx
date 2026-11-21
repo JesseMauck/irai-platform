@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "@/lib/api";
+import { setAssistantContext } from "@/lib/assistant";
 import { num, pct, tone } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { LineChart } from "@/components/Chart";
@@ -57,6 +58,7 @@ export default function PortfolioPage() {
     } catch (e) { setErr(e as Error); } finally { setBusy(null); }
   }, []);
   useEffect(() => { if (pro) load(); }, [pro, load]);
+  useEffect(() => { setAssistantContext({ portfolio_id: cur?.id ?? null }); return () => setAssistantContext({}); }, [cur?.id]);
 
   if (!ready) return null;
   if (!user || !pro) return (

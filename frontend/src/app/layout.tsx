@@ -5,6 +5,7 @@ import "@fontsource-variable/space-grotesk";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Footer } from "@/components/Footer";
+import { AskIrai } from "@/components/AskIrai";
 import { Header } from "@/components/Header";
 import { TickerBar } from "@/components/TickerBar";
 import { JsonLd } from "@/components/JsonLd";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main>{children}</main>
           <Footer />
+          <AskIrai />
         </AuthProvider>
       </body>
     </html>

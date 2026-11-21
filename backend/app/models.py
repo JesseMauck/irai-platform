@@ -616,3 +616,13 @@ class SleeveEquity(Base):
     bot_id: Mapped[int] = mapped_column(ForeignKey("bots.id", ondelete="CASCADE"), index=True)
     date: Mapped[str] = mapped_column(String(10))
     equity: Mapped[float] = mapped_column(Float)
+
+
+class AssistantUsage(Base):
+    """Messages sent to the Ask IRAI assistant per user per UTC day (plan quota)."""
+    __tablename__ = "assistant_usage"
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_assistant_usage_day"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    day: Mapped[str] = mapped_column(String(10))
+    count: Mapped[int] = mapped_column(Integer, default=0)

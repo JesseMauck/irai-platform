@@ -70,9 +70,28 @@ def _streak(pnls: list[float], win: bool) -> int:
     return best
 
 
+MIN_DAYS_ANNUALISED = 20
+ANNUALISED = ("cagr", "volatility", "downside_deviation", "sharpe", "sortino", "calmar", "omega", "gain_pain", "recovery_factor",
+              "tail_ratio", "var_95", "cvar_95", "skew", "kurtosis", "ulcer_index", "alpha", "beta", "correlation", "r_squared",
+              "tracking_error", "information_ratio", "up_capture", "down_capture", "avg_monthly_return", "positive_months",
+              "best_month", "worst_month")
+
+
 def compute(dates: list[str], equity: list[float], trade_pnls: list[float] | None = None,
             bench: list[float] | None = None, exposure: list[bool] | None = None) -> dict[str, Any]:
-    """dates/equity: aligned daily series (at least 2 points). bench: benchmark closes aligned with dates."""
+    """dates/equity: aligned daily series (at least 2 points). bench: benchmark closes aligned with dates.
+    With fewer than 20 daily returns, annualised and ratio statistics are withheld (None): a two-day record
+    annualised is noise, not information."""
+    out = _compute(dates, equity, trade_pnls, bench, exposure)
+    if out.get("days") is not None and out["days"] - 1 < MIN_DAYS_ANNUALISED:
+        for k in ANNUALISED:
+            out[k] = None
+        out["insufficient_history"] = True
+    return out
+
+
+def _compute(dates: list[str], equity: list[float], trade_pnls: list[float] | None = None,
+             bench: list[float] | None = None, exposure: list[bool] | None = None) -> dict[str, Any]:
     out: dict[str, Any] = {k: None for k in METRICS}
     n = len(equity)
     if n < 2 or not equity[0]:

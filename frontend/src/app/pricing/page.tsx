@@ -16,6 +16,10 @@ const ROWS: [string, string, string, string][] = [
   ["Watchlists", "1 list, 10 tickers", "10 lists, 100 tickers each", "Unlimited"],
   ["Alerts", "—", "Email (20 active)", "Email, push, webhook (100 active)"],
   ["Forum", "Read", "Read, post, comment, vote, post trades", "+ Verified-trader eligibility, Pro rooms"],
+  ["Analyst Bot (AI ticker notes)", "1 run / day", "10 runs / day", "Unlimited"],
+  ["Ask IRAI assistant", "10 messages / day", "60 messages / day", "300 messages / day"],
+  ["Portfolio analysis + AI review", "—", "—", "10 portfolios, CSV import from your broker"],
+  ["AlgoTrader bots (paper trading)", "—", "—", "20 bots, 5 paper accounts, webhooks, tear sheets"],
   ["Data export / API", "—", "—", "CSV export + read-only API key"],
   ["Support", "—", "Email", "Priority"],
 ];

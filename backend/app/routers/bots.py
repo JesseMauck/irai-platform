@@ -366,6 +366,8 @@ def _rules_draft(prompt: str) -> dict[str, Any]:
         key = "sma_cross"
     cls = REGISTRY[key]
     params = {}
+    if key == "sma_cross" and ("golden cross" in p or "death cross" in p) and len([n for n in nums if n >= 2]) < 2:
+        nums = [50.0, 200.0]  # the conventional definition
     ints = [int(n) for n in nums if n >= 2 and n == int(n)]
     for prm, n in zip(cls.PARAMS, sorted(ints)[: len(cls.PARAMS)] if key in ("sma_cross", "ema_cross") else ints):
         params[prm.key] = prm.clamp(n)
