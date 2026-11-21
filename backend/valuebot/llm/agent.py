@@ -30,18 +30,10 @@ def _client():
 
 
 def _tool_call(system: str, user: str, tool: dict, model: str | None = None, max_tokens: int = 4000) -> dict:
-    resp = _client().messages.create(
-        model=model or settings.model,
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-        tools=[tool],
-        tool_choice={"type": "tool", "name": tool["name"]},
-    )
-    for block in resp.content:
-        if block.type == "tool_use":
-            return block.input
-    raise RuntimeError("Model did not return a tool call")
+    from .toolcall import call_tool
+
+    return call_tool(_client(), model=model or settings.model, system=system,
+                     messages=[{"role": "user", "content": user}], tool=tool, max_tokens=max_tokens)
 
 
 def _fmt(snap: dict, metrics: list[dict]) -> str:

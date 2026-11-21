@@ -405,12 +405,11 @@ def draft(body: DraftIn, user: User = Depends(pro)):
     try:
         import anthropic
 
-        resp = anthropic.Anthropic(api_key=vb.anthropic_api_key).messages.create(
-            model=vb.fast_model, max_tokens=800, system=DRAFT_SYSTEM,
-            messages=[{"role": "user", "content": f"Catalogue: {json.dumps(catalogue)}\n\nIdea: {body.prompt}"}],
-            tools=[{"name": "configure_bot", "description": "Return the bot configuration.", "input_schema": schema}],
-            tool_choice={"type": "tool", "name": "configure_bot"})
-        out = next(dict(b.input) for b in resp.content if b.type == "tool_use")
+        from valuebot.llm.toolcall import call_tool
+
+        out = call_tool(anthropic.Anthropic(api_key=vb.anthropic_api_key), model=vb.fast_model, max_tokens=800, system=DRAFT_SYSTEM,
+                        messages=[{"role": "user", "content": f"Catalogue: {json.dumps(catalogue)}\n\nIdea: {body.prompt}"}],
+                        tool={"name": "configure_bot", "description": "Return the bot configuration.", "input_schema": schema})
         cls = REGISTRY.get(out.get("strategy")) or REGISTRY["sma_cross"]
         syms = [s.upper() for s in out.get("symbols") or [] if SYM.match(str(s).upper())][:10]
         clamp = lambda v, hi: (min(max(float(v), 0.005), hi) if v else None)  # noqa: E731

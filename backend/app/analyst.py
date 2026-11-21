@@ -277,18 +277,15 @@ def write(pack: dict[str, Any], sources: list[dict[str, Any]]) -> tuple[dict[str
             user = ("Data pack (JSON):\n" + json.dumps(pack, default=str)[:90_000] +
                     "\n\nSource list:\n" + json.dumps([{k: s[k] for k in ("id", "label")} for s in sources])[:20_000] +
                     "\n\nWrite today's analysis note for this ticker.")
-            resp = client.messages.create(model=vb.model, max_tokens=6500, system=SYSTEM,
-                                          messages=[{"role": "user", "content": user}],
-                                          tools=[{"name": "submit_note", "description": "Submit the analysis note.", "input_schema": SCHEMA}],
-                                          tool_choice={"type": "tool", "name": "submit_note"})
-            for block in resp.content:
-                if block.type == "tool_use":
-                    note = dict(block.input)
-                    valid = {s["id"] for s in sources}
-                    for sec in ("whats_new", "bull_case", "bear_case", "catalysts", "key_takeaways", "scenarios"):  # drop citations to ids that don't exist
-                        for item in note.get(sec) or []:
-                            item["sources"] = [x for x in item.get("sources") or [] if x in valid]
-                    return note, f"Claude ({vb.model})"
+            from valuebot.llm.toolcall import call_tool
+
+            note = call_tool(client, model=vb.model, max_tokens=6500, system=SYSTEM, messages=[{"role": "user", "content": user}],
+                             tool={"name": "submit_note", "description": "Submit the analysis note.", "input_schema": SCHEMA})
+            valid = {s["id"] for s in sources}
+            for sec in ("whats_new", "bull_case", "bear_case", "catalysts", "key_takeaways", "scenarios"):  # drop citations to ids that don't exist
+                for item in note.get(sec) or []:
+                    item["sources"] = [x for x in item.get("sources") or [] if x in valid]
+            return note, f"Claude ({vb.model})"
         except Exception as e:  # noqa: BLE001
             log.warning("analyst LLM failed, using rules: %s", e)
     return rules_note(pack), "rules"
