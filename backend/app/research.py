@@ -44,7 +44,9 @@ def _memo(kind: str, key: str, ttl: float, fn):
 
 
 def _http() -> httpx.Client:
-    return httpx.Client(headers={"User-Agent": settings.sec_user_agent or UA}, timeout=12, follow_redirects=True)
+    import os
+
+    return httpx.Client(headers={"User-Agent": os.environ.get("SEC_USER_AGENT") or UA}, timeout=12, follow_redirects=True)
 
 
 # ── quant ratings ────────────────────────────────────────────────────────────────────────────────

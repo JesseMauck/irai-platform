@@ -42,10 +42,31 @@ def _send_smtp(row: EmailOutbox) -> None:
         s.send_message(msg)
 
 
+def _send_resend(row: EmailOutbox) -> None:
+    """Resend's HTTPS API (https://resend.com). Use it where outbound SMTP is blocked (e.g. Railway Hobby)."""
+    import httpx
+
+    r = httpx.post("https://api.resend.com/emails", timeout=20,
+                   headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}"},
+                   json={"from": os.environ.get("MAIL_FROM") or os.environ.get("SMTP_FROM") or "Irradiance <support@irradiance.ai>",
+                         "to": [row.to_addr], "subject": row.subject, "text": row.body_text,
+                         "reply_to": os.environ.get("MAIL_REPLY_TO", "support@irradiance.ai")})
+    if r.status_code >= 300:
+        raise RuntimeError(f"Resend HTTP {r.status_code}: {r.text[:200]}")
+
+
+def default_sender():
+    """HTTPS API when configured (works on any host), else SMTP, else log only (dev)."""
+    if os.environ.get("RESEND_API_KEY"):
+        return _send_resend
+    if os.environ.get("SMTP_HOST"):
+        return _send_smtp
+    return lambda r: log.info("MAIL to=%s subject=%r\n%s", r.to_addr, r.subject, r.body_text)
+
+
 def deliver_pending(db: Session, sender=None, limit: int = 100) -> dict[str, int]:
     now = dt.datetime.now(dt.timezone.utc)
-    sender = sender or (_send_smtp if os.environ.get("SMTP_HOST") else
-                        (lambda r: log.info("MAIL to=%s subject=%r\n%s", r.to_addr, r.subject, r.body_text)))
+    sender = sender or default_sender()
     rows = db.scalars(select(EmailOutbox).where(EmailOutbox.status == "pending", EmailOutbox.next_attempt_at <= now)
                       .order_by(EmailOutbox.id).limit(limit).with_for_update(skip_locked=True)).all()
     sent = failed = 0

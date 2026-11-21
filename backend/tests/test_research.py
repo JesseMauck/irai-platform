@@ -69,3 +69,31 @@ def test_rsi_and_ema_math():
     flat_up_down = [10, 11] * 20
     assert 45 < _rsi(flat_up_down) < 55
     assert _ema_series([1, 1, 1], 3) == [1, 1, 1]
+
+
+def test_live_paths_with_mocked_network(monkeypatch):
+    """Exercise the live-mode code (GDELT, RSS, SEC) that demo-mode tests skip."""
+    import types
+
+    import httpx
+
+    def handler(req: httpx.Request):
+        u = str(req.url)
+        if "gdeltproject" in u:
+            mode = req.url.params.get("mode")
+            if mode == "artlist":
+                return httpx.Response(200, json={"articles": [{"title": "T", "url": "https://n/1", "domain": "n", "seendate": "x"}]})
+            return httpx.Response(200, json={"timeline": [{"data": [{"value": v} for v in [5, 6, 4, 5, 20]]}]})
+        if "finance.yahoo.com/rss" in u:
+            return httpx.Response(200, text="<rss><channel><item><title>Big news</title><link>https://y/1</link></item></channel></rss>")
+        return httpx.Response(404)
+
+    monkeypatch.setattr(research, "settings", types.SimpleNamespace(live=True))
+    monkeypatch.setattr(research, "_http", lambda: httpx.Client(transport=httpx.MockTransport(handler)))
+    monkeypatch.setattr(research, "filings", lambda s: {"filings": [{"date": "2999-01-01", "form": "8-K"}]})
+    research._cache.clear()
+    h = research.headlines("ZZTEST", "Zz Test Inc.")
+    assert h and h[0]["title"] == "Big news"
+    b = research.buzz("ZZTEST")
+    assert b["inputs"]["news_articles_today"] == 20 and b["inputs"]["filings_7d"] == 1 and b["level"]
+    research._cache.clear()

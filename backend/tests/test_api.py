@@ -632,3 +632,21 @@ def test_thesis_requires_sign_in_and_llm_health(client):
     r = client.post("/api/valuebot/thesis", json={"ticker": "DEMO", "stance": "neutral"}, headers=h)
     assert r.status_code == 200, r.text
     assert client.get("/api/health/llm").json()["enabled"] is False  # offline in tests
+
+
+def test_resend_sender_selected_and_called(monkeypatch):
+    import httpx
+    from app import mail
+    from app.models import EmailOutbox
+    monkeypatch.setenv("RESEND_API_KEY", "re_test")
+    assert mail.default_sender() is mail._send_resend
+    seen = {}
+
+    def fake_post(url, **kw):
+        seen.update(url=url, **kw)
+        return httpx.Response(200, json={"id": "x"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    mail._send_resend(EmailOutbox(to_addr="a@b.co", subject="Hi", body_text="Body", kind="t"))
+    assert seen["url"].endswith("/emails") and seen["json"]["to"] == ["a@b.co"]
+    assert seen["headers"]["Authorization"] == "Bearer re_test"
