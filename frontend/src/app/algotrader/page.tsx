@@ -78,7 +78,7 @@ export default function AlgoTrader() {
           <p className="mt-3 text-muted">Each bot page puts the backtest that justified it next to its live paper record, metric by metric, so you can tell bad luck from a broken edge.
             Risk controls, the webhook and every fill sit on the same screen.</p>
           <ul className="mt-4 space-y-2 text-sm">{["57 statistics from CAGR and Sharpe to capture ratios and streaks", "Change a stop-loss or position cap in seconds", "Copy the webhook straight into a TradingView alert"].map(x => <li key={x}>✓ {x}</li>)}</ul>
-          <p className="mt-3 text-[11px] text-muted">Screenshot uses demo data. Backtests can overstate results; paper fills are an upper bound on live fills.</p></div>
+          <p className="mt-3 text-[11px] text-muted">Illustrative screenshot. Backtests can overstate results; paper fills are an upper bound on live fills.</p></div>
       </section>
 
       <section className="border-y border-line bg-card/40">

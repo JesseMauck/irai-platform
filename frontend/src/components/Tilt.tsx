@@ -71,7 +71,7 @@ export function FeatureShowcase({ items, note = true }: { items: Showcase[]; not
           </div>
         </div>
       ))}
-      {note && <p className="text-center text-[11px] text-muted">Product screenshots use demo data and are shown for illustration. Live pages label every number with its source.</p>}
+      {note && <p className="text-center text-[11px] text-muted">Illustrative product screenshots. Live pages label every number with its source.</p>}
     </div>
   );
 }

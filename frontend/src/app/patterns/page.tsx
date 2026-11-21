@@ -45,7 +45,7 @@ function Patterns() {
               the complete lead-lag map, historical analogues, your own pattern tests and the live order-book ladder.</p>
             <ul className="mt-4 space-y-1 text-sm">{["Six patterns × six asset classes × four timeframes, retested nightly", "Only called robust if it passes every stress test", "Market regimes, recurring states and lead-lag links"].map(x => <li key={x}>✓ {x}</li>)}</ul>
             <div className="mt-5 flex gap-3"><Button href="/signup?next=/patterns">Start free</Button><Button variant="outline" href="/signup?plan=pro&next=/patterns">Try Pro free for 7 days</Button></div>
-            <p className="mt-2 text-[11px] text-muted">Screenshot uses demo data.</p></div>
+            <p className="mt-2 text-[11px] text-muted">Illustrative screenshot.</p></div>
         </div>
       ) : tab === "tests" ? <Tests /> : tab === "regimes" ? <Regimes initial={qSym} /> : tab === "states" ? <States /> : tab === "leadlag" ? <LeadLag /> : <Micro />}
       <p className="mt-6 text-[11px] text-muted">Statistical patterns describe the past and can stop working without warning. Pattern Lab is research and education, not a recommendation to buy or sell anything.</p>
