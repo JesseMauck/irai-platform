@@ -308,6 +308,11 @@ def snapshot() -> dict[str, Any]:
         if row:
             _snap.update(rows=row.rows, at=row.created_at.replace(tzinfo=row.created_at.tzinfo or dt.timezone.utc).isoformat(), source=row.source, checked=time.time())
             return _snap
+    from .config import settings
+
+    if settings.live:  # never make a request wait for 400+ live fetches: build in the background
+        start_background()
+        return _snap
     with _lock:
         if not _snap["rows"]:
             snap = build()
@@ -411,7 +416,7 @@ def catalog() -> dict[str, Any]:
     flat = {i["id"]: i for g in groups for i in g["presets"]}
     spot = [flat[x] for x in SPOTLIGHT if x in flat and flat[x]["total_matches"] > 0]
     breadth = [r["change_pct"] for r in rows if r.get("change_pct") is not None]
-    return {"spotlight": spot, "groups": groups, "as_of": snap["at"], "source": snap["source"], "universe": len(rows),
+    return {"spotlight": spot, "groups": groups, "as_of": snap["at"], "source": snap["source"], "universe": len(rows), "building": not rows,
             "breadth": {"advancers": sum(1 for x in breadth if x > 0), "decliners": sum(1 for x in breadth if x < 0), "median_change": float(np.median(breadth)) if breadth else None},
             "fields": [{"key": k, "label": v[0], "group": v[1], "unit": v[2]} for k, v in FIELDS.items()]}
 

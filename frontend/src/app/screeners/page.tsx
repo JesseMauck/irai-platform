@@ -13,7 +13,7 @@ import { Button, Card, ErrorNote, Skeleton, SourceBadge } from "@/components/ui"
 type Filter = [string, string, number | string | string[] | null];
 interface PresetCard { id: string; title: string; description: string; kind: string | null; sort: string; desc: boolean; filters: Filter[]; matches: number; total_matches: number; avg_change: number | null; top: string[] }
 interface Field { key: string; label: string; group: string; unit: string }
-interface Catalog { spotlight: PresetCard[]; groups: { id: string; label: string; presets: PresetCard[] }[]; as_of: string | null; source: string | null; universe: number;
+interface Catalog { building?: boolean; spotlight: PresetCard[]; groups: { id: string; label: string; presets: PresetCard[] }[]; as_of: string | null; source: string | null; universe: number;
   breadth: { advancers: number; decliners: number; median_change: number | null }; fields: Field[]; note: string }
 type Row = Record<string, string | number | boolean | null | number[]>;
 interface Result { matches: number; rows: Row[]; columns: string[]; avg_change: number | null; advancers: number; decliners: number; locked?: boolean; hidden?: number; source: string | null; as_of: string | null;
@@ -44,7 +44,7 @@ function Screener() {
   const { user } = useAuth();
   const sp = useSearchParams();
   const router = useRouter();
-  const { data: cat, error } = useApi<Catalog>("/api/screener", 300_000);
+  const { data: cat, error } = useApi<Catalog>("/api/screener", 60_000);
   const [tab, setTab] = useState(sp.get("tab") ?? "market_mover");
   const [pid, setPid] = useState<string | null>(sp.get("preset") ?? "top_gainers");
   const [custom, setCustom] = useState<{ filters: Filter[]; sort: string; desc: boolean; kind: string | null } | null>(null);
@@ -89,6 +89,7 @@ function Screener() {
           <div className="mt-0.5">{cat.as_of ? `Updated ${new Date(cat.as_of).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""} <SourceBadge source={cat.source ?? undefined} /></div></div>}
       </div>
       <ErrorNote error={error} />
+      {cat?.building && <Card className="mt-4 p-4 text-sm text-muted">The screener is loading today&apos;s data for 400+ stocks and ETFs. This takes a few minutes the first time; the page refreshes on its own.</Card>}
 
       <h2 className="mt-7 text-sm font-semibold uppercase tracking-wide text-muted">Daily Spotlight</h2>
       {!cat ? <div className="mt-2"><Skeleton rows={3} /></div> : (
