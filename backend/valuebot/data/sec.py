@@ -54,8 +54,11 @@ INSTANT_TAGS: dict[str, list[str]] = {
     "cash": ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"],
     "marketable_securities": ["ShortTermInvestments", "MarketableSecuritiesCurrent", "AvailableForSaleSecuritiesDebtSecuritiesCurrent"],
     "long_term_debt": ["LongTermDebt"],
-    "long_term_debt_noncurrent": ["LongTermDebtNoncurrent"],
-    "debt_current": ["LongTermDebtCurrent", "DebtCurrent"],
+    "long_term_debt_noncurrent": ["LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations"],
+    "debt_current": ["LongTermDebtCurrent", "LongTermDebtAndCapitalLeaseObligationsCurrent"],
+    "debt_current_total": ["DebtCurrent"],  # current maturities + commercial paper + other short-term debt
+    "debt_combined": ["DebtLongtermAndShorttermCombinedAmount"],
+    "debt_incl_current_maturities": ["LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities"],
     "short_term_borrowings": ["ShortTermBorrowings", "CommercialPaper"],
     "operating_leases": ["OperatingLeaseLiability"],
     "equity": ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"],
@@ -202,6 +205,27 @@ def _first(facts: dict, tags: list[str], instant: bool) -> tuple[dict[str, float
     return merged, best_tag
 
 
+def total_debt(row: dict[str, Any]) -> tuple[float, str]:
+    """Interest-bearing debt from whichever totals a filer reports. Companies tag debt very differently
+    (Verizon: combined long- and short-term amount; Coca-Cola: debt and finance leases including current
+    maturities; P&G: noncurrent + DebtCurrent; Walmart: LongTermDebt + short-term borrowings), and a partial
+    tag silently undercounts debt and overstates equity value, so take the largest well-formed sum."""
+    stb = row.get("short_term_borrowings") or 0
+    cands: list[tuple[float, str]] = []
+    if row.get("debt_combined"):
+        cands.append((row["debt_combined"], "DebtLongtermAndShorttermCombinedAmount"))
+    if row.get("debt_incl_current_maturities"):
+        cands.append((row["debt_incl_current_maturities"] + stb, "long-term debt incl. current maturities + short-term borrowings"))
+    if row.get("long_term_debt"):
+        cands.append((row["long_term_debt"] + stb, "LongTermDebt + short-term borrowings"))
+    if row.get("long_term_debt_noncurrent"):
+        cur = row["debt_current_total"] if row.get("debt_current_total") else (row.get("debt_current") or 0) + stb
+        cands.append((row["long_term_debt_noncurrent"] + cur, "noncurrent + current debt"))
+    if not cands:
+        return float(stb), "short-term borrowings only" if stb else "no debt reported"
+    return max(cands)
+
+
 def merge_facts(primary: dict, older: dict) -> dict:
     """Union of two companyfacts documents (successor first). Observations for the same period from both
     registrants are kept; the series builders already pick the most recently filed value per period."""
@@ -271,12 +295,9 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
         row: dict[str, Any] = {"period_end": end, "fiscal_year": int(end[:4])}
         for key in list(DURATION_TAGS) + list(INSTANT_TAGS):
             row[key] = series[key].get(end)
-        # Some filers tag only part of their borrowings as LongTermDebt (e.g. one note programme) while the
-        # balance sheet shows noncurrent + current debt; take the larger so debt is never undercounted.
-        parts = (row.get("long_term_debt_noncurrent") or 0) + (row.get("debt_current") or 0)
-        if row["long_term_debt"] is None or parts > row["long_term_debt"]:
-            row["long_term_debt"] = parts or row["long_term_debt"]
-        row["debt"] = (row.get("long_term_debt") or 0) + (row.get("short_term_borrowings") or 0)
+        row["debt"], row["debt_basis"] = total_debt(row)
+        if row["long_term_debt"] is None:
+            row["long_term_debt"] = (row.get("long_term_debt_noncurrent") or 0) + (row.get("debt_current") or 0) or None
         row["lease_liabilities"] = row.get("operating_leases") or 0
         row["cash"] = (row.get("cash") or 0) + (row.get("marketable_securities") or 0)
         history.append(row)

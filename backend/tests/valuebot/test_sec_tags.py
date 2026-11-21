@@ -89,3 +89,15 @@ def test_terminal_growth_not_above_mature_growth():
     fast = [{**base, "revenue": 60e9}, {**base, "revenue": 80e9}, base]
     d2, _ = default_drivers("fcff", snap_fast, fast, coc)
     assert d2["terminal_growth"] == 0.04
+
+
+def test_total_debt_picks_largest_well_formed_sum():
+    from valuebot.data.sec import total_debt
+    B = 1e9
+    assert total_debt({"debt_combined": 158.2 * B, "long_term_debt": 42.6 * B, "debt_current": 18.6 * B})[0] == 158.2 * B   # VZ
+    assert total_debt({"debt_incl_current_maturities": 43.9 * B, "long_term_debt": 3.2 * B})[0] == 43.9 * B                 # KO
+    assert abs(total_debt({"long_term_debt_noncurrent": 22.8 * B, "debt_current_total": 11.3 * B, "debt_current": 6.5 * B,
+                           "short_term_borrowings": 4.8 * B})[0] - 34.1 * B) < 1e6                                              # PG
+    assert abs(total_debt({"long_term_debt": 38.2 * B, "short_term_borrowings": 6.6 * B, "long_term_debt_noncurrent": 34.6 * B,
+                           "debt_current": 3.5 * B})[0] - 44.8 * B) < 1e6                                                       # WMT
+    assert total_debt({}) == (0.0, "no debt reported")
