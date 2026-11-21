@@ -505,3 +505,15 @@ class Holding(Base):
     quantity: Mapped[float] = mapped_column(Float)
     cost_basis: Mapped[float | None] = mapped_column(Float)  # per share, in the security's currency
     portfolio: Mapped[Portfolio] = relationship(back_populates="holdings")
+
+
+class CalibrationRun(Base):
+    """Nightly ValueBot benchmark: value/price for a fixed ticker set, to catch data or model regressions."""
+    __tablename__ = "calibration_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(12), default="running")  # running | done | error
+    trigger: Mapped[str] = mapped_column(String(12), default="schedule")  # schedule | manual
+    results: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSON)

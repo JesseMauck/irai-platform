@@ -379,3 +379,25 @@ def square_setup(_: User = Depends(require_admin)):
     except SquareError as e:
         raise HTTPException(502, f"Square: {e}")
     return {"variables": {f"SQUARE_PLAN_{k.upper()}": v for k, v in ids.items()}}
+
+
+# ── ValueBot calibration ─────────────────────────────────────────────────────────────────────────
+@router.get("/calibration")
+def calibration_runs(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from ..calibration import CONFIG
+    from ..models import CalibrationRun
+
+    runs = db.scalars(select(CalibrationRun).order_by(CalibrationRun.started_at.desc()).limit(14)).all()
+    return {"config": CONFIG,
+            "runs": [{"id": r.id, "started_at": r.started_at.isoformat(), "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+                      "status": r.status, "trigger": r.trigger, "summary": r.summary, "progress": len(r.results or []),
+                      "results": r.results if i == 0 else None} for i, r in enumerate(runs)]}
+
+
+@router.post("/calibration/run")
+def calibration_start(_: User = Depends(require_admin)):
+    from .. import calibration
+
+    if not calibration.start_background("manual"):
+        raise HTTPException(409, "A calibration run is already in progress")
+    return {"started": True}

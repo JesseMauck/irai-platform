@@ -1,6 +1,8 @@
 """Runtime configuration, read from environment variables (see .env.example)."""
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,7 +59,21 @@ class Settings:
 
     @property
     def llm_enabled(self) -> bool:
-        return bool(self.anthropic_api_key) and not self.offline
+        return bool(self.anthropic_api_key) and not self.offline and not _llm_off.get()
+
+
+# Per-thread/task switch so batch jobs (nightly calibration) can use the deterministic writers without
+# changing behaviour for member runs happening at the same time.
+_llm_off: contextvars.ContextVar[bool] = contextvars.ContextVar("valuebot_llm_off", default=False)
+
+
+@contextlib.contextmanager
+def llm_disabled():
+    token = _llm_off.set(True)
+    try:
+        yield
+    finally:
+        _llm_off.reset(token)
 
 
 settings = Settings()

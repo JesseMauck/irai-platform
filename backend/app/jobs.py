@@ -157,6 +157,12 @@ def tick() -> dict:
             out["buzz"] = scan_buzz(db)
         with SessionLocal() as db:
             out["pestel"] = refresh_pestel(db)
+    if settings.live and os.environ.get("IRAI_CALIBRATION", "1") != "0":
+        from . import calibration
+
+        with SessionLocal() as db:
+            if calibration.due(db):
+                out["calibration"] = "started" if calibration.start_background("schedule") else "busy"
     if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
         _last_prewarm = time.time()
         with SessionLocal() as db:

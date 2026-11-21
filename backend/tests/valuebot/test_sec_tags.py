@@ -30,3 +30,27 @@ def test_ttm_from_quarters_when_no_annual_report():
                                    "Assets": {"units": {"USD": [_obs("2026-09-30", 500e9, form="10-Q")]}}}}}
     assert _ttm_series(facts, "Revenues", False) == {"2026-09-30": 40e9}
     assert _ttm_series(facts, "Assets", True) == {"2026-09-30": 500e9}
+
+
+def test_ttm_from_year_to_date_cash_flows():
+    """Cash-flow items in 10-Qs are year-to-date; quarters must be differenced, Q4 taken from the 10-K."""
+    from valuebot.data.sec import _quarters, _ttm_series
+
+    def o(start, end, val, form="10-Q", filed="2026-11-01"):
+        return {"start": start, "end": end, "val": val, "form": form, "filed": filed}
+
+    obs = [
+        o("2025-01-01", "2025-09-30", 27.0),                       # 9M 2025
+        o("2025-01-01", "2025-12-31", 40.0, form="10-K"),          # FY 2025 → Q4 = 13
+        o("2026-01-01", "2026-03-31", 10.0),                       # Q1 2026 (3M)
+        o("2026-01-01", "2026-06-30", 21.0),                       # H1 → Q2 = 11
+        o("2026-01-01", "2026-09-30", 33.0),                       # 9M → Q3 = 12
+    ]
+    q = _quarters(obs)
+    assert q["2025-12-31"] == ("2025-09-30", 13.0)
+    assert q["2026-06-30"] == ("2026-03-31", 11.0) and q["2026-09-30"] == ("2026-06-30", 12.0)
+    facts = {"facts": {"us-gaap": {"PaymentsToAcquirePropertyPlantAndEquipment": {"units": {"USD": obs}}}}}
+    assert _ttm_series(facts, "PaymentsToAcquirePropertyPlantAndEquipment", False) == {"2026-09-30": 13 + 10 + 11 + 12}
+    # a gap (missing H1) means no four consecutive quarters → no TTM rather than a wrong one
+    gap = [x for x in obs if x["end"] != "2026-06-30"]
+    assert _ttm_series({"facts": {"us-gaap": {"X": {"units": {"USD": gap}}}}}, "X", False) == {}

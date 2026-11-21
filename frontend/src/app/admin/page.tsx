@@ -5,7 +5,8 @@ import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { ago, num } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHeader, Skeleton } from "@/components/ui";
+import Link from "next/link";
 
 interface Stats {
   users: { total: number; by_plan: Record<string, number>; new_30d: number }; mrr_active: number; valuebot_runs_30d: number;
@@ -17,7 +18,7 @@ interface AdminArticle { id?: number; slug: string; title: string; category: str
 interface Coverage { adr_pairs: Record<string, string | number | boolean>[]; etf_funds: { symbol: string; name: string; category: string; active: boolean }[];
   peer_groups: { id: number; name: string; sector: string; members: { id: number; symbol: string; name: string }[] }[] }
 
-const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing"] as const;
+const TABS = ["Overview", "Users", "Articles", "Coverage", "Moderation", "Billing", "ValueBot QA"] as const;
 
 export default function Admin() {
   const { user, ready } = useAuth();
@@ -30,7 +31,7 @@ export default function Admin() {
       <PageHeader title="Admin" intro="Business metrics, members, research, coverage and moderation." />
       <div className="mb-6 flex gap-1 border-b border-line">{TABS.map(t => <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm ${t === tab ? "border-b-2 border-primary text-fg" : "text-muted"}`}>{t}</button>)}</div>
       {tab === "Overview" && <Overview />}{tab === "Users" && <Users />}{tab === "Articles" && <Articles />}
-      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}
+      {tab === "Coverage" && <CoverageTab />}{tab === "Moderation" && <Moderation />}{tab === "Billing" && <Billing />}{tab === "ValueBot QA" && <Calibration />}
     </div>
   );
 }
@@ -200,6 +201,54 @@ function Billing() {
         </div>}
         {!locs && !vars && !found && <p className="font-sans text-muted">Results appear here.</p>}
       </Card>
+    </div>
+  );
+}
+
+
+interface CalRow { ticker: string; ok: boolean; value_per_share?: number | null; price?: number | null; ratio?: number | null; method?: string | null;
+  prev_value?: number | null; flags: string[]; error?: string | null; failed_stage?: string | null; seconds?: number }
+interface CalRun { id: number; started_at: string; finished_at: string | null; status: string; trigger: string; progress: number;
+  summary: { tickers: number; ok: number; errors: number; flagged: number; median_ratio: number | null; in_band: number } | null; results: CalRow[] | null }
+
+function Calibration() {
+  const { data, reload, error } = useApi<{ config: { tickers: string[]; band: { low: number; high: number } }; runs: CalRun[] }>("/api/admin/calibration", 15_000);
+  const [err, setErr] = useState<Error | null>(null);
+  const start = async () => { setErr(null); try { await api("/api/admin/calibration/run", { method: "POST" }); setTimeout(reload, 1500); } catch (e) { setErr(e as Error); } };
+  if (error) return <p className="text-down">{error.message}</p>;
+  if (!data) return <Skeleton rows={6} />;
+  const latest = data.runs[0];
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="font-semibold">ValueBot calibration</h2>
+            <p className="max-w-2xl text-sm text-muted">Every night after 07:00 UTC the worker values {data.config.tickers.length} benchmark companies with the deterministic pipeline (no AI cost) and compares value per share with price. Values outside {data.config.band.low}x to {data.config.band.high}x of price, errors, and big swings from the previous run are flagged for review.</p></div>
+          <Button onClick={start} disabled={latest?.status === "running"}>{latest?.status === "running" ? `Running (${latest.progress}/${data.config.tickers.length})` : "Run now"}</Button>
+        </div>
+        <ErrorNote error={err} />
+      </Card>
+      {latest?.results && (
+        <Card className="p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="font-semibold">Run #{latest.id} · {new Date(latest.started_at).toLocaleString()} · {latest.trigger}</h3>
+            {latest.summary && <span className="text-sm text-muted">{latest.summary.ok}/{latest.summary.tickers} ok · {latest.summary.in_band} in band · {latest.summary.flagged} flagged · median value/price {latest.summary.median_ratio?.toFixed(2) ?? "—"}</span>}</div>
+          <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-sm">
+            <thead className="text-xs text-muted"><tr>{["Ticker", "Method", "Value/share", "Price", "Value/price", "Previous", "Flags", "Time"].map((h, i) => <th key={h} className={`py-1 font-normal ${i ? "text-right" : "text-left"}`}>{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-line">{latest.results.map(r => (
+              <tr key={r.ticker} className={r.flags.length ? "bg-down/5" : ""}>
+                <td className="py-1.5 font-medium"><Link href={`/ticker/${r.ticker}`} className="hover:text-primary">{r.ticker}</Link></td>
+                <td className="text-right text-xs text-muted">{r.method ?? "—"}</td>
+                <td className="text-right num">{r.value_per_share?.toFixed(2) ?? "—"}</td>
+                <td className="text-right num">{r.price?.toFixed(2) ?? "—"}</td>
+                <td className={`text-right num ${r.ratio && (r.ratio < data.config.band.low || r.ratio > data.config.band.high) ? "text-down" : ""}`}>{r.ratio?.toFixed(2) ?? "—"}</td>
+                <td className="text-right num text-muted">{r.prev_value?.toFixed(2) ?? "—"}</td>
+                <td className="text-right text-xs">{r.ok ? (r.flags.join(", ") || <span className="text-up">ok</span>) : <span className="text-down" title={r.error ?? ""}>error{r.failed_stage ? ` at ${r.failed_stage}` : ""}</span>}</td>
+                <td className="text-right text-xs text-muted num">{r.seconds ? `${r.seconds}s` : ""}</td>
+              </tr>))}</tbody></table></div>
+        </Card>)}
+      {data.runs.length > 1 && <Card className="p-5"><h3 className="font-semibold">History</h3>
+        <ul className="mt-2 space-y-1 text-sm">{data.runs.slice(1).map(r => <li key={r.id} className="flex justify-between"><span>#{r.id} · {new Date(r.started_at).toLocaleDateString()} · {r.trigger}</span>
+          <span className="text-muted num">{r.summary ? `${r.summary.ok}/${r.summary.tickers} ok · ${r.summary.flagged} flagged · median ${r.summary.median_ratio?.toFixed(2) ?? "—"}` : r.status}</span></li>)}</ul></Card>}
     </div>
   );
 }

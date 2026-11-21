@@ -116,28 +116,56 @@ def _annual_series(facts: dict, tag: str, instant: bool) -> dict[str, float]:
     return {k: v for k, (_, v) in out.items()}
 
 
+def _quarters(obs: list[dict]) -> dict[str, tuple[str, float]]:
+    """Discrete fiscal quarters {end: (start, value)} from mixed 10-Q/10-K duration facts.
+
+    10-Q income items are usually reported as three-month figures, but cash-flow items are reported
+    year-to-date (3, 6, 9 months) and Q4 appears only inside the annual total. Quarters missing as direct
+    observations are derived by differencing cumulative values that share a start date:
+    Q2 = H1 - Q1, Q3 = 9M - H1, Q4 = FY - 9M."""
+    latest: dict[tuple[str, str], tuple[str, float]] = {}
+    for o in obs:
+        if "start" not in o:
+            continue
+        k = (o["start"], o["end"])
+        if k not in latest or o.get("filed", "") > latest[k][0]:
+            latest[k] = (o.get("filed", ""), float(o["val"]))
+    q: dict[str, tuple[str, float]] = {}
+    for (st, en), (_, v) in latest.items():
+        if 80 <= _days(st, en) <= 100:
+            q[en] = (st, v)
+    by_start: dict[str, list[tuple[str, float]]] = {}
+    for (st, en), (_, v) in latest.items():
+        if 80 <= _days(st, en) <= 380:
+            by_start.setdefault(st, []).append((en, v))
+    for st, pts in by_start.items():
+        pts.sort()
+        for (e0, v0), (e1, v1) in zip(pts, pts[1:]):
+            if 80 <= _days(e0, e1) <= 100 and e1 not in q:
+                q[e1] = (e0, v1 - v0)
+    return q
+
+
 def _ttm_series(facts: dict, tag: str, instant: bool) -> dict[str, float]:
-    """Trailing-twelve-month value from 10-Q data, for registrants with no annual report yet (new holding
-    companies, recent IPOs). Duration items: sum of the latest four non-overlapping ~3-month quarters
-    (a fiscal Q4 is derived from a 10-K when one exists). Instant items: the latest balance."""
+    """Trailing-twelve-month value from quarterly data, for registrants with no usable annual report yet
+    (new holding companies, recent IPOs). Duration items: sum of the latest four consecutive quarters,
+    derived from year-to-date figures where needed (see _quarters). Instant items: the latest balance."""
     node = facts.get("facts", {}).get("us-gaap", {}).get(tag)
     if not node:
         return {}
-    obs = [o for o in (node.get("units", {}).get("USD") or []) if o.get("form") in {"10-Q", "10-Q/A", "6-K"}]
+    obs = [o for o in (node.get("units", {}).get("USD") or []) if o.get("form") in {"10-Q", "10-Q/A", "6-K"} | ANNUAL_FORMS]
     if instant:
         pts = sorted((o["end"], float(o["val"])) for o in obs if "start" not in o)
         return {pts[-1][0]: pts[-1][1]} if pts else {}
-    q = {}
-    for o in obs:
-        if "start" in o and 80 <= _days(o["start"], o["end"]) <= 100:
-            if o["end"] not in q or o.get("filed", "") > q[o["end"]][0]:
-                q[o["end"]] = (o.get("filed", ""), float(o["val"]), o["start"])
+    q = _quarters(obs)
     ends = sorted(q)
     if len(ends) < 4:
         return {}
     last4 = ends[-4:]
-    if _days(q[last4[0]][2], last4[-1]) > 380:  # gaps: not four consecutive quarters
-        return {}
+    # consecutive: each quarter starts within ~10 days of the previous quarter's end
+    for prev, cur in zip(last4, last4[1:]):
+        if abs(_days(prev, q[cur][0])) > 10:
+            return {}
     return {last4[-1]: sum(q[e][1] for e in last4)}
 
 

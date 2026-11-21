@@ -1,0 +1,7 @@
+{
+  "note": "Benchmark tickers for the nightly ValueBot calibration: large, liquid, SEC-filing companies across sectors and valuation methods.",
+  "band": {"low": 0.4, "high": 2.5},
+  "swing_alert": 0.35,
+  "tickers": ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "AVGO", "ORCL", "JPM", "BAC", "WFC", "GS", "KO", "PEP", "PG",
+              "JNJ", "MRK", "PFE", "UNH", "XOM", "CVX", "HD", "WMT", "COST", "MCD", "NKE", "CAT", "GE", "VZ", "NEE"]
+}
