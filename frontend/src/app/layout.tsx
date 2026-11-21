@@ -6,6 +6,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Footer } from "@/components/Footer";
 import { AskIrai } from "@/components/AskIrai";
+import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { TickerBar } from "@/components/TickerBar";
 import { JsonLd } from "@/components/JsonLd";
@@ -49,10 +50,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen">
         <AuthProvider>
-          <TickerBar />
-          <Header />
-          <main>{children}</main>
-          <Footer />
+          <div className="flex">
+            <Sidebar />
+            <div className="min-w-0 flex-1">
+              <TickerBar />
+              <Header />
+              <main>{children}</main>
+              <Footer />
+            </div>
+          </div>
           <AskIrai />
         </AuthProvider>
       </body>

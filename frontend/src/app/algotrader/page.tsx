@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
-import { BrokerStrip } from "@/components/Bots";
+import { BrokerMarquee } from "@/components/Bots";
 import { Button, Card, ErrorNote } from "@/components/ui";
 import { AUDIENCES } from "./audiences";
 
@@ -62,7 +62,9 @@ export default function AlgoTrader() {
             <Button variant="outline" href={pro ? "/portfolio" : "/pricing"}>Analyze my portfolio</Button>
             <Button variant="ghost" href="#waitlist">Get live-broker access</Button>
           </div>
-          <div className="mt-10"><div className="mb-2 text-sm">Seamless connection to Webull, Robinhood, Fidelity, Charles Schwab, <a href="https://www.interactivebrokers.com/en/whyib/overview.php" target="_blank" rel="noopener noreferrer" className="underline decoration-primary/60 underline-offset-2 hover:text-primary">Interactive Brokers</a>, E*TRADE and other top platforms <span className="text-muted">(coming soon)</span>:</div><BrokerStrip /></div>
+          <div className="mt-10"><div className="mb-3 text-sm">Seamless connection to Webull, Robinhood, Fidelity, Charles Schwab, <a href="https://www.interactivebrokers.com/en/whyib/overview.php" target="_blank" rel="noopener noreferrer" className="underline decoration-primary/60 underline-offset-2 hover:text-primary">Interactive Brokers</a>, E*TRADE and other top platforms <span className="text-muted">(coming soon)</span>:</div>
+            <BrokerMarquee />
+            <p className="mt-2 text-[11px] text-muted">Live broker connections are coming soon; bots trade paper accounts today. Broker names and marks are trademarks of their respective owners. Irradiance is independent and not affiliated with or endorsed by any broker.</p></div>
         </div>
       </section>
 

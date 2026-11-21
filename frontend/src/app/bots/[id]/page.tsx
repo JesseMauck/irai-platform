@@ -54,6 +54,12 @@ export default function BotPage({ params }: { params: Promise<{ id: string }> })
           {b.mode === "strategy" && <Button variant="outline" onClick={() => act("run", async () => { const r = await api<{ bot: Detail }>(`/api/bots/${id}/run`, { method: "POST" }); setData(r.bot); })} disabled={!!busy}>{busy === "run" ? "Running…" : "Run now"}</Button>}
           <Button variant="outline" onClick={() => patch({ status: b.status === "running" ? "paused" : "running" })}>{b.status === "running" ? "Pause" : "Resume"}</Button>
           <Button variant="outline" onClick={() => confirm("Sell all of this bot's positions?") && act("close", async () => setData(await api<Detail>(`/api/bots/${id}/close`, { method: "POST" })))}>Close positions</Button>
+          <Button variant="outline" onClick={async () => {
+            const title = prompt("Title for the marketplace listing", b.name); if (!title) return;
+            const summary = prompt("Describe how it works and its risks (40+ characters). No promises of returns.", b.description ?? ""); if (!summary) return;
+            const price = prompt("Monthly price in USD (0 = free; paid listings open when payouts launch)", "0") ?? "0";
+            act("publish", async () => { const l = await api<{ id: number }>("/api/marketplace", { method: "POST", json: { bot_id: b.id, title, summary, category: b.mode === "webhook" ? "signals" : "other", price_monthly: parseFloat(price) || 0 } }); router.push(`/strategies/${l.id}`); });
+          }}>Publish</Button>
           <Button variant="ghost" onClick={() => confirm("Delete this bot? Positions are sold and its cash returns to the accounts.") && act("del", async () => { await api(`/api/bots/${id}`, { method: "DELETE" }); router.push("/bots"); })}>Delete</Button>
         </div>
       </div>

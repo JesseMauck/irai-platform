@@ -40,7 +40,7 @@ export function TickerSearch() {
     <>
       <button onClick={() => setOpen(true)} className="flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-muted hover:text-fg" aria-label="Search tickers">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <span className="hidden sm:inline">Search ticker</span>
+        <span className="hidden whitespace-nowrap sm:inline">Search ticker</span>
         <kbd className="hidden rounded bg-accent px-1.5 text-[10px] sm:inline">⌘K</kbd>
       </button>
       {open && createPortal(

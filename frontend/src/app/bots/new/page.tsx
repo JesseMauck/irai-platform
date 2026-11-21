@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { useAuth } from "@/components/AuthProvider";
@@ -19,7 +19,11 @@ const IDEAS = [
 ];
 const STEPS = ["Create", "Connect", "Send"] as const;
 
-export default function NewBot() {
+export default function NewBotPage() {
+  return <Suspense fallback={null}><NewBot /></Suspense>;
+}
+
+function NewBot() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const pro = user?.plan === "pro";
@@ -39,6 +43,16 @@ export default function NewBot() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<Error | null>(null);
   const schema = meta?.strategies.find(s => s.key === strategy);
+  const tplKey = useSearchParams().get("template");
+  useEffect(() => {
+    if (!tplKey || !pro) return;
+    api<{ key: string; title: string; summary: string; config: { mode: "strategy" | "webhook"; strategy: string | null; params: Record<string, number>; symbols: string[]; max_position_pct?: number; stop_loss_pct?: number | null; take_profit_pct?: number | null; daily_auto_close?: boolean } }[]>("/api/trade/templates").then(ts => {
+      const t = ts.find(x => x.key === tplKey); if (!t) return;
+      const c = t.config;
+      setName(t.title); setIdea(t.summary); setMode(c.mode); if (c.strategy) setStrategy(c.strategy); setParams(c.params || {}); setSymbols(c.symbols || []);
+      setRisk({ stop: c.stop_loss_pct ? String(c.stop_loss_pct * 100) : "", tp: c.take_profit_pct ? String(c.take_profit_pct * 100) : "", cap: String(Math.round((c.max_position_pct ?? 1) * 100)), auto: !!c.daily_auto_close });
+    }).catch(() => {});
+  }, [tplKey, pro]);
   useEffect(() => { if (schema && !Object.keys(params).length) setParams(Object.fromEntries(schema.params.map(p => [p.key, p.default]))); }, [schema, params]);
   if (!ready) return null;
   if (!pro) return <div className="mx-auto max-w-md px-4 py-20 text-center"><p>Trading bots are part of Irradiance Pro.</p><Button href="/pricing" className="mt-4">See Pro</Button></div>;

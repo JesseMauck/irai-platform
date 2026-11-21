@@ -95,3 +95,6 @@ html[data-theme="light"][data-accent="mono"] { --color-primary: #3a4252; --color
 html[data-density="compact"] { font-size: 14px; }
 html[data-density="compact"] .p-5 { padding: 0.9rem; }
 html[data-density="compact"] .p-4 { padding: 0.7rem; }
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .animate-\[marquee_32s_linear_infinite\] { animation: none !important; } }
