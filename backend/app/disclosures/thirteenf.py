@@ -136,6 +136,18 @@ def _norm(n: str) -> str:
     return re.sub(r"\s+", " ", n).strip()
 
 
+def _safe_commit(db: Session) -> bool:
+    """Commit, tolerating a concurrent writer that already stored the same row (unique constraints)."""
+    from sqlalchemy.exc import IntegrityError
+
+    try:
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        return False
+
+
 def map_cusips(db: Session, c: httpx.Client, rows: list[dict[str, Any]]) -> dict[str, str | None]:
     need = sorted({r["cusip"] for r in rows if r["cusip"]})
     known = {m.cusip: m.ticker for m in db.scalars(select(CusipMap).where(CusipMap.cusip.in_(need)))}
@@ -155,9 +167,9 @@ def map_cusips(db: Session, c: httpx.Client, rows: list[dict[str, Any]]) -> dict
             data = d.get("data") or []
             pick = next((x for x in data if x.get("exchCode") == "US"), data[0] if data else None)
             t = (pick or {}).get("ticker")
-            known[cu] = t.replace("/", "-").replace(" ", "-") if t else None
-            db.merge(CusipMap(cusip=cu, ticker=known[cu], name=names.get(cu), source="openfigi" if t else "none"))
-        db.commit()
+            known[cu] = t.replace("/", "-").replace(" ", "-")[:16] if t else None
+            db.merge(CusipMap(cusip=cu, ticker=known[cu], name=(names.get(cu) or "")[:200], source="openfigi" if t else "none"))
+        _safe_commit(db)
         time.sleep(2.6)  # OpenFIGI's keyless limit is 25 requests a minute
     missing = [cu for cu, t in known.items() if not t]
     if missing:
@@ -169,9 +181,9 @@ def map_cusips(db: Session, c: httpx.Client, rows: list[dict[str, Any]]) -> dict
             for cu in missing:
                 t = by.get(_norm(names.get(cu) or ""))
                 if t:
-                    known[cu] = t
-                    db.merge(CusipMap(cusip=cu, ticker=t, name=names.get(cu), source="sec-name"))
-            db.commit()
+                    known[cu] = t[:16]
+                    db.merge(CusipMap(cusip=cu, ticker=t[:16], name=(names.get(cu) or "")[:200], source="sec-name"))
+            _safe_commit(db)
         except Exception:  # noqa: BLE001
             pass
     return known
@@ -195,8 +207,8 @@ def refresh(db: Session, keys: list[str] | None = None) -> dict[str, Any]:
                         r["weight"] = r["value"] / total if total else None
                     db.add(Filing13F(fund_key=key, cik=f["cik"], period=dt.date.fromisoformat(fl["period"]), filed=dt.date.fromisoformat(fl["filed"]),
                                      accession=fl["accession"], total_value=total, positions=len(rows), holdings=top))
-                    db.commit()
-                    stats["new_filings"] += 1
+                    if _safe_commit(db):
+                        stats["new_filings"] += 1
                     time.sleep(0.25)
                 stats["funds"] += 1
             except Exception as e:  # noqa: BLE001

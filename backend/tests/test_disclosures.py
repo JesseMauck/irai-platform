@@ -76,6 +76,11 @@ def test_house_parser_handles_owners_page_breaks_and_partials():
     assert "Robinson" in rows[3]["asset"] and "Filing ID" not in rows[3]["asset"]
 
 
+def test_house_parser_strips_nul_bytes():
+    rows = congress.parse_house_text(HOUSE.replace("Brown & Brown", "Brown\x00 & Brown"))
+    assert rows[0]["ticker"] == "BRO" and "\x00" not in rows[0]["asset"]
+
+
 def test_senate_parser_and_amounts():
     rows = congress.parse_senate_html(SENATE)
     assert rows[0]["ticker"] == "GS" and rows[0]["tx_type"] == "sell_partial" and rows[0]["owner"] == "spouse"

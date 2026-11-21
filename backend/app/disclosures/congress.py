@@ -71,7 +71,7 @@ NOISE = [re.compile(p) for p in (r"Filing ID #\d+", r"ID Owner Asset Transaction
 
 def parse_house_text(text: str) -> list[dict[str, Any]]:
     """Transactions from an electronic House PTR's text. Handles records split across page breaks."""
-    t = re.sub(r"\s+", " ", text)
+    t = re.sub(r"\s+", " ", text.replace("\x00", ""))
     t = re.sub(r"Filing ID #\d+ ID Owner Asset Transaction Type Date Notification Date Amount Cap\. Gains > \$200\?", " ", t)
     head = t.find("Gains > $200?")
     if head >= 0:
@@ -225,20 +225,44 @@ def _key(*parts) -> str:
     return hashlib.sha256("|".join(str(p) for p in parts).encode()).hexdigest()[:40]
 
 
+def _clean(x: Any, n: int) -> Any:
+    return x.replace("\x00", "").strip()[:n] if isinstance(x, str) else x
+
+
 def _store(db: Session, chamber: str, doc: str, url: str, filed: dt.date | None, who: dict[str, Any], rows: list[dict[str, Any]]) -> int:
     n = 0
-    seen = set()
+    seen = set(db.scalars(select(CongressTrade.row_key).where(CongressTrade.doc_id == doc)).all())
     for i, t in enumerate(rows):
         k = _key(chamber, doc, i, t["ticker"], t["traded"], t["tx_type"], t["amount"], t["asset"][:40])
         if k in seen:
             continue
         seen.add(k)
-        db.add(CongressTrade(row_key=k, chamber=chamber, member=who.get("member") or "Unknown", party=who.get("party"), state=who.get("state"),
-                             district=who.get("district"), owner=t.get("owner"), ticker=t.get("ticker"), asset=t["asset"] or "—", asset_type=t.get("asset_type"),
-                             tx_type=t["tx_type"], amount=t["amount"], amount_low=t.get("amount_low"), amount_high=t.get("amount_high"),
-                             traded=t.get("traded"), filed=filed, doc_id=doc, url=url))
+        db.add(CongressTrade(row_key=k, chamber=chamber, member=_clean(who.get("member") or "Unknown", 120), party=_clean(who.get("party"), 12), state=_clean(who.get("state"), 4),
+                             district=_clean(who.get("district"), 6), owner=_clean(t.get("owner"), 20), ticker=_clean(t.get("ticker"), 16), asset=_clean(t["asset"] or "—", 300),
+                             asset_type=_clean(t.get("asset_type"), 40), tx_type=_clean(t["tx_type"], 16), amount=_clean(t["amount"], 40), amount_low=t.get("amount_low"),
+                             amount_high=t.get("amount_high"), traded=t.get("traded"), filed=filed, doc_id=_clean(doc, 80), url=url[:300]))
         n += 1
     return n
+
+
+def _commit_doc(db: Session, did: str, st: str, n: int, stats: dict[str, Any]) -> None:
+    """Commit one document's trades; on any database error (bad bytes, another worker got there first) roll back and
+    record the document so it isn't retried forever."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        db.merge(DisclosureDoc(id=did, status=st, trades=n))
+        db.commit()
+        stats["docs"] += 1
+    except SQLAlchemyError as e:
+        db.rollback()
+        stats["errors"] += 1
+        log.warning("congress doc %s: %s", did, type(e).__name__)
+        try:
+            db.merge(DisclosureDoc(id=did, status="error", trades=0))
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
 
 
 def refresh(db: Session, max_docs: int = 60, days: int = 120, senate_docs: int = 40) -> dict[str, Any]:
@@ -280,9 +304,7 @@ def refresh(db: Session, max_docs: int = 60, days: int = 120, senate_docs: int =
                 st = "error"
                 stats["errors"] += 1
                 log.warning("house ptr %s: %s", f["doc"], e)
-            db.add(DisclosureDoc(id=did, status=st, trades=n))
-            db.commit()
-            stats["docs"] += 1
+            _commit_doc(db, did, st, n, stats)
             time.sleep(0.3)
     s = None
     try:
@@ -311,9 +333,7 @@ def refresh(db: Session, max_docs: int = 60, days: int = 120, senate_docs: int =
                     st = "error"
                     stats["errors"] += 1
                     log.warning("senate ptr %s: %s", rep["doc"], e)
-                db.add(DisclosureDoc(id=did, status=st, trades=n))
-                db.commit()
-                stats["docs"] += 1
+                _commit_doc(db, did, st, n, stats)
                 time.sleep(0.4)
     except Exception as e:  # noqa: BLE001
         log.warning("senate: %s", e)
