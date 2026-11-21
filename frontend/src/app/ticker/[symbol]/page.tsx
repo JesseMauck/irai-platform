@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { api, type HistoryPoint, type TickerPage } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { ago, compact, num, ord, pct, tone } from "@/lib/format";
@@ -9,6 +9,12 @@ import { useAuth } from "@/components/AuthProvider";
 import { LineChart } from "@/components/Chart";
 import { GradeChip } from "@/components/Monitors";
 import { Button, Card, DataNote, Skeleton, SourceBadge } from "@/components/ui";
+import { AnalysisPanel, BuzzCard, BuzzMeter, ConsensusCard, DividendsPanel, EarningsPanel, FilingsPanel, NewsPanel, PeersPanel,
+  PreferredsPanel, RatingsCard, StatementsPanel, TechnicalsPanel, TradingViewChart, type Buzz } from "@/components/research";
+
+const TABS = ["Summary", "Chart", "Financials", "Earnings", "Dividends", "Peers & ratios", "Technicals", "Filings", "News", "Analysis", "Preferreds"] as const;
+type Tab = (typeof TABS)[number];
+const slug = (t: string) => t.toLowerCase().replace(/[^a-z]+/g, "-").replace(/-$/, "");
 
 const RANGES = ["1mo", "3mo", "6mo", "1y", "2y", "5y"] as const;
 
@@ -22,6 +28,15 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
   const { user } = useAuth();
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("Summary");
+  useEffect(() => {
+    const sync = () => { const t = TABS.find(x => slug(x) === location.hash.slice(1)); setTab(t ?? "Summary"); };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const go = (t: Tab) => { setTab(t); history.replaceState(null, "", t === "Summary" ? location.pathname : `#${slug(t)}`); };
+  const { data: buzz } = useApi<Buzz>(`/api/insight/${encodeURIComponent(symbol)}/buzz`);
 
   const addToWatchlist = async () => {
     if (!user) { router.push("/login"); return; }
@@ -59,13 +74,33 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {buzz && <div className="mr-2 self-center"><BuzzMeter score={buzz.score} level={buzz.level} compactView /></div>}
           <Button variant="outline" onClick={addToWatchlist}>+ Watchlist</Button>
+          <Button variant="outline" href={`/compare?symbols=${encodeURIComponent(symbol)}`}>Compare</Button>
+          <Button variant="outline" href={`/lab/montecarlo?symbol=${encodeURIComponent(symbol)}`}>Monte Carlo</Button>
           <Button variant="outline" href={`/lab?symbol=${encodeURIComponent(symbol)}`}>Backtest</Button>
           {isEquity && <Button href={`/valuebot?ticker=${encodeURIComponent(symbol)}`}>Value with ValueBot</Button>}
         </div>
       </div>
       {msg && <p className="mt-2 text-sm text-primary">{msg}</p>}
 
+      <nav aria-label="Ticker sections" className="sticky top-14 z-30 -mx-4 mt-6 overflow-x-auto border-b border-line bg-bg/90 px-4 backdrop-blur">
+        <div className="flex gap-1">{TABS.filter(t => isEquity || !["Earnings", "Financials", "Preferreds", "Filings"].includes(t)).map(t =>
+          <button key={t} onClick={() => go(t)} className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm ${tab === t ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}>{t}</button>)}</div>
+      </nav>
+
+      {tab === "Chart" && <div className="mt-6"><TradingViewChart symbol={symbol} height={620} /></div>}
+      {tab === "Financials" && <div className="mt-6"><StatementsPanel symbol={symbol} /></div>}
+      {tab === "Earnings" && <div className="mt-6"><EarningsPanel symbol={symbol} /></div>}
+      {tab === "Dividends" && <div className="mt-6"><DividendsPanel symbol={symbol} /></div>}
+      {tab === "Peers & ratios" && <div className="mt-6"><PeersPanel symbol={symbol} /></div>}
+      {tab === "Technicals" && <div className="mt-6 grid gap-4 lg:grid-cols-3"><div className="lg:col-span-2"><TechnicalsPanel symbol={symbol} /></div><BuzzCard symbol={symbol} showHeadlines={false} /></div>}
+      {tab === "Filings" && <div className="mt-6"><FilingsPanel symbol={symbol} limit={40} /></div>}
+      {tab === "News" && <div className="mt-6 grid gap-4 lg:grid-cols-3"><div className="lg:col-span-2"><NewsPanel symbol={symbol} /></div><BuzzCard symbol={symbol} showHeadlines={false} /></div>}
+      {tab === "Analysis" && <div className="mt-6"><AnalysisPanel symbol={symbol} /></div>}
+      {tab === "Preferreds" && <div className="mt-6"><PreferredsPanel symbol={symbol} /></div>}
+
+      {tab === "Summary" && <>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="p-4 lg:col-span-2">
           <div className="mb-2 flex items-center justify-between">
@@ -122,6 +157,11 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           </> : <p className="mt-2 text-sm text-muted">{symbol} isn&apos;t in a covered peer group yet. Run a ValueBot valuation for an intrinsic-value view instead.</p>}
         </Card>
       </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <RatingsCard symbol={symbol} />
+        <BuzzCard symbol={symbol} />
+        <div className="space-y-4"><ConsensusCard symbol={symbol} />{isEquity && <FilingsPanel symbol={symbol} limit={6} />}</div>
+      </div>
       {data.grade_history.length > 1 && (
         <Card className="mt-4 p-5">
           <h2 className="font-semibold">Relative Value history <span className="text-xs font-normal text-muted">point-in-time, never restated</span></h2>
@@ -129,6 +169,8 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
             series={[{ values: data.grade_history.map(h => h.rv_percentile), color: "#f5a524", label: "RV percentile" }]} />
         </Card>
       )}
+      <div className="mt-4"><AnalysisPanel symbol={symbol} /></div>
+      </>}
       <DataNote />
     </div>
   );

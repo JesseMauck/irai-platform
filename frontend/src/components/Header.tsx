@@ -17,13 +17,16 @@ const NAV: NavItem[] = [
     { href: "/monitor/pairs", label: "Pair ideas", desc: "Pro: score spreads within peer groups" },
   ] },
   { href: "/valuebot", label: "ValueBot" },
-  { href: "/lab", label: "Strategy Lab" },
-  { href: "/screeners", label: "Screeners" },
+  { label: "Tools", children: [
+    { href: "/compare", label: "Compare", desc: "Up to eight stocks side by side, with AI analysis" },
+    { href: "/lab", label: "Strategy Lab", desc: "Backtest and optimise trading rules" },
+    { href: "/lab/montecarlo", label: "Monte Carlo", desc: "Simulate outcomes for a stock or portfolio" },
+    { href: "/screeners", label: "Screeners", desc: "Preset and custom screens" },
+  ] },
   { href: "/community", label: "Community" },
   { href: "/learn", label: "Learn" },
 ];
 
-/** The Irradiance mark: a solar disc with three rays (matches irradiance.ai). */
 /** Irradiance mark: the "i" with a rising arrow, crimson → amber. Matches the brand artwork in both themes. */
 export function LogoMark({ className = "h-7 w-auto" }: { className?: string }) {
   return (
@@ -68,7 +71,7 @@ export function Header() {
         <nav className="hidden items-center gap-1 lg:flex">
           {NAV.map(n => n.children ? (
             <div key={n.label} className="group relative">
-              <button className={`rounded-md px-3 py-1.5 text-sm ${path.startsWith("/monitor") ? "text-fg" : "text-muted hover:text-fg"}`}>{n.label}</button>
+              <button className={`rounded-md px-3 py-1.5 text-sm ${(n.children?.some(c => path.startsWith(c.href!)) ? "text-fg" : "text-muted hover:text-fg")}`}>{n.label}</button>
               <div className="invisible absolute left-0 top-full w-72 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border border-line bg-card p-2 shadow-xl">
                   {n.children.map(c => (
@@ -88,6 +91,7 @@ export function Header() {
           <ThemeToggle />
           {user ? (
             <>
+              <Link href="/terminal" className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-primary sm:block">Terminal</Link>
               {user.is_admin && <Link href="/admin" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">Admin</Link>}
               <Link href="/account" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">@{user.handle}</Link>
               {user.plan !== "pro" && <Link href="/pricing" className="solar-bg rounded-lg px-3 py-1.5 text-sm font-semibold text-primary-fg">Upgrade</Link>}

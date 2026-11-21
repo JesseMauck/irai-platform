@@ -8,7 +8,7 @@ import { Button, Card, ErrorNote } from "@/components/ui";
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
-  const next = useSearchParams().get("next") ?? "/account";
+  const next = useSearchParams().get("next") ?? "/terminal";
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [err, setErr] = useState<Error | null>(null);
   const submit = async (e: React.FormEvent) => {

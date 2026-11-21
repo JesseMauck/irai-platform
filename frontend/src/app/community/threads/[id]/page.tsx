@@ -4,11 +4,14 @@ import { use, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, type ThreadRow } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
-import { ago } from "@/lib/format";
+import { ago, num, pct } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, ErrorNote, Skeleton } from "@/components/ui";
 
-type Full = ThreadRow & { body: string; posts: { id: number; author: string; body: string; created_at: string }[] };
+type Full = ThreadRow & { body: string; posts: { id: number; author: string; body: string; created_at: string }[];
+  kind?: string; outlook?: string | null;
+  valuation?: { ticker: string; value_per_share: number | null; price: number | null; upside: number | null; method: string | null; share_token: string };
+  backtest?: { id: number; kind: string; symbol: string; strategy: string; params: Record<string, unknown>; range: string; statistics: Record<string, number>; data_source: string } };
 
 export default function ThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -30,6 +33,15 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
         <div className="flex flex-col items-center text-muted"><button onClick={() => vote(1)} className="hover:text-up">▲</button><span className="num">{t.score}</span><button onClick={() => vote(-1)} className="hover:text-down">▼</button></div>
         <div className="flex-1"><h1 className="text-2xl font-semibold">{t.title}</h1>
           <p className="mt-1 text-sm text-muted">{user?.is_admin && <button onClick={() => hide("thread", t.id)} className="mr-2 text-down">Hide</button>}@{t.author} · {ago(t.created_at)} {t.tickers.map(x => <Link key={x} href={`/ticker/${x}`} className="ml-2 hover:text-primary">${x}</Link>)}</p>
+          {t.kind && t.kind !== "discussion" && <p className="mt-2 text-xs"><span className="rounded bg-accent px-2 py-0.5 capitalize">{t.kind}</span>
+            {t.outlook && <span className={`ml-2 rounded px-2 py-0.5 capitalize ${t.outlook === "bullish" ? "bg-up/15 text-up" : t.outlook === "bearish" ? "bg-down/15 text-down" : "bg-accent text-muted"}`}>{t.outlook}</span>}</p>}
+          {t.valuation && <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+            <span>ValueBot · {t.valuation.ticker} · {t.valuation.method}: <b className="num">{num(t.valuation.value_per_share)}</b> vs price {num(t.valuation.price)} <span className={(t.valuation.upside ?? 0) >= 0 ? "text-up" : "text-down"}>({pct(t.valuation.upside, 1)})</span></span>
+            <Link href={`/valuebot/share/${t.valuation.share_token}`} className="text-primary">Open the report →</Link></Card>}
+          {t.backtest && <Card className="mt-4 p-4 text-sm">
+            <div className="font-medium">{t.backtest.kind === "montecarlo" ? "Monte Carlo" : "Backtest"} · {t.backtest.symbol} · {t.backtest.strategy} · {t.backtest.range}</div>
+            <div className="mt-1 flex flex-wrap gap-4 text-xs text-muted">{Object.entries(t.backtest.statistics ?? {}).slice(0, 8).map(([k, v]) => <span key={k}>{k.replace(/_/g, " ")}: <span className="num text-fg">{typeof v === "number" ? (Math.abs(v) < 5 ? v.toFixed(3) : num(v)) : String(v)}</span></span>)}</div>
+            <div className="mt-1 text-[11px] text-muted">Params: {JSON.stringify(t.backtest.params).slice(0, 200)} · data {t.backtest.data_source}</div></Card>}
           <div className="prose-irai mt-4"><ReactMarkdown>{t.body}</ReactMarkdown></div></div>
       </div>
       <h2 className="mt-10 font-semibold">{t.posts.length} replies</h2>

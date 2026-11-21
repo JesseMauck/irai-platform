@@ -14,6 +14,7 @@ interface StrategyDef { key: string; title: string; description: string; params:
 interface Stats { [k: string]: number | string | null }
 interface Roundtrip { direction: string; entry_date: string; entry_price: number; exit_date: string | null; exit_price: number | null; pnl: number; return_pct: number | null; bars: number }
 interface BacktestOut {
+  run_id?: number | null;
   symbol: string; strategy: StrategyDef; params: Record<string, number>; data_source: string; statistics: Stats;
   series: { dates: string[]; equity: number[]; benchmark: number[]; drawdown: number[]; close: number[]; indicators: Record<string, number | null>[] };
   roundtrips: Roundtrip[];
@@ -109,8 +110,10 @@ function Lab() {
         <div className="space-y-4 lg:col-span-3">
           {!res && <Card className="p-10 text-center text-muted">Pick a ticker and a strategy, then run a backtest. Every result is compared with buy-and-hold over the same period.</Card>}
           {res && s && <>
-            <div className="flex items-center gap-3 text-sm text-muted"><span className="font-semibold text-fg">{res.symbol}</span>{res.strategy.title}
-              <span>{String(s.start)} → {String(s.end)}</span><SourceBadge source={res.data_source} /></div>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted"><span className="font-semibold text-fg">{res.symbol}</span>{res.strategy.title}
+              <span>{String(s.start)} → {String(s.end)}</span><SourceBadge source={res.data_source} />
+              {res.run_id && <Link href={`/community/write?kind=strategy&ticker=${encodeURIComponent(res.symbol)}&backtest=${res.run_id}`} className="ml-auto rounded-lg border border-line px-3 py-1 text-fg hover:bg-accent">Share to community →</Link>}
+              <Link href={`/lab/montecarlo?symbol=${encodeURIComponent(res.symbol)}`} className="rounded-lg border border-line px-3 py-1 text-fg hover:bg-accent">Monte Carlo</Link></div>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {([["Return", pct(s.return as number, 1)], ["Buy & hold", pct(s.buy_hold_return as number, 1)], ["CAGR", pct(s.cagr as number, 1)],
                  ["Sharpe", num(s.sharpe as number, 2)], ["Max drawdown", pct(-(s.max_relative_drawdown as number), 1)], ["Win rate", pct(s.win_rate as number, 0, false)]] as [string, string][]).map(([k, v]) => (

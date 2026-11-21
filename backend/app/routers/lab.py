@@ -97,12 +97,15 @@ def backtest(body: BacktestIn, user: User | None = Depends(optional_user), db: S
     st = emulator.EmulationSettings(**body.settings.model_dump())
     strat = cls(allow_short=st.allow_short, **body.params)
     r = emulator.run(strat, candles, st)
+    run_id = None
     if user:
-        db.add(BacktestRun(user_id=user.id, symbol=body.symbol.upper(), strategy=cls.KEY, params=strat.params,
-                           settings=body.settings.model_dump(), range=body.range, statistics=r.statistics,
-                           data_source=source))
+        row = BacktestRun(user_id=user.id, symbol=body.symbol.upper(), strategy=cls.KEY, params=strat.params,
+                          settings=body.settings.model_dump(), range=body.range, statistics=r.statistics,
+                          data_source=source)
+        db.add(row)
         db.commit()
-    return {"symbol": body.symbol.upper(), "strategy": cls.schema(), "params": strat.params, "data_source": source,
+        run_id = row.id
+    return {"run_id": run_id, "symbol": body.symbol.upper(), "strategy": cls.schema(), "params": strat.params, "data_source": source,
             "statistics": r.statistics, "series": _series(r, max(1, len(candles) // 600)),
             "fills": [f.__dict__ for f in r.fills[-200:]], "roundtrips": [x.__dict__ for x in r.roundtrips[-200:]]}
 
@@ -202,10 +205,12 @@ def montecarlo(body: MonteCarloIn, user: User | None = Depends(optional_user), d
     except ValueError as e:
         raise HTTPException(422, str(e))
     src = "DEMO" if "DEMO" in sources else ("STALE" if "STALE" in sources else "LIVE")
-    db.add(BacktestRun(user_id=user.id if user else None, kind="montecarlo", symbol=",".join(series)[:20], strategy=body.method,
-                       params=body.model_dump(), settings={"paths": paths, "horizon_days": body.horizon_days}, range=body.range,
-                       statistics={k: out[k] for k in ("prob_gain", "var_95", "cvar_95", "expected_terminal")}, data_source=src))
+    row = BacktestRun(user_id=user.id if user else None, kind="montecarlo", symbol=",".join(series)[:20], strategy=body.method,
+                      params=body.model_dump(), settings={"paths": paths, "horizon_days": body.horizon_days}, range=body.range,
+                      statistics={k: out[k] for k in ("prob_gain", "var_95", "cvar_95", "expected_terminal")}, data_source=src)
+    db.add(row)
     db.commit()
+    out["run_id"] = row.id
     return {**out, "symbols": list(series), "weights": (w / w.sum()).round(4).tolist(), "mode": "price" if single and not body.start_value else "portfolio",
             "history_days": len(dates), "history_start": dates[0], "history_end": dates[-1], "source": src, "paths_capped": paths < body.paths,
             "note": "Simulated outcomes from historical behaviour; not a forecast. Past volatility and correlation may not persist."}

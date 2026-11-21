@@ -20,7 +20,7 @@ function SignupForm() {
         await api("/api/billing/trial", { method: "POST", json: { plan } }).catch(() => {});
         await refresh();
       }
-      router.push("/account?welcome=1");
+      router.push("/terminal?welcome=1");
     } catch (x) { setErr(x as Error); }
   };
   const field = (k: keyof typeof f, p: string, type = "text") =>
