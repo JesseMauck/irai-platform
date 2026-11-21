@@ -48,6 +48,21 @@ THEME_KEYS = [(r"\bai\b|artificial intelligence|semiconductor|chips?", "ai-semic
               (r"defen[cs]e|aerospace", "defense-aerospace"), (r"crypto|bitcoin|digital asset", "crypto-digital-assets"), (r"european banks|europe", "european-banks")]
 
 
+SCREEN_KEYS = [(r"top gainers|biggest gainers|up the most", "top_gainers"), (r"top losers|biggest losers|down the most", "top_losers"),
+               (r"unusual volume", "unusual_volume"), (r"most (traded|active)", "most_traded"), (r"gap(s|ped)? up", "gap_up"), (r"gap(s|ped)? down", "gap_down"),
+               (r"inverse|leveraged", "inverse_leveraged"), (r"52[- ]?week low", "low_52w"), (r"52[- ]?week high", "near_52w_high"), (r"low[- ]beta", "low_beta"),
+               (r"dividend etf", "dividend_etfs"), (r"high dividend|dividend (stocks|yield)|yield", "high_yield_div"), (r"low p/?e|cheap stocks", "cheap_pe"),
+               (r"relative strength", "rs_leaders"), (r"momentum", "momentum_liquid"), (r"lowest[- ]cost|cheapest etfs|expense ratio", "lowest_cost"),
+               (r"most volatile", "high_vol"), (r"sector (etfs|rotation)", "sector_leaders"), (r"oversold", "oversold"), (r"overbought", "overbought"),
+               (r"energy", "sector_energy"), (r"health ?care", "sector_healthcare"), (r"real estate|reits?", "sector_real_estate"), (r"tech", "sector_technology")]
+SCREEN_TITLES = {"top_gainers": "Top gainers", "top_losers": "Top losers", "unusual_volume": "Unusual volume", "most_traded": "Most traded", "gap_up": "Gap ups",
+                 "gap_down": "Gap downs", "inverse_leveraged": "Inverse & leveraged ETFs", "low_52w": "At 52-week lows", "near_52w_high": "Near 52-week highs",
+                 "low_beta": "Low-beta equities", "dividend_etfs": "Dividend ETFs", "high_yield_div": "High dividend yield", "cheap_pe": "Low forward P/E",
+                 "rs_leaders": "Relative-strength leaders", "momentum_liquid": "Liquid momentum", "lowest_cost": "Lowest-cost ETFs", "high_vol": "Most volatile",
+                 "sector_leaders": "Sector ETF leaderboard", "oversold": "Oversold screen", "overbought": "Overbought screen", "sector_energy": "Energy screen",
+                 "sector_healthcare": "Healthcare screen", "sector_real_estate": "Real estate screen", "sector_technology": "Technology screen"}
+
+
 def _themes() -> list[dict[str, Any]]:
     try:
         return json.loads((SEED / "themes.json").read_text())
@@ -143,7 +158,7 @@ INTENTS: list[tuple[str, str, bool]] = [
     ("signals", r"signals?\b|breakouts?|unusual (move|activity)|oversold|overbought|what('s| is) moving", False),
     ("heatmap", r"heat ?map|sector performance|what sectors", False),
     ("macro", r"macro|world markets|global markets|yields|currencies|commodit", False),
-    ("screener", r"screen(er)?|filter stocks|find stocks|stocks with", False),
+    ("screener", r"screen(er)?|filter stocks|find (stocks|etfs)|stocks with|etfs with|top gainers|top losers|biggest (gainers|losers)|most (traded|active)|unusual volume|gap(s|ped)? (up|down)|inverse|leveraged|52[- ]?week (low|high)|low[- ]beta|high dividend|dividend (stocks|etfs)|cheap stocks|low p/?e|momentum (stocks|etfs)|relative strength|sector (etfs|rotation)|cheapest etfs|lowest[- ]cost|expense ratio|most volatile", False),
     ("adr", r"\badrs?\b|cross-listed|depositary", False),
     ("etf_monitor", r"etf (premium|discount)|nav discount|premium to nav", False),
     ("relative_value", r"relative value|cheap for (its|their) quality|quality-adjusted", False),
@@ -235,7 +250,8 @@ def plan(text: str, page_symbol: str | None = None) -> dict[str, Any]:
         elif h == "macro":
             add(act("Macro map", "/macro"))
         elif h == "screener":
-            add(act("Screeners", "/screeners"))
+            pid = next((p for pat, p in SCREEN_KEYS if re.search(pat, low)), None)
+            add(act(SCREEN_TITLES.get(pid, "Screener"), "/screeners", {"preset": pid} if pid else None, desc="Live screen across 400+ liquid stocks and ETFs"))
         elif h == "adr":
             add(act(f"{sym} ADR premium" if sym else "ADR Monitor", f"/monitor/adr/{quote(sym)}" if sym else "/monitor/adr"))
         elif h == "etf_monitor":

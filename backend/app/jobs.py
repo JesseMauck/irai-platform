@@ -175,6 +175,11 @@ def tick() -> dict:
         with SessionLocal() as db:
             if datapipe.due(db):
                 out["datapipe"] = "started" if datapipe.start_background("schedule") else "busy"
+    if settings.live:
+        from . import paper, screener
+
+        if screener.due(paper.now_et()):
+            out["screener"] = "started" if screener.start_background() else "busy"
     if settings.live and os.environ.get("IRAI_DISCLOSURES", "1") != "0":
         from .disclosures import congress, thirteenf
 

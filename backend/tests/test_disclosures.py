@@ -152,7 +152,11 @@ SCENARIOS = [
     ("what is the price target for AAPL", "/ticker/AAPL", False),
     ("show me oversold stocks", "/signals", True),
     ("analyze Oracle", "/ticker/ORCL#analyst", True),
-    ("find stocks with high dividend yield", "/screeners", False),
+    ("find stocks with high dividend yield", "/screeners?preset=high_yield_div", False),
+    ("show me today's top losers", "/screeners?preset=top_losers", True),
+    ("inverse leveraged ETFs", "/screeners?preset=inverse_leveraged", False),
+    ("which stocks are at 52 week lows", "/screeners?preset=low_52w", False),
+    ("open the screener for low beta stocks", "/screeners?preset=low_beta", True),
 ]
 
 
@@ -193,3 +197,38 @@ def test_13f_thousands_detection():
     assert out[0]["value"] == 192_493_000.0
     same = thirteenf.scale_values([{"value": 3000.0, "shares": 15.0, "put_call": None}], 3000.0)
     assert same[0]["value"] == 3000.0
+
+
+# ── screener ────────────────────────────────────────────────────────────────────────────────────
+def test_screener_catalog_presets_and_custom(client):
+    from app import screener
+
+    c = client.get("/api/screener").json()
+    assert c["universe"] > 300 and len(c["spotlight"]) >= 8 and {g["id"] for g in c["groups"]} >= {"market_mover", "sector_rotation", "income", "risk", "liquidity_momentum"}
+    r = client.get("/api/screener/presets/inverse_leveraged").json()
+    assert r["rows"] and all(x["leverage"] for x in r["rows"]) and r["locked"] and len(r["rows"]) <= 10
+    g = client.get("/api/screener/presets/top_gainers").json()["rows"]
+    assert g == sorted(g, key=lambda x: -x["change_pct"])
+    free = _tok(client)
+    assert client.post("/api/screener/run", headers=free, json={"filters": [["rsi14", "<=", 30]], "sort": "rsi14"}).status_code == 402
+    pro = _tok(client, "pro")
+    j = client.post("/api/screener/run", headers=pro, json={"filters": [["ret_3m", ">=", 0.0], ["kind", "==", "etf"]], "sort": "ret_3m"}).json()
+    assert all(x["ret_3m"] >= 0 and x["kind"] == "etf" for x in j["rows"])
+    assert client.post("/api/screener/run", headers=pro, json={"filters": [["nope", ">=", 1]]}).status_code == 422
+    s = client.post("/api/me/screens", headers=pro, json={"name": "My momentum", "universe": "market", "filters": {"filters": [["ret_3m", ">=", 0.05]], "sort": "ret_3m", "desc": True, "kind": None}})
+    assert s.status_code == 200
+    ran = client.get(f"/api/me/screens/{s.json()['id']}/run", headers=pro).json()
+    assert ran["rows"] is not None
+    assert client.post("/api/screener/export", headers=pro, json={"filters": [], "sort": "dollar_volume"}).text.startswith("symbol,name")
+    rows = [{"symbol": "A", "x": 1.0, "kind": "stock"}, {"symbol": "B", "x": None, "kind": "stock"}]
+    assert screener.run([("x", ">=", 0.5)], "x", rows=rows)["matches"] == 1
+
+
+def _tok(c, plan=None):
+    h = "sc" + uuid.uuid4().hex[:8]
+    tok = c.post("/api/auth/register", json={"email": f"{h}@test.io", "password": "pw-123456789", "handle": h, "display_name": h}).json()["token"]
+    hdr = {"Authorization": f"Bearer {tok}"}
+    if plan:
+        c.post("/api/billing/checkout", json={"plan": plan}, headers=hdr)
+    c.cookies.clear()
+    return hdr

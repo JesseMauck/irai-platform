@@ -763,3 +763,13 @@ class CusipMap(Base):
     name: Mapped[str | None] = mapped_column(String(200))
     source: Mapped[str] = mapped_column(String(12))
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ScreenerSnapshot(Base):
+    """The screener universe with all metrics at one point in time (built by the worker)."""
+    __tablename__ = "screener_snapshots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source: Mapped[str | None] = mapped_column(String(8))
+    rows: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    seconds: Mapped[float | None] = mapped_column(Float)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

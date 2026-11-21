@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -256,12 +257,18 @@ SCREEN_FILTERS = {
 class ScreenIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     universe: str
-    filters: dict[str, float | str | bool] = {}
+    filters: dict[str, Any] = {}  # monitor screens: flat values; market screens: {filters, sort, desc, kind}
     alert_on_new: bool = False
 
 
 def run_custom_screen(db: Session, universe: str, f: dict) -> list[dict]:
     from .monitors import _funds, _groups, _pairs
+    if universe == "market":
+        from .. import screener
+
+        r = screener.run([tuple(x) for x in f.get("filters", [])], f.get("sort") or "dollar_volume", bool(f.get("desc", True)), f.get("kind"), 200)
+        return [{"symbol": x["symbol"], "name": x["name"], "detail": x.get("category") or x.get("sector") or "", "value": x.get(f.get("sort") or "dollar_volume"),
+                 "source": x.get("source")} for x in r["rows"]]
     if universe == "fundamental":
         rows = engines.build_fundamental(_groups(db))
         out = [r for r in rows
@@ -296,11 +303,18 @@ def _screen(sc: SavedScreen) -> dict:
 
 
 def _validate_screen(body: ScreenIn) -> None:
+    if body.universe == "market":
+        from .. import screener
+
+        screener.validate(body.filters)
+        return
     if body.universe not in SCREEN_FILTERS:
         raise HTTPException(422, f"universe must be one of {sorted(SCREEN_FILTERS)}")
     bad = set(body.filters) - SCREEN_FILTERS[body.universe]
     if bad:
         raise HTTPException(422, f"Unknown filters for {body.universe}: {sorted(bad)}")
+    if any(not isinstance(v, (int, float, str, bool)) for v in body.filters.values()):
+        raise HTTPException(422, "Filter values must be numbers, text or true/false")
 
 
 @router.post("/screens/preview")

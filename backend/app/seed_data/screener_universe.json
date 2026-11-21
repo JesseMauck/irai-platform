@@ -1,0 +1,2724 @@
+[
+ {
+  "symbol": "AAPL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MSFT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NVDA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GOOGL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AMZN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "META",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AVGO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TSLA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ORCL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CRM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ADBE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AMD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "INTC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "QCOM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TXN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MU",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AMAT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LRCX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KLAC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ADI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MRVL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NOW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "INTU",
+  "kind": "stock"
+ },
+ {
+  "symbol": "IBM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CSCO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ANET",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PANW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CRWD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "FTNT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SNOW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PLTR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SHOP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UBER",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ABNB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DDOG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NET",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MDB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TEAM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WDAY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ADSK",
+  "kind": "stock"
+ },
+ {
+  "symbol": "JPM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BAC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WFC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "C",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SCHW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BLK",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AXP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "V",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PYPL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "COF",
+  "kind": "stock"
+ },
+ {
+  "symbol": "USB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PNC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TFC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SPGI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MCO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ICE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CME",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KKR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "COIN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HOOD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SOFI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "XOM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CVX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "COP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EOG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SLB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "OXY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PSX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MPC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "VLO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HAL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DVN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "FANG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KMI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WMB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "OKE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LLY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UNH",
+  "kind": "stock"
+ },
+ {
+  "symbol": "JNJ",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MRK",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ABBV",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PFE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TMO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ABT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DHR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BMY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AMGN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GILD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "VRTX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "REGN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ISRG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MDT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SYK",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BSX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ZTS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CVS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HUM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MRNA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CAT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HON",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "RTX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LMT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NOC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UNP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UPS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "FDX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ETN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EMR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ITW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MMM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CSX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NSC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DAL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UAL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LOW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MCD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SBUX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NKE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TGT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TJX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BKNG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MAR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CMG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ORLY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AZO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ROST",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LULU",
+  "kind": "stock"
+ },
+ {
+  "symbol": "F",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "RIVN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WMT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "COST",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PEP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "MDLZ",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KMB",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GIS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KHC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "STZ",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "KR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NEE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DUK",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "D",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AEP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EXC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SRE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "XEL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PCG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PLD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "AMT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EQIX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CCI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PSA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "O",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SPG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "WELL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DLR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "VICI",
+  "kind": "stock"
+ },
+ {
+  "symbol": "LIN",
+  "kind": "stock"
+ },
+ {
+  "symbol": "APD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SHW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ECL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NEM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "FCX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DOW",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NUE",
+  "kind": "stock"
+ },
+ {
+  "symbol": "GOOG",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NFLX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "DIS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CMCSA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "T",
+  "kind": "stock"
+ },
+ {
+  "symbol": "VZ",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TMUS",
+  "kind": "stock"
+ },
+ {
+  "symbol": "CHTR",
+  "kind": "stock"
+ },
+ {
+  "symbol": "EA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TTWO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "RBLX",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SPOT",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BRK-B",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TSM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "ASML",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BABA",
+  "kind": "stock"
+ },
+ {
+  "symbol": "PDD",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SONY",
+  "kind": "stock"
+ },
+ {
+  "symbol": "TM",
+  "kind": "stock"
+ },
+ {
+  "symbol": "NVO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SAP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SHEL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "HSBC",
+  "kind": "stock"
+ },
+ {
+  "symbol": "UL",
+  "kind": "stock"
+ },
+ {
+  "symbol": "RIO",
+  "kind": "stock"
+ },
+ {
+  "symbol": "BHP",
+  "kind": "stock"
+ },
+ {
+  "symbol": "SPY",
+  "name": "SPDR S&P 500",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "VOO",
+  "name": "Vanguard S&P 500",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "IVV",
+  "name": "iShares Core S&P 500",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "VTI",
+  "name": "Vanguard Total Stock Market",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "QQQ",
+  "name": "Invesco QQQ (Nasdaq-100)",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "DIA",
+  "name": "SPDR Dow Jones Industrial",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "IWM",
+  "name": "iShares Russell 2000",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "MDY",
+  "name": "SPDR S&P MidCap 400",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "RSP",
+  "name": "Invesco S&P 500 Equal Weight",
+  "kind": "etf",
+  "category": "Broad US equity",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "SPLV",
+  "name": "Invesco S&P 500 Low Volatility",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "USMV",
+  "name": "iShares MSCI USA Min Vol",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "QUAL",
+  "name": "iShares MSCI USA Quality",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "MTUM",
+  "name": "iShares MSCI USA Momentum",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "VLUE",
+  "name": "iShares MSCI USA Value",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "VUG",
+  "name": "Vanguard Growth",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "VTV",
+  "name": "Vanguard Value",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "IWF",
+  "name": "iShares Russell 1000 Growth",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "IWD",
+  "name": "iShares Russell 1000 Value",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "SCHG",
+  "name": "Schwab US Large-Cap Growth",
+  "kind": "etf",
+  "category": "Factor",
+  "region": "United States",
+  "asset_class": "Equity"
+ },
+ {
+  "symbol": "XLK",
+  "name": "Technology Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology"
+ },
+ {
+  "symbol": "VGT",
+  "name": "Vanguard Information Technology",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology"
+ },
+ {
+  "symbol": "FTEC",
+  "name": "Fidelity MSCI Information Technology",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology"
+ },
+ {
+  "symbol": "SMH",
+  "name": "VanEck Semiconductor",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology",
+  "theme": "Semiconductors"
+ },
+ {
+  "symbol": "SOXX",
+  "name": "iShares Semiconductor",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology",
+  "theme": "Semiconductors"
+ },
+ {
+  "symbol": "IGV",
+  "name": "iShares Expanded Tech-Software",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Technology",
+  "theme": "Software"
+ },
+ {
+  "symbol": "XLF",
+  "name": "Financial Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Financials"
+ },
+ {
+  "symbol": "VFH",
+  "name": "Vanguard Financials",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Financials"
+ },
+ {
+  "symbol": "KRE",
+  "name": "SPDR S&P Regional Banking",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Financials",
+  "theme": "Regional banks"
+ },
+ {
+  "symbol": "KBE",
+  "name": "SPDR S&P Bank",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Financials"
+ },
+ {
+  "symbol": "XLE",
+  "name": "Energy Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "VDE",
+  "name": "Vanguard Energy",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "XOP",
+  "name": "SPDR S&P Oil & Gas Exploration",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "OIH",
+  "name": "VanEck Oil Services",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "IXC",
+  "name": "iShares Global Energy",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "Global",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "AMLP",
+  "name": "Alerian MLP",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy",
+  "theme": "Midstream"
+ },
+ {
+  "symbol": "FENY",
+  "name": "Fidelity MSCI Energy",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "XLV",
+  "name": "Health Care Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare"
+ },
+ {
+  "symbol": "VHT",
+  "name": "Vanguard Health Care",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare"
+ },
+ {
+  "symbol": "IBB",
+  "name": "iShares Biotechnology",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare",
+  "theme": "Biotech"
+ },
+ {
+  "symbol": "XBI",
+  "name": "SPDR S&P Biotech",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare",
+  "theme": "Biotech"
+ },
+ {
+  "symbol": "IHI",
+  "name": "iShares US Medical Devices",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare"
+ },
+ {
+  "symbol": "FHLC",
+  "name": "Fidelity MSCI Health Care",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Healthcare"
+ },
+ {
+  "symbol": "XLI",
+  "name": "Industrial Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials"
+ },
+ {
+  "symbol": "VIS",
+  "name": "Vanguard Industrials",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials"
+ },
+ {
+  "symbol": "ITA",
+  "name": "iShares US Aerospace & Defense",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials",
+  "theme": "Defense"
+ },
+ {
+  "symbol": "XAR",
+  "name": "SPDR S&P Aerospace & Defense",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials",
+  "theme": "Defense"
+ },
+ {
+  "symbol": "JETS",
+  "name": "US Global Jets",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials",
+  "theme": "Airlines"
+ },
+ {
+  "symbol": "PAVE",
+  "name": "Global X US Infrastructure",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Industrials",
+  "theme": "Infrastructure"
+ },
+ {
+  "symbol": "XLY",
+  "name": "Consumer Discretionary Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Discretionary"
+ },
+ {
+  "symbol": "VCR",
+  "name": "Vanguard Consumer Discretionary",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Discretionary"
+ },
+ {
+  "symbol": "XRT",
+  "name": "SPDR S&P Retail",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Discretionary"
+ },
+ {
+  "symbol": "ITB",
+  "name": "iShares US Home Construction",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Discretionary",
+  "theme": "Homebuilders"
+ },
+ {
+  "symbol": "XHB",
+  "name": "SPDR S&P Homebuilders",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Discretionary",
+  "theme": "Homebuilders"
+ },
+ {
+  "symbol": "XLP",
+  "name": "Consumer Staples Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Staples"
+ },
+ {
+  "symbol": "VDC",
+  "name": "Vanguard Consumer Staples",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Consumer Staples"
+ },
+ {
+  "symbol": "XLU",
+  "name": "Utilities Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Utilities"
+ },
+ {
+  "symbol": "VPU",
+  "name": "Vanguard Utilities",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Utilities"
+ },
+ {
+  "symbol": "XLRE",
+  "name": "Real Estate Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "VNQ",
+  "name": "Vanguard Real Estate",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "IYR",
+  "name": "iShares US Real Estate",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "SCHH",
+  "name": "Schwab US REIT",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "REM",
+  "name": "iShares Mortgage Real Estate",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "REZ",
+  "name": "iShares Residential & Multisector RE",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Real Estate"
+ },
+ {
+  "symbol": "XLB",
+  "name": "Materials Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Materials"
+ },
+ {
+  "symbol": "VAW",
+  "name": "Vanguard Materials",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Materials"
+ },
+ {
+  "symbol": "XME",
+  "name": "SPDR S&P Metals & Mining",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Materials"
+ },
+ {
+  "symbol": "COPX",
+  "name": "Global X Copper Miners",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Materials",
+  "theme": "Copper"
+ },
+ {
+  "symbol": "XLC",
+  "name": "Communication Services Select Sector",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Communication Services"
+ },
+ {
+  "symbol": "VOX",
+  "name": "Vanguard Communication Services",
+  "kind": "etf",
+  "category": "Sector",
+  "region": "United States",
+  "asset_class": "Equity",
+  "sector": "Communication Services"
+ },
+ {
+  "symbol": "ARKK",
+  "name": "ARK Innovation",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Disruptive innovation"
+ },
+ {
+  "symbol": "BOTZ",
+  "name": "Global X Robotics & AI",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "AI & robotics"
+ },
+ {
+  "symbol": "ROBO",
+  "name": "ROBO Global Robotics & Automation",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "AI & robotics"
+ },
+ {
+  "symbol": "AIQ",
+  "name": "Global X AI & Technology",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "AI & robotics"
+ },
+ {
+  "symbol": "LIT",
+  "name": "Global X Lithium & Battery Tech",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Batteries"
+ },
+ {
+  "symbol": "DRIV",
+  "name": "Global X Autonomous & EV",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Autonomous vehicles"
+ },
+ {
+  "symbol": "IDRV",
+  "name": "iShares Self-Driving EV & Tech",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Autonomous vehicles"
+ },
+ {
+  "symbol": "ICLN",
+  "name": "iShares Global Clean Energy",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Clean energy",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "TAN",
+  "name": "Invesco Solar",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Clean energy",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "URA",
+  "name": "Global X Uranium",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Nuclear",
+  "sector": "Energy"
+ },
+ {
+  "symbol": "CIBR",
+  "name": "First Trust Cybersecurity",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Cybersecurity"
+ },
+ {
+  "symbol": "HACK",
+  "name": "Amplify Cybersecurity",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Cybersecurity"
+ },
+ {
+  "symbol": "SKYY",
+  "name": "First Trust Cloud Computing",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Cloud"
+ },
+ {
+  "symbol": "FDN",
+  "name": "First Trust Dow Jones Internet",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Internet"
+ },
+ {
+  "symbol": "UFO",
+  "name": "Procure Space",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Space"
+ },
+ {
+  "symbol": "BLOK",
+  "name": "Amplify Transformational Data Sharing",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Blockchain"
+ },
+ {
+  "symbol": "ESPO",
+  "name": "VanEck Video Gaming & Esports",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Gaming"
+ },
+ {
+  "symbol": "PHO",
+  "name": "Invesco Water Resources",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Water"
+ },
+ {
+  "symbol": "FIW",
+  "name": "First Trust Water",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Water"
+ },
+ {
+  "symbol": "ARKG",
+  "name": "ARK Genomic Revolution",
+  "kind": "etf",
+  "category": "Thematic",
+  "region": "Global",
+  "asset_class": "Equity",
+  "theme": "Genomics",
+  "sector": "Healthcare"
+ },
+ {
+  "symbol": "EFA",
+  "name": "iShares MSCI EAFE",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Developed ex-US"
+ },
+ {
+  "symbol": "VEA",
+  "name": "Vanguard FTSE Developed Markets",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Developed ex-US"
+ },
+ {
+  "symbol": "EEM",
+  "name": "iShares MSCI Emerging Markets",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Emerging markets"
+ },
+ {
+  "symbol": "VWO",
+  "name": "Vanguard FTSE Emerging Markets",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Emerging markets"
+ },
+ {
+  "symbol": "VGK",
+  "name": "Vanguard FTSE Europe",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Europe"
+ },
+ {
+  "symbol": "EZU",
+  "name": "iShares MSCI Eurozone",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Europe"
+ },
+ {
+  "symbol": "EWJ",
+  "name": "iShares MSCI Japan",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Japan"
+ },
+ {
+  "symbol": "DXJ",
+  "name": "WisdomTree Japan Hedged Equity",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Japan"
+ },
+ {
+  "symbol": "EWU",
+  "name": "iShares MSCI United Kingdom",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "United Kingdom"
+ },
+ {
+  "symbol": "EWG",
+  "name": "iShares MSCI Germany",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Germany"
+ },
+ {
+  "symbol": "EWQ",
+  "name": "iShares MSCI France",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "France"
+ },
+ {
+  "symbol": "MCHI",
+  "name": "iShares MSCI China",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "China"
+ },
+ {
+  "symbol": "FXI",
+  "name": "iShares China Large-Cap",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "China"
+ },
+ {
+  "symbol": "KWEB",
+  "name": "KraneShares CSI China Internet",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "China",
+  "theme": "Internet"
+ },
+ {
+  "symbol": "INDA",
+  "name": "iShares MSCI India",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "India"
+ },
+ {
+  "symbol": "EPI",
+  "name": "WisdomTree India Earnings",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "India"
+ },
+ {
+  "symbol": "EWZ",
+  "name": "iShares MSCI Brazil",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Brazil"
+ },
+ {
+  "symbol": "EWW",
+  "name": "iShares MSCI Mexico",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Mexico"
+ },
+ {
+  "symbol": "EWC",
+  "name": "iShares MSCI Canada",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Canada"
+ },
+ {
+  "symbol": "EWA",
+  "name": "iShares MSCI Australia",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Australia"
+ },
+ {
+  "symbol": "EWY",
+  "name": "iShares MSCI South Korea",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "South Korea"
+ },
+ {
+  "symbol": "EWT",
+  "name": "iShares MSCI Taiwan",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Taiwan"
+ },
+ {
+  "symbol": "ARGT",
+  "name": "Global X MSCI Argentina",
+  "kind": "etf",
+  "category": "Regional",
+  "asset_class": "Equity",
+  "region": "Argentina"
+ },
+ {
+  "symbol": "BIL",
+  "name": "SPDR 1-3 Month T-Bill",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "T-bills",
+  "duration": "Ultra-short"
+ },
+ {
+  "symbol": "SGOV",
+  "name": "iShares 0-3 Month Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "T-bills",
+  "duration": "Ultra-short"
+ },
+ {
+  "symbol": "SHY",
+  "name": "iShares 1-3 Year Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Short"
+ },
+ {
+  "symbol": "VGSH",
+  "name": "Vanguard Short-Term Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Short"
+ },
+ {
+  "symbol": "IEF",
+  "name": "iShares 7-10 Year Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Intermediate"
+ },
+ {
+  "symbol": "TLT",
+  "name": "iShares 20+ Year Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Long"
+ },
+ {
+  "symbol": "EDV",
+  "name": "Vanguard Extended Duration Treasury",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Long"
+ },
+ {
+  "symbol": "AGG",
+  "name": "iShares Core US Aggregate",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Intermediate"
+ },
+ {
+  "symbol": "BND",
+  "name": "Vanguard Total Bond Market",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "duration": "Intermediate"
+ },
+ {
+  "symbol": "LQD",
+  "name": "iShares iBoxx Investment Grade Corporate",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Corporate"
+ },
+ {
+  "symbol": "HYG",
+  "name": "iShares iBoxx High Yield Corporate",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "High yield"
+ },
+ {
+  "symbol": "JNK",
+  "name": "SPDR Bloomberg High Yield",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "High yield"
+ },
+ {
+  "symbol": "BKLN",
+  "name": "Invesco Senior Loan",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Floating rate"
+ },
+ {
+  "symbol": "TIP",
+  "name": "iShares TIPS",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Inflation-linked"
+ },
+ {
+  "symbol": "SCHP",
+  "name": "Schwab US TIPS",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Inflation-linked"
+ },
+ {
+  "symbol": "VTIP",
+  "name": "Vanguard Short-Term Inflation-Protected",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Inflation-linked",
+  "duration": "Short"
+ },
+ {
+  "symbol": "MUB",
+  "name": "iShares National Muni",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "United States",
+  "theme": "Municipal"
+ },
+ {
+  "symbol": "EMB",
+  "name": "iShares JP Morgan USD EM Bond",
+  "kind": "etf",
+  "category": "Bonds",
+  "asset_class": "Fixed income",
+  "region": "Emerging markets",
+  "theme": "EM debt"
+ },
+ {
+  "symbol": "SCHD",
+  "name": "Schwab US Dividend Equity",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "VYM",
+  "name": "Vanguard High Dividend Yield",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "DVY",
+  "name": "iShares Select Dividend",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "HDV",
+  "name": "iShares Core High Dividend",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "NOBL",
+  "name": "ProShares S&P 500 Dividend Aristocrats",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "SDY",
+  "name": "SPDR S&P Dividend",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "DGRO",
+  "name": "iShares Core Dividend Growth",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "SPYD",
+  "name": "SPDR Portfolio S&P 500 High Dividend",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States"
+ },
+ {
+  "symbol": "JEPI",
+  "name": "JPMorgan Equity Premium Income",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States",
+  "theme": "Covered call"
+ },
+ {
+  "symbol": "JEPQ",
+  "name": "JPMorgan Nasdaq Equity Premium Income",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States",
+  "theme": "Covered call"
+ },
+ {
+  "symbol": "QYLD",
+  "name": "Global X Nasdaq 100 Covered Call",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States",
+  "theme": "Covered call"
+ },
+ {
+  "symbol": "XYLD",
+  "name": "Global X S&P 500 Covered Call",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States",
+  "theme": "Covered call"
+ },
+ {
+  "symbol": "DIVO",
+  "name": "Amplify CWP Enhanced Dividend Income",
+  "kind": "etf",
+  "category": "Dividend & income",
+  "asset_class": "Equity",
+  "region": "United States",
+  "theme": "Covered call"
+ },
+ {
+  "symbol": "GLD",
+  "name": "SPDR Gold Shares",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "IAU",
+  "name": "iShares Gold Trust",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "GLDM",
+  "name": "SPDR Gold MiniShares",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "SGOL",
+  "name": "abrdn Physical Gold",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "GDX",
+  "name": "VanEck Gold Miners",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Equity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "GDXJ",
+  "name": "VanEck Junior Gold Miners",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Equity",
+  "region": "Global",
+  "theme": "Gold"
+ },
+ {
+  "symbol": "SLV",
+  "name": "iShares Silver Trust",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Silver"
+ },
+ {
+  "symbol": "USO",
+  "name": "United States Oil Fund",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Oil"
+ },
+ {
+  "symbol": "UNG",
+  "name": "United States Natural Gas Fund",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Natural gas"
+ },
+ {
+  "symbol": "DBC",
+  "name": "Invesco DB Commodity Index",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Broad commodities"
+ },
+ {
+  "symbol": "PDBC",
+  "name": "Invesco Optimum Yield Diversified Commodity",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Broad commodities"
+ },
+ {
+  "symbol": "DBA",
+  "name": "Invesco DB Agriculture",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Agriculture"
+ },
+ {
+  "symbol": "CPER",
+  "name": "United States Copper Index",
+  "kind": "etf",
+  "category": "Commodities",
+  "asset_class": "Commodity",
+  "region": "Global",
+  "theme": "Copper"
+ },
+ {
+  "symbol": "IBIT",
+  "name": "iShares Bitcoin Trust",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin"
+ },
+ {
+  "symbol": "FBTC",
+  "name": "Fidelity Wise Origin Bitcoin",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin"
+ },
+ {
+  "symbol": "ARKB",
+  "name": "ARK 21Shares Bitcoin",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin"
+ },
+ {
+  "symbol": "BITB",
+  "name": "Bitwise Bitcoin",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin"
+ },
+ {
+  "symbol": "GBTC",
+  "name": "Grayscale Bitcoin Trust",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin"
+ },
+ {
+  "symbol": "ETHA",
+  "name": "iShares Ethereum Trust",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Ethereum"
+ },
+ {
+  "symbol": "FETH",
+  "name": "Fidelity Ethereum Fund",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Ethereum"
+ },
+ {
+  "symbol": "BITO",
+  "name": "ProShares Bitcoin Strategy",
+  "kind": "etf",
+  "category": "Crypto",
+  "asset_class": "Crypto",
+  "region": "Global",
+  "theme": "Bitcoin futures"
+ },
+ {
+  "symbol": "TQQQ",
+  "name": "ProShares UltraPro QQQ",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Nasdaq-100",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SQQQ",
+  "name": "ProShares UltraPro Short QQQ",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Nasdaq-100",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "QLD",
+  "name": "ProShares Ultra QQQ",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Nasdaq-100",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "QID",
+  "name": "ProShares UltraShort QQQ",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "Nasdaq-100",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "PSQ",
+  "name": "ProShares Short QQQ",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -1,
+  "underlying": "Nasdaq-100",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "UPRO",
+  "name": "ProShares UltraPro S&P 500",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SPXU",
+  "name": "ProShares UltraPro Short S&P 500",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SPXL",
+  "name": "Direxion Daily S&P 500 Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SPXS",
+  "name": "Direxion Daily S&P 500 Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SSO",
+  "name": "ProShares Ultra S&P 500",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SDS",
+  "name": "ProShares UltraShort S&P 500",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SH",
+  "name": "ProShares Short S&P 500",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -1,
+  "underlying": "S&P 500",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "UDOW",
+  "name": "ProShares UltraPro Dow30",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Dow 30",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SDOW",
+  "name": "ProShares UltraPro Short Dow30",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Dow 30",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TNA",
+  "name": "Direxion Daily Small Cap Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Russell 2000",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TZA",
+  "name": "Direxion Daily Small Cap Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Russell 2000",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SOXL",
+  "name": "Direxion Daily Semiconductor Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Semiconductors",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SOXS",
+  "name": "Direxion Daily Semiconductor Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Semiconductors",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TECL",
+  "name": "Direxion Daily Technology Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Technology",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TECS",
+  "name": "Direxion Daily Technology Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Technology",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "FAS",
+  "name": "Direxion Daily Financial Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Financials",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "FAZ",
+  "name": "Direxion Daily Financial Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Financials",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "LABU",
+  "name": "Direxion Daily S&P Biotech Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Biotech",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "LABD",
+  "name": "Direxion Daily S&P Biotech Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Biotech",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "ERX",
+  "name": "Direxion Daily Energy Bull 2X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Energy",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "ERY",
+  "name": "Direxion Daily Energy Bear 2X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "Energy",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "DRN",
+  "name": "Direxion Daily Real Estate Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Real estate",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "DRV",
+  "name": "Direxion Daily Real Estate Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Real estate",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TMF",
+  "name": "Direxion Daily 20+ Yr Treasury Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "Long Treasuries",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TMV",
+  "name": "Direxion Daily 20+ Yr Treasury Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "Long Treasuries",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "YINN",
+  "name": "Direxion Daily FTSE China Bull 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 3,
+  "underlying": "China",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "YANG",
+  "name": "Direxion Daily FTSE China Bear 3X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -3,
+  "underlying": "China",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "NUGT",
+  "name": "Direxion Daily Gold Miners Bull 2X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Gold miners",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "DUST",
+  "name": "Direxion Daily Gold Miners Bear 2X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "Gold miners",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "UCO",
+  "name": "ProShares Ultra Bloomberg Crude Oil",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Crude oil",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SCO",
+  "name": "ProShares UltraShort Bloomberg Crude Oil",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "Crude oil",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "BOIL",
+  "name": "ProShares Ultra Bloomberg Natural Gas",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Natural gas",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "KOLD",
+  "name": "ProShares UltraShort Bloomberg Natural Gas",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -2,
+  "underlying": "Natural gas",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "UVXY",
+  "name": "ProShares Ultra VIX Short-Term Futures",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 1.5,
+  "underlying": "VIX futures",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "SVXY",
+  "name": "ProShares Short VIX Short-Term Futures",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": -0.5,
+  "underlying": "VIX futures",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "TSLL",
+  "name": "Direxion Daily TSLA Bull 2X",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Tesla",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "NVDL",
+  "name": "GraniteShares 2x Long NVDA Daily",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Nvidia",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ },
+ {
+  "symbol": "BITX",
+  "name": "2x Bitcoin Strategy",
+  "kind": "etf",
+  "category": "Leveraged & inverse",
+  "leverage": 2,
+  "underlying": "Bitcoin",
+  "asset_class": "Leveraged",
+  "region": "United States"
+ }
+]
