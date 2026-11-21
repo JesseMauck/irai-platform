@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { num, pct, tone } from "@/lib/format";
@@ -17,9 +18,16 @@ const TABS: { id: Tab; label: string; blurb: string }[] = [
 ];
 const REG_TONE: Record<string, string> = { Calm: "bg-up/70", Normal: "bg-primary/60", Stressed: "bg-down/70" };
 
-export default function Patterns() {
+export default function PatternsPage() {
+  return <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-10"><Skeleton rows={6} /></div>}><Patterns /></Suspense>;
+}
+
+function Patterns() {
   const { user, ready } = useAuth();
-  const [tab, setTab] = useState<Tab>("tests");
+  const sp = useSearchParams();
+  const qTab = sp.get("tab") as Tab | null;
+  const qSym = sp.get("symbol")?.toUpperCase() ?? null;
+  const [tab, setTab] = useState<Tab>(qTab && TABS.some(t => t.id === qTab) ? qTab : "tests");
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
       <div className="text-xs uppercase tracking-wide text-primary">Built by IRAI</div>
@@ -39,7 +47,7 @@ export default function Patterns() {
             <div className="mt-5 flex gap-3"><Button href="/signup?next=/patterns">Start free</Button><Button variant="outline" href="/signup?plan=pro&next=/patterns">Try Pro free for 7 days</Button></div>
             <p className="mt-2 text-[11px] text-muted">Screenshot uses demo data.</p></div>
         </div>
-      ) : tab === "tests" ? <Tests /> : tab === "regimes" ? <Regimes /> : tab === "states" ? <States /> : tab === "leadlag" ? <LeadLag /> : <Micro />}
+      ) : tab === "tests" ? <Tests /> : tab === "regimes" ? <Regimes initial={qSym} /> : tab === "states" ? <States /> : tab === "leadlag" ? <LeadLag /> : <Micro />}
       <p className="mt-6 text-[11px] text-muted">Statistical patterns describe the past and can stop working without warning. Pattern Lab is research and education, not a recommendation to buy or sell anything.</p>
     </div>
   );
@@ -53,8 +61,8 @@ interface RegResp { source?: string; symbol: string; as_of: string; locked: bool
   states: { name: string; annual_vol: number; annualised_return: number | null; share_of_days: number; expected_duration_days: number; avg_run_days: number | null }[];
   transition_matrix: { labels: string[]; matrix: number[][] }; series: { dates: string[]; state: number[]; close: number[] } }
 
-function Regimes() {
-  const [sym, setSym] = useState("SPY");
+function Regimes({ initial }: { initial?: string | null }) {
+  const [sym, setSym] = useState(initial || "SPY");
   const { data, error } = useApi<RegResp>(`/api/quant/regimes?symbol=${sym}`);
   const names = ["Calm", "Normal", "Stressed"];
   return (<div className="mt-5 space-y-4">

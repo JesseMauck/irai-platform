@@ -33,12 +33,27 @@ SYSTEM = (
     "CONTEXT JSON when it is relevant and saying which figures came from it; say when data is DEMO or STALE. If the "
     "context lacks what is needed, say so and suggest where on the platform to find it. You may explain concepts, "
     "metrics, risks and how features work. Do not tell the member to buy, sell or hold anything, do not give "
-    "personalised advice or price targets, and do not invent numbers or news. Markdown is allowed.")
+    "personalised advice or price targets, and do not invent numbers or news. Markdown is allowed. "
+    "You also navigate the platform: when APP ACTIONS are listed, the chat shows them as buttons (and may open the first "
+    "one automatically), so tell the member what they will see there in one or two sentences instead of explaining how to "
+    "click around. Platform map: Terminal, ticker pages (Summary, Analyst, Chart, Financials, Earnings, Dividends, Peers & "
+    "ratios, Technicals, Filings, News), printable research reports, Compare (up to 8 tickers), ValueBot, Strategy Lab, Monte "
+    "Carlo, AlgoTrader bots, Trade templates, Strategy marketplace, Premium Signals, Pattern Lab, Earnings Hub, Screeners, "
+    "Heatmap, Macro map, Options Discover, ADR/ETF/relative-value monitors, Research themes, Portfolio analysis, Congress "
+    "Trading, Smart Money Trackers, Community, Learn, Pricing and Customize.")
+
+
+class Act(BaseModel):
+    label: str = Field(max_length=120)
+    href: str = Field(pattern=r"^/[A-Za-z0-9/_\-.?=&%,#+^]*$", max_length=400)  # in-app paths only
+    desc: str | None = Field(None, max_length=200)
+    primary: bool | None = None
 
 
 class Msg(BaseModel):
     role: str = Field(pattern="^(user|assistant)$")
     content: str = Field(min_length=1, max_length=4000)
+    actions: list[Act] | None = Field(None, max_length=6)
 
 
 class AskIn(BaseModel):
@@ -129,16 +144,27 @@ def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(g
     if body.messages[-1].role != "user":
         raise HTTPException(422, "The last message must be from the user")
     used, cap = _quota(db, user)
+    from .. import assistant_nav as nav
+
+    nplan = nav.plan(body.messages[-1].content, body.symbol.upper() if body.symbol and SYM.match(body.symbol.upper()) else None)
+    actions = nplan["actions"]
+    if nplan["auto"] and nplan["actions"] and not body.symbol and nplan["tickers"]:
+        body.symbol = nplan["tickers"][0]  # give the model the ticker being asked about
     ctx = context(body, user, db)
     if not vb.llm_enabled:
+        nav_reply = nav.rules_reply(nplan)
+        if nav_reply:
+            return {"reply": nav_reply, "engine": "rules", "used": used, "limit": cap, "actions": actions, "navigate": actions[0]["href"] if nplan["auto"] else None,
+                    "chat_id": _save_chat(db, user, body, nav_reply, actions)}
         t = ctx.get("ticker")
         hint = (f"{t['ticker']} trades at {t.get('price')} ({t.get('data_label')}); quant rating {(t.get('quant_rating') or {}).get('overall', 'n/a')}. "
                 if t else "")
         reply = (hint + "The AI assistant isn't configured on this server yet, so I can't answer free-form questions. "
                  "Try the Analyst tab on a ticker, the Methodology page, or Learn.")
-        return {"reply": reply, "engine": "rules", "used": used, "limit": cap, "chat_id": _save_chat(db, user, body, reply)}
-    msgs = [{"role": m.role, "content": m.content} for m in body.messages[-12:]]
-    msgs[-1] = {"role": "user", "content": f"PAGE CONTEXT (JSON):\n{json.dumps(ctx, default=str)[:30_000]}\n\nQUESTION:\n{msgs[-1]['content']}"}
+        return {"reply": reply, "engine": "rules", "used": used, "limit": cap, "actions": actions, "navigate": None,
+                "chat_id": _save_chat(db, user, body, reply, actions)}
+    msgs = [{"role": m.role, "content": m.content} for m in body.messages[-12:]]  # links stay out of the model prompt
+    msgs[-1] = {"role": "user", "content": f"PAGE CONTEXT (JSON):\n{json.dumps(ctx, default=str)[:30_000]}{nav.describe_for_model(nplan)}\n\nQUESTION:\n{msgs[-1]['content']}"}
     try:
         import anthropic
 
@@ -147,15 +173,16 @@ def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(g
     except Exception as e:  # noqa: BLE001
         log.warning("assistant failed: %s", e)
         raise HTTPException(503, "The assistant is busy; try again in a moment.")
-    chat_id = _save_chat(db, user, body, reply)
-    return {"reply": reply, "engine": "claude", "used": used, "limit": cap, "chat_id": chat_id,
+    chat_id = _save_chat(db, user, body, reply, actions)
+    return {"reply": reply, "engine": "claude", "used": used, "limit": cap, "chat_id": chat_id, "actions": actions,
+            "navigate": actions[0]["href"] if nplan["auto"] and actions else None,
             "context": [k for k in ("ticker", "theme", "portfolio", "bot") if k in ctx]}
 
 
-def _save_chat(db: Session, user: User, body: AskIn, reply: str) -> int | None:
+def _save_chat(db: Session, user: User, body: AskIn, reply: str, actions: list | None = None) -> int | None:
     if not body.save:
         return None
-    msgs = [m.model_dump() for m in body.messages] + [{"role": "assistant", "content": reply}]
+    msgs = [m.model_dump(exclude_none=True) for m in body.messages] + [{"role": "assistant", "content": reply, **({"actions": actions} if actions else {})}]
     chat = db.get(AssistantChat, body.chat_id) if body.chat_id else None
     if chat and chat.user_id != user.id:
         chat = None

@@ -350,6 +350,14 @@ def _rules_draft(prompt: str) -> dict[str, Any]:
     p = prompt.lower()
     nums = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)(?!\s*%|\d|\.)", p)]  # percentages are risk controls, not parameters
     syms = [s for s in re.findall(r"\b[A-Z]{1,5}\b", prompt) if s not in {"I", "A", "SMA", "EMA", "RSI", "MACD", "AND", "OR", "THE", "ETF"}][:10]
+    above = re.search(r"(?:above|over)\s+(?:its|the|their)?\s*(\d{2,3})[- ]?(?:day|d\b|-day)", p)
+    if above and "cross below" not in p:  # "hold X while it's above its 200-day": price vs one average
+        cls = REGISTRY["trend_filter"]
+        sl = re.search(r"(\d+(?:\.\d+)?)\s*%\s*(?:trailing\s+)?stop", p) or re.search(r"stop[- ]?loss(?:\s+(?:of|at))?\s*(\d+(?:\.\d+)?)\s*%", p)
+        return {"strategy": "trend_filter", "params": cls(short=2, long=int(above.group(1))).params, "symbols": syms,
+                "stop_loss_pct": float(sl.group(1)) / 100 if sl else None, "take_profit_pct": None, "daily_auto_close": False,
+                "explanation": f"Matched your idea to a trend filter: hold while price (2-day average) is above its {above.group(1)}-day average, step aside below it. Review before starting.",
+                "engine": "rules"}
     if ("golden cross" in p or "trend filter" in p or "above the 200" in p or "while" in p and "average" in p) and "cross below" not in p:
         key = "trend_filter"
     elif "rsi" in p or "oversold" in p:

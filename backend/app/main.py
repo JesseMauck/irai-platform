@@ -18,7 +18,7 @@ from sqlalchemy import text  # noqa: E402
 
 from .db import SessionLocal, init_db  # noqa: E402
 from .middleware import RateLimit, RequestContext, configure_logging  # noqa: E402
-from .routers import admin, analyst, assistant, auth, bots, discover, portfolio, quant, billing, community, content, insight, lab, market, me, monitors, valuebot, workspace  # noqa: E402
+from .routers import admin, analyst, assistant, auth, bots, discover, portfolio, quant, disclosures, billing, community, content, insight, lab, market, me, monitors, valuebot, workspace  # noqa: E402
 from .seed import seed_reference  # noqa: E402
 
 
@@ -40,7 +40,7 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
                    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["*"])
 app.add_middleware(RequestContext)
 
-for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin, insight, workspace, analyst, portfolio, bots, assistant, discover, quant):
+for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin, insight, workspace, analyst, portfolio, bots, assistant, discover, quant, disclosures):
     app.include_router(r.router)
 app.include_router(insight.buzz_router)
 
