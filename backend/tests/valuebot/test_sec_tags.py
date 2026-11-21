@@ -70,3 +70,22 @@ def test_quarter_from_half_year_minus_q2_and_merge_predecessor():
     assert m["entityName"] == "NewCo Holdings"
     assert len(m["facts"]["us-gaap"]["Revenues"]["units"]["USD"]) == 2
     assert _annual_series(m, "Revenues", False) == {"2025-12-31": 40.0}
+
+
+def test_terminal_growth_not_above_mature_growth():
+    import types
+
+    from valuebot.analysis import default_drivers
+
+    coc = types.SimpleNamespace(wacc=0.07, terminal_wacc=0.08, beta=0.9, erp=0.045, rating="A")
+    base = {"revenue": 100e9, "revenue_growth": 0.01, "operating_margin": 0.2, "gross_margin": None, "ebit": 20e9,
+            "sales_to_capital": 1.5, "roic": 0.12, "effective_tax_rate": 0.21}
+    metrics = [{**base, "revenue": 97e9}, {**base, "revenue": 99e9}, base]
+    snap = {"riskfree": 0.045, "consensus": {"revenue_growth_next_fy": 0.01}, "history": [{"cash": 5e9}]}
+    d, why = default_drivers("fcff", snap, metrics, coc)
+    assert d["revenue_growth_y2_5"] < 0.025
+    assert d["terminal_growth"] == 0.025  # slow grower: floored at long-run inflation, not the 4% / risk-free cap
+    snap_fast = {**snap, "consensus": {"revenue_growth_next_fy": 0.2}}
+    fast = [{**base, "revenue": 60e9}, {**base, "revenue": 80e9}, base]
+    d2, _ = default_drivers("fcff", snap_fast, fast, coc)
+    assert d2["terminal_growth"] == 0.04

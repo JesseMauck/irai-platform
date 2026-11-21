@@ -316,9 +316,12 @@ def default_drivers(method: str, snap: dict, metrics: list[dict], coc: CostOfCap
         why["wacc_initial"] = f"CAPM with beta {coc.beta:.2f}, ERP {coc.erp:.2%}, synthetic rating {coc.rating}."
         d["wacc_terminal"] = coc.terminal_wacc
         why["wacc_terminal"] = "Mature-firm cost of capital: beta converges to 1."
-        d["terminal_growth"] = min(rf, 0.04, coc.terminal_wacc - 0.01)
-        why["terminal_growth"] = ("The lower of the risk-free rate and 4% long-run nominal growth: no firm outgrows the "
-                                  "economy forever.")
+        # A mature, slow-growing firm does not accelerate at maturity: cap stable growth at its own years 2-5
+        # growth, floored at 2.5% (long-run inflation) so ordinary companies still grow with the economy.
+        g_mature = max(d["revenue_growth_y2_5"], 0.025)
+        d["terminal_growth"] = min(rf, 0.04, coc.terminal_wacc - 0.01, g_mature)
+        why["terminal_growth"] = ("The lowest of the risk-free rate, 4% long-run nominal growth and the firm's own years 2-5 "
+                                  "growth (floor 2.5%): no firm outgrows the economy forever, and slow growers don't speed up at maturity.")
         # Excess returns fade but rarely vanish for firms that earn them today: keep half of today's spread
         # over the mature cost of capital (ROIC capped at 35%). Firms without excess returns get ROIC = WACC.
         roic_now = last.get("roic")

@@ -58,7 +58,7 @@ INSTANT_TAGS: dict[str, list[str]] = {
     "debt_current": ["LongTermDebtCurrent", "DebtCurrent"],
     "short_term_borrowings": ["ShortTermBorrowings", "CommercialPaper"],
     "operating_leases": ["OperatingLeaseLiability"],
-    "equity": ["StockholdersEquity"],
+    "equity": ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"],
     "minority_interest": ["MinorityInterest"],
     "total_assets": ["Assets"],
     "equity_investments": ["EquityMethodInvestments"],
@@ -271,8 +271,11 @@ def fetch_financials(ticker: str, years: int = 5) -> dict[str, Any]:
         row: dict[str, Any] = {"period_end": end, "fiscal_year": int(end[:4])}
         for key in list(DURATION_TAGS) + list(INSTANT_TAGS):
             row[key] = series[key].get(end)
-        if row["long_term_debt"] is None:
-            row["long_term_debt"] = (row.get("long_term_debt_noncurrent") or 0) + (row.get("debt_current") or 0) or None
+        # Some filers tag only part of their borrowings as LongTermDebt (e.g. one note programme) while the
+        # balance sheet shows noncurrent + current debt; take the larger so debt is never undercounted.
+        parts = (row.get("long_term_debt_noncurrent") or 0) + (row.get("debt_current") or 0)
+        if row["long_term_debt"] is None or parts > row["long_term_debt"]:
+            row["long_term_debt"] = parts or row["long_term_debt"]
         row["debt"] = (row.get("long_term_debt") or 0) + (row.get("short_term_borrowings") or 0)
         row["lease_liabilities"] = row.get("operating_leases") or 0
         row["cash"] = (row.get("cash") or 0) + (row.get("marketable_securities") or 0)
