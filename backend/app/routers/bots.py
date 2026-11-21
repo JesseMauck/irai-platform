@@ -350,7 +350,9 @@ def _rules_draft(prompt: str) -> dict[str, Any]:
     p = prompt.lower()
     nums = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)(?!\s*%|\d|\.)", p)]  # percentages are risk controls, not parameters
     syms = [s for s in re.findall(r"\b[A-Z]{1,5}\b", prompt) if s not in {"I", "A", "SMA", "EMA", "RSI", "MACD", "AND", "OR", "THE", "ETF"}][:10]
-    if "rsi" in p or "oversold" in p:
+    if ("golden cross" in p or "trend filter" in p or "above the 200" in p or "while" in p and "average" in p) and "cross below" not in p:
+        key = "trend_filter"
+    elif "rsi" in p or "oversold" in p:
         key = "rsi_reversion"
     elif "bollinger" in p or "band" in p:
         key = "bollinger_reversion"
@@ -366,10 +368,10 @@ def _rules_draft(prompt: str) -> dict[str, Any]:
         key = "sma_cross"
     cls = REGISTRY[key]
     params = {}
-    if key == "sma_cross" and ("golden cross" in p or "death cross" in p) and len([n for n in nums if n >= 2]) < 2:
+    if key in ("sma_cross", "trend_filter") and ("golden cross" in p or "death cross" in p) and len([n for n in nums if n >= 2]) < 2:
         nums = [50.0, 200.0]  # the conventional definition
     ints = [int(n) for n in nums if n >= 2 and n == int(n)]
-    for prm, n in zip(cls.PARAMS, sorted(ints)[: len(cls.PARAMS)] if key in ("sma_cross", "ema_cross") else ints):
+    for prm, n in zip(cls.PARAMS, sorted(ints)[: len(cls.PARAMS)] if key in ("sma_cross", "ema_cross", "trend_filter") else ints):
         params[prm.key] = prm.clamp(n)
     sl = re.search(r"(\d+(?:\.\d+)?)\s*%\s*(?:trailing\s+)?stop", p) or re.search(r"stop[- ]?loss(?:\s+(?:of|at))?\s*(\d+(?:\.\d+)?)\s*%", p)
     tp = re.search(r"(\d+(?:\.\d+)?)\s*%\s*(?:take[- ]?profit|profit target|target)", p) or re.search(r"(?:take[- ]?profit|profit target|target)(?:\s+(?:of|at))?\s*(\d+(?:\.\d+)?)\s*%", p)

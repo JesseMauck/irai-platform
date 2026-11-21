@@ -121,7 +121,7 @@ def test_market_hours_and_rules_draft(client):
     assert d["strategy"] == "rsi_reversion" and d["symbols"] == ["AAPL", "MSFT"]
     assert d["stop_loss_pct"] == pytest.approx(0.08) and d["take_profit_pct"] == pytest.approx(0.2)
     d2 = client.post("/api/bots/draft", headers=hdr, json={"prompt": "golden cross 50 and 200 day on SPY"}).json()
-    assert d2["strategy"] == "sma_cross" and d2["params"] == {"short": 50, "long": 200} and d2["symbols"] == ["SPY"]
+    assert d2["strategy"] == "trend_filter" and d2["params"] == {"short": 50, "long": 200} and d2["symbols"] == ["SPY"]
 
 
 def test_rules_draft_ignores_percentages_for_params():
@@ -160,3 +160,13 @@ def test_templates_brokers_and_marketplace(client):
     assert client.post(f"/api/marketplace/{paid['id']}/copy", headers=buyer, json={"accounts": [{"account_id": bacct["id"], "capital": 5000}]}).status_code == 402
     assert client.get(f"/api/marketplace/{free['id']}").json()["copies"] == 1
     assert client.patch(f"/api/marketplace/{free['id']}", headers=buyer, json={"title": "mine now"}).status_code == 404
+
+
+def test_trend_filter_starts_invested_in_an_uptrend():
+    from app.algo import emulator
+    from app.algo.strategies import REGISTRY, Candle
+    up = [Candle(str(i), 100 + i * 0.5) for i in range(400)]
+    r = emulator.run(REGISTRY["trend_filter"](), up, emulator.EmulationSettings(initial_capital=10_000))
+    assert r.statistics["exposure"] > 0.45  # invested from bar ~200 to the end
+    r2 = emulator.run(REGISTRY["sma_cross"](short=50, long=200), up, emulator.EmulationSettings(initial_capital=10_000))
+    assert r2.statistics["exposure"] == 0  # the crossover sample waits for a fresh cross

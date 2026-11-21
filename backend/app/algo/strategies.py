@@ -127,6 +127,25 @@ class EmaCrossover(SmaCrossover):
         self._short_below = None
 
 
+class TrendFilter(Strategy):
+    """Regime rule: long while the short average is above the long one, flat otherwise (no waiting for a fresh cross)."""
+    KEY, TITLE = "trend_filter", "Trend filter (50/200-day)"
+    DESCRIPTION = ("Hold while the short moving average is above the long one; step aside when it falls below. Unlike the "
+                   "crossover sample it starts invested if the trend is already up.")
+    PARAMS = [Param("short", "Short SMA", 50, 2, 200), Param("long", "Long SMA", 200, 5, 400)]
+
+    def setup(self):
+        self.short_ma = SimpleMovingAverage(self.params["short"])
+        self.long_ma = SimpleMovingAverage(self.params["long"])
+
+    def on_candle(self, c):
+        s, lo = self.short_ma.process(c.close), self.long_ma.process(c.close)
+        self.indicators = {"short_sma": s, "long_sma": lo}
+        if s is None or lo is None:
+            return
+        self.target(1 if s > lo else (-1 if self.allow_short else 0))
+
+
 class RsiReversion(Strategy):
     KEY, TITLE = "rsi_reversion", "RSI mean reversion"
     DESCRIPTION = "Go long when RSI falls below the oversold level, exit when it rises above the exit level."
@@ -215,5 +234,5 @@ class BuyAndHold(Strategy):
 
 
 REGISTRY: dict[str, type[Strategy]] = {s.KEY: s for s in
-                                        (SmaCrossover, EmaCrossover, RsiReversion, BollingerReversion, MacdCross,
+                                        (SmaCrossover, EmaCrossover, TrendFilter, RsiReversion, BollingerReversion, MacdCross,
                                          DonchianBreakout, BuyAndHold)}

@@ -137,7 +137,9 @@ def desired_exposure(bot: Bot, symbol: str) -> tuple[float, dict[str, Any]]:
     cls = REGISTRY.get(bot.strategy or "")
     if not cls:
         raise PaperError(f"Unknown strategy {bot.strategy}")
-    c = service.chart(symbol, "2y")
+    s0 = cls(**(bot.params or {}))
+    look = max([float(v) for v in s0.params.values()] or [0])
+    c = service.chart(symbol, "5y" if look >= 100 else "2y")
     hist = [Candle(h["date"], h["close"]) for h in c["history"] if h.get("close")]
     q = c["quote"]
     today = now_et().date().isoformat()
@@ -298,11 +300,15 @@ def snapshot(db: Session, bot: Bot, day: str | None = None) -> None:
             db.add(SleeveEquity(sleeve_id=sl.id, bot_id=bot.id, date=day, equity=v))
 
 
-def backtest(strategy: str, params: dict, symbols: list[str], max_position_pct: float = 1.0, range_: str = "2y") -> dict[str, Any]:
-    """Equal-weight portfolio backtest of the rule across the bot's symbols, with a tear sheet."""
+def backtest(strategy: str, params: dict, symbols: list[str], max_position_pct: float = 1.0, range_: str | None = None) -> dict[str, Any]:
+    """Equal-weight portfolio backtest of the rule across the bot's symbols, with a tear sheet. Long lookbacks
+    (100+ day averages) get five years of history so the warm-up doesn't eat the test window."""
     cls = REGISTRY.get(strategy)
     if not cls or not symbols:
         return {}
+    if range_ is None:
+        look = max([float(v) for v in cls(**(params or {})).params.values()] or [0])
+        range_ = "5y" if look >= 100 else "2y"
     curves, pnls, exposure, closes = [], [], [], []
     weight = min(1.0 / len(symbols), max_position_pct or 1.0)
     for sym in symbols:
