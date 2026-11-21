@@ -1,0 +1,53 @@
+# Weekly: export the validated QA fix queue, then let Claude Code verify and fix issues in a PR for review.
+# The database secret is only available to the export step, never to the step where Claude runs.
+# Secrets: QA_DATABASE_URL (database the QA agent writes to), ANTHROPIC_API_KEY.
+name: QA fixer
+
+on:
+  schedule:
+    - cron: "17 13 * * 1"   # Mondays 13:17 UTC (08:17 ET)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: qa-fixer
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Export fix queue
+        id: queue
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.QA_DATABASE_URL }}
+          IRAI_AUTO_CREATE_TABLES: "0"
+        run: |
+          python -m app.qa queue --out ../qa-queue.md
+          if grep -q "Nothing validated and unfixed" ../qa-queue.md; then echo "empty=true" >> "$GITHUB_OUTPUT"; else echo "empty=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Claude Code fixes validated issues
+        if: steps.queue.outputs.empty == 'false'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Follow backend/app/qa/FIXER.md exactly. The fix queue is qa-queue.md at the repo root.
+            Do not commit qa-queue.md.
+          claude_args: "--max-turns 60"

@@ -20,3 +20,6 @@ Monorepo: `frontend/` (Next.js 15 App Router, TypeScript, Tailwind v4) and `back
 - Trade posts are immutable after publish (entry price captured server-side). Don't add an edit route.
 - Theme tokens are in `src/app/globals.css` (`bg`, `card`, `line`, `muted`, `primary`, `up`, `down`, `solar-*`).
 - Copy is research/education only — no "buy/sell" language, no personalized advice.
+- Synthetic-trader QA (`backend/app/qa/`, see its README): synthetic users live on `@qa.irai.invalid` and are excluded
+  from business metrics; never let QA findings change risk controls. Fixes for QA issues follow `backend/app/qa/FIXER.md`
+  and end the PR body with `QA-Fixes: <fingerprint>` lines.

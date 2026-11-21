@@ -773,3 +773,62 @@ class ScreenerSnapshot(Base):
     rows: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
     seconds: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+# ── synthetic-trader QA ─────────────────────────────────────────────────────────────────────────
+class QaRun(Base):
+    """One bounded synthetic-trader batch. A row in status 'running' with a fresh heartbeat is the run lease."""
+    __tablename__ = "qa_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    status: Mapped[str] = mapped_column(String(20), default="running", index=True)  # running | ok | aborted | crashed | budget
+    target: Mapped[str] = mapped_column(String(200))
+    env: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    heartbeat_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    tickers: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    requests: Mapped[int] = mapped_column(Integer, default=0)
+    checks: Mapped[int] = mapped_column(Integer, default=0)
+    issues_new: Mapped[int] = mapped_column(Integer, default=0)
+    issues_seen: Mapped[int] = mapped_column(Integer, default=0)
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class QaIssue(Base):
+    """A deduplicated finding. `fingerprint` = hash(issue_type, flow, normalized endpoint, normalized error), so a flaky
+    ticker bumps `occurrences` instead of filing a new ticket every cycle."""
+    __tablename__ = "qa_issues"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    issue_type: Mapped[str] = mapped_column(String(40))
+    category: Mapped[str] = mapped_column(String(20), index=True)  # bug | trading_logic | data | latency | ux
+    severity: Mapped[str] = mapped_column(String(10), index=True)  # high | medium | low
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)
+    # new | needs_more_data | valid | false_positive | fixed | regressed | wontfix
+    flow: Mapped[str] = mapped_column(String(40))
+    endpoint: Mapped[str] = mapped_column(String(200))
+    strategy: Mapped[str | None] = mapped_column(String(40))
+    step: Mapped[str | None] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(300))
+    expected: Mapped[str] = mapped_column(Text)
+    actual: Mapped[str] = mapped_column(Text)
+    tickers: Mapped[list[Any]] = mapped_column(JSON, default=list)  # example tickers, most recent last (capped)
+    trace: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # latest request/response trace, auth redacted
+    context: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # market_open, market mode, env
+    occurrences: Mapped[int] = mapped_column(Integer, default=1)
+    first_run_id: Mapped[int | None] = mapped_column(Integer)
+    last_run_id: Mapped[int | None] = mapped_column(Integer)
+    first_seen: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    triage: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # verdict, rationale, likely_location, fix_hint, by, at
+    fix_ref: Mapped[str | None] = mapped_column(String(300))  # PR / commit that fixed it
+
+
+class QaTickerLedger(Base):
+    """Already-tested ledger: lets the sampler prefer tickers it hasn't exercised recently."""
+    __tablename__ = "qa_ticker_ledger"
+    symbol: Mapped[str] = mapped_column(String(24), primary_key=True)
+    runs: Mapped[int] = mapped_column(Integer, default=0)
+    last_tested_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    last_cohort: Mapped[str | None] = mapped_column(String(30))
+    last_result: Mapped[str | None] = mapped_column(String(12))  # pass | issues | error

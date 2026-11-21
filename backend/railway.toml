@@ -1,6 +1,8 @@
 # Railway config-as-code for the API service (root directory: backend/).
 # Create a second service from the same repo/root for the worker and set its start command to
 #   python -m app.jobs worker
+# and, optionally, a third for the synthetic-trader QA agent (see app/qa/README.md for target options):
+#   python -m app.qa loop
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"

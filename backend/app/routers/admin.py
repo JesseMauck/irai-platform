@@ -27,7 +27,8 @@ def require_admin(user: User = Depends(current_user)) -> User:
 
 @router.get("/stats")
 def stats(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    by_plan = dict(db.execute(select(User.plan, func.count()).group_by(User.plan)).all())
+    real = ~User.email.like("%@qa.irai.invalid")  # exclude synthetic QA traders from business metrics
+    by_plan = dict(db.execute(select(User.plan, func.count()).where(real).group_by(User.plan)).all())
     subs = db.execute(select(Subscription.plan, Subscription.interval, Subscription.status, func.count())
                       .where(Subscription.status.in_(["trialing", "active", "past_due"]))
                       .group_by(Subscription.plan, Subscription.interval, Subscription.status)).all()
@@ -36,7 +37,7 @@ def stats(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)
     return {
         "users": {"total": sum(by_plan.values()), "by_plan": by_plan,
-                  "new_30d": db.scalar(select(func.count()).select_from(User).where(User.created_at >= since)) or 0},
+                  "new_30d": db.scalar(select(func.count()).select_from(User).where(User.created_at >= since, real)) or 0},
         "subscriptions": [{"plan": a, "interval": b, "status": c, "count": n} for a, b, c, n in subs],
         "mrr_active": mrr,
         "valuebot_runs_30d": db.scalar(select(func.count()).select_from(ValuationRun).where(ValuationRun.created_at >= since)) or 0,
