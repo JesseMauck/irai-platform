@@ -241,10 +241,15 @@ def _tok(c, plan=None):
 
 def test_info_units_are_fractions():
     from app.market.source import normalise_info
-    aapl = normalise_info({"dividendYield": 0.41, "trailingAnnualDividendYield": 0.0041})
-    assert abs(aapl["dividend_yield"] - 0.0041) < 1e-9
-    assert abs(normalise_info({"dividendYield": 2.8})["dividend_yield"] - 0.028) < 1e-9
-    assert abs(normalise_info({"trailingAnnualDividendYield": 0, "yield": 0.079})["dividend_yield"] - 0.079) < 1e-9
+    y = lambda **kw: normalise_info(kw)["dividend_yield"]  # noqa: E731
+    assert abs(y(dividendYield=0.41, trailingAnnualDividendYield=0.0041) - 0.0041) < 1e-9  # AAPL: percent units
+    assert abs(y(dividendYield=2.8) - 0.028) < 1e-9
+    # ADR: trailing yield mixes yen dividends with a dollar price; dividendYield is right
+    assert abs(y(dividendYield=2.9, trailingAnnualDividendYield=0.474, currency="USD", financialCurrency="JPY") - 0.029) < 1e-9
+    assert y(trailingAnnualDividendYield=0.474, currency="USD", financialCurrency="JPY") is None
+    assert abs(y(trailingAnnualDividendYield=0.031, currency="USD", financialCurrency="USD") - 0.031) < 1e-9
+    assert abs(y(**{"yield": 0.079}) - 0.079) < 1e-9  # funds
+    assert y(dividendYield=80) is None  # 80% is a data error
     voo = normalise_info({"netExpenseRatio": 0.03})
     assert abs(voo["expense_ratio"] - 0.0003) < 1e-9
     assert abs(normalise_info({"annualReportExpenseRatio": 0.0049, "netExpenseRatio": 0.49})["expense_ratio"] - 0.0049) < 1e-9
