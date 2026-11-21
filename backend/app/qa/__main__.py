@@ -2,7 +2,7 @@
 
   python -m app.qa run                 one bounded batch against IRAI_QA_TARGET, then exit
   python -m app.qa triage              validate new issues (rules, then Claude)
-  python -m app.qa cycle               run + triage (what the loop spawns each interval)
+  python -m app.qa cycle               run + triage + GitHub sync (what the loop spawns each interval)
   python -m app.qa loop                always-on scheduler: cycle every IRAI_QA_INTERVAL s in a fresh process
   python -m app.qa status              last runs, heartbeat age, open issues by status
   python -m app.qa queue [--out F]     validated, unfixed issues as Markdown (the fixer's input)
@@ -68,8 +68,11 @@ def main(argv: list[str]) -> int:
         res = runner.run_once(s, seed=a.seed, cohort=a.cohort)
         print(json.dumps({k: v for k, v in res.items() if k != "results"}, default=str))
         if a.cmd == "cycle" and res.get("status") != "busy":
+            from . import github
+
             with SessionLocal() as db:
                 print(json.dumps({"triage": triage.triage(db, s)}))
+                print(json.dumps({"github": github.sync(db)}))
         return 0 if res.get("status") in ("ok", "budget", "busy", "throttled") else 2
     if a.cmd == "triage":
         with SessionLocal() as db:

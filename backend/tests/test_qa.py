@@ -313,3 +313,63 @@ def test_loop_backs_off_and_alerts_once_per_streak(client, monkeypatch):
         alerts = db.scalars(select(EmailOutbox).where(EmailOutbox.kind == "qa_alert")).all()
     admins = {a.to_addr for a in alerts}
     assert alerts and len(alerts) == len(admins)  # one alert per admin for the streak, not one per failure
+
+
+# ── GitHub bridge (qa service → GitHub; GitHub never gets database access) ─────────────────────
+def _gh(private=True, issues=None, pulls=None):
+    calls = []
+
+    def h(req):
+        calls.append((req.method, req.url.path, req.content.decode() if req.content else ""))
+        p = req.url.path
+        if p == "/repos/o/r":
+            return httpx.Response(200, json={"private": private})
+        if p == "/repos/o/r/pulls":
+            return httpx.Response(200, json=pulls or [])
+        if p == "/repos/o/r/issues" and req.method == "GET":
+            return httpx.Response(200, json=issues or [])
+        if p == "/repos/o/r/issues" and req.method == "POST":
+            return httpx.Response(201, json={"number": 7})
+        if p.startswith("/repos/o/r/issues/") and req.method == "PATCH":
+            return httpx.Response(200, json={})
+        return httpx.Response(404, json={})
+    return httpx.MockTransport(h), calls
+
+
+def test_github_bridge_publishes_queue_and_marks_merged_fixes(monkeypatch):
+    from app.qa import github
+
+    monkeypatch.setenv("IRAI_QA_GITHUB_TOKEN", "t")
+    monkeypatch.setenv("IRAI_QA_GITHUB_REPO", "o/r")
+    with SessionLocal() as db:
+        a, _ = fnd.record(db, _finding(issue_type="position_over_cap"), 1)
+        b, _ = fnd.record(db, _finding(issue_type="bad_fill"), 1)
+        a.status = b.status = "valid"
+        db.commit()
+        pr = {"merged_at": "2026-11-21T00:00:00Z", "html_url": "https://github.com/o/r/pull/3", "body": f"Fix\n\nQA-Fixes: {b.fingerprint}\n"}
+        unmerged = {"merged_at": None, "html_url": "https://github.com/o/r/pull/4", "body": f"QA-Fixes: {a.fingerprint}"}
+        t, calls = _gh(pulls=[pr, unmerged])
+        out = github.sync(db, transport=t)
+        assert out["marked_fixed"] == [b.fingerprint] and out["created"] and out["items"] == 1
+        db.refresh(a), db.refresh(b)
+        assert b.status == "fixed" and b.fix_ref.endswith("/3") and a.status == "valid"
+        body = next(c[2] for c in calls if c[0] == "POST")
+        assert a.fingerprint in body and b.fingerprint not in body and "qa-fix-queue" in body
+
+
+def test_github_bridge_refuses_public_repo_and_survives_outages(monkeypatch):
+    from app.qa import github
+
+    assert github.sync(SessionLocal()) == {"enabled": False}
+    monkeypatch.setenv("IRAI_QA_GITHUB_TOKEN", "t")
+    monkeypatch.setenv("IRAI_QA_GITHUB_REPO", "o/r")
+    with SessionLocal() as db:
+        row, _ = fnd.record(db, _finding(), 1)
+        row.status = "valid"
+        db.commit()
+        t, calls = _gh(private=False)
+        out = github.sync(db, transport=t)
+        assert out["published"] is False and "public" in out["reason"]
+        assert not any(m in ("POST", "PATCH") for m, _, _ in calls)
+        down = httpx.MockTransport(lambda req: httpx.Response(502, text="bad gateway"))
+        assert "error" in github.sync(db, transport=down)

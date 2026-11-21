@@ -11,7 +11,6 @@ All figures describe the past. Nothing here is a forecast or a recommendation.
 """
 from __future__ import annotations
 
-import datetime as dt
 import math
 from typing import Any
 
@@ -127,7 +126,6 @@ def build(symbol: str, info: dict[str, Any] | None = None) -> dict[str, Any]:
     if len(bars) < 60:
         raise LookupError(f"Not enough history for {symbol}")
     dates = [b["t"][:10] for b in bars]
-    o = np.array([b["o"] for b in bars], float)
     h = np.array([b["h"] for b in bars], float)
     lo = np.array([b["l"] for b in bars], float)
     c = np.array([b["c"] for b in bars], float)

@@ -8,8 +8,9 @@ through in reviewed pull requests.
  loop (always on) ──every 15 min──▶ cycle (fresh process, hard timeout)
                                      ├─ run: lease → sample tickers → synthetic trader → qa_issues (dedup) → cleanup
                                      └─ triage: rules → Claude verdict (bounded) → valid | false_positive | needs_more_data
- weekly GitHub Action ─▶ queue (valid, unfixed) ─▶ Claude Code: verify → failing test → fix → PR (human merges)
- PR merged with "QA-Fixes: <fp>" ─▶ issue marked fixed ─▶ if it reappears: "regressed"
+ each cycle (qa service) ─▶ open "qa-fix-queue" GitHub issue = validated, unfixed issues (private repos only)
+ weekly GitHub Action ─▶ reads that issue ─▶ Claude Code: verify → failing test → fix → PR (human merges)
+ next cycle sees the merged PR's "QA-Fixes: <fp>" lines ─▶ issue marked fixed ─▶ if it reappears: "regressed"
 ```
 
 ## What a run does
@@ -49,6 +50,12 @@ Admin API: `GET /api/admin/qa/status`, `GET /api/admin/qa/issues?status=valid`, 
 | Option | Settings | Trade-off |
 |---|---|---|
 | **A. In-process, shared DB** (simplest) | Railway service `qa`, start `python -m app.qa loop`; `IRAI_QA_TARGET=inprocess`, same `DATABASE_URL`/`IRAI_JWT_SECRET` as `api`, `IRAI_QA_ENV=production`, `IRAI_QA_ALLOW_PRODUCTION=1` | Tests the deployed code with live data and puts no load on the API process. Synthetic users exist in the production DB for a few minutes per run (tagged, cleaned up, excluded from stats). Doesn't exercise the HTTP edge (Railway networking, CORS). |
-| **B. Staging over HTTP** (cleanest) | Railway `staging` environment + Supabase branch; `IRAI_QA_TARGET=https://<staging api>`, `IRAI_QA_ENV=staging`, staging `DATABASE_URL`/`IRAI_JWT_SECRET` | Full black-box test with zero production footprint; costs a second environment. `QA_DATABASE_URL` for the GitHub workflows is then the staging DB. |
+| **B. Staging over HTTP** (cleanest) | Railway `staging` environment + Supabase branch; `IRAI_QA_TARGET=https://<staging api>`, `IRAI_QA_ENV=staging`, staging `DATABASE_URL`/`IRAI_JWT_SECRET` | Full black-box test with zero production footprint; costs a second environment. Point the GitHub bridge at the same repo. |
+
+## GitHub bridge (no database credentials in GitHub)
+The qa service talks to GitHub; GitHub never talks to the database. Set on the qa service:
+`IRAI_QA_GITHUB_REPO=owner/name` and `IRAI_QA_GITHUB_TOKEN` (fine-grained token for this repository only:
+Issues read/write, Pull requests read). The only GitHub secret is `ANTHROPIC_API_KEY` for the fixer workflow.
+The bridge refuses to publish while the repository is public, since an open defect list is a disclosure risk.
 
 Without `IRAI_QA_ALLOW_PRODUCTION=1`, the agent refuses any production host or a Postgres DB not marked staging.

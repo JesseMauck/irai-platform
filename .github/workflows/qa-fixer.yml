@@ -1,6 +1,6 @@
-# Weekly: export the validated QA fix queue, then let Claude Code verify and fix issues in a PR for review.
-# The database secret is only available to the export step, never to the step where Claude runs.
-# Secrets: QA_DATABASE_URL (database the QA agent writes to), ANTHROPIC_API_KEY.
+# Weekly: Claude Code verifies and fixes the validated QA issues, in a PR for review.
+# The fix queue comes from the open `qa-fix-queue` issue, which the Railway qa service keeps current
+# (app/qa/github.py). This workflow never touches the database. Secret: ANTHROPIC_API_KEY.
 name: QA fixer
 
 on:
@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: read
 
 concurrency:
   group: qa-fixer
@@ -23,23 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install backend
-        working-directory: backend
-        run: pip install -r requirements.txt
-
-      - name: Export fix queue
+      - name: Read the fix queue issue
         id: queue
-        working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.QA_DATABASE_URL }}
-          IRAI_AUTO_CREATE_TABLES: "0"
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m app.qa queue --out ../qa-queue.md
-          if grep -q "Nothing validated and unfixed" ../qa-queue.md; then echo "empty=true" >> "$GITHUB_OUTPUT"; else echo "empty=false" >> "$GITHUB_OUTPUT"; fi
+          gh issue list --repo "$GITHUB_REPOSITORY" --label qa-fix-queue --state open --limit 1 --json body --jq '.[0].body // ""' > qa-queue.md
+          if [ -s qa-queue.md ]; then echo "empty=false" >> "$GITHUB_OUTPUT"; else echo "empty=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Claude Code fixes validated issues
         if: steps.queue.outputs.empty == 'false'
