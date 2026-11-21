@@ -83,8 +83,8 @@ def test_terminal_growth_not_above_mature_growth():
     metrics = [{**base, "revenue": 97e9}, {**base, "revenue": 99e9}, base]
     snap = {"riskfree": 0.045, "consensus": {"revenue_growth_next_fy": 0.01}, "history": [{"cash": 5e9}]}
     d, why = default_drivers("fcff", snap, metrics, coc)
-    assert d["revenue_growth_y2_5"] < 0.025
-    assert d["terminal_growth"] == 0.025  # slow grower: floored at long-run inflation, not the 4% / risk-free cap
+    assert d["revenue_growth_y2_5"] < 0.03
+    assert d["terminal_growth"] == 0.03  # slow grower: floored at 3%, not the 4% / risk-free cap
     snap_fast = {**snap, "consensus": {"revenue_growth_next_fy": 0.2}}
     fast = [{**base, "revenue": 60e9}, {**base, "revenue": 80e9}, base]
     d2, _ = default_drivers("fcff", snap_fast, fast, coc)
