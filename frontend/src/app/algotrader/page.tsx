@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { BrokerMarquee } from "@/components/Bots";
 import { Button, Card, ErrorNote } from "@/components/ui";
+import { TiltShot } from "@/components/Tilt";
 import { AUDIENCES } from "./audiences";
 
 const BROKER_KEYS: [string, string][] = [["webull", "Webull"], ["robinhood", "Robinhood"], ["fidelity", "Fidelity"], ["schwab", "Charles Schwab"],
@@ -21,8 +22,8 @@ const FEATURES = [
   { t: "Per-bot risk controls", d: "Allocation, maximum position size, stop-loss, take-profit and daily auto-close, checked every five minutes while the market is open." },
   { t: "Paper trading first", d: "Every bot starts on simulated money with realistic slippage and commission, so you see how it behaves before risking anything." },
   { t: "Webhook signals", d: "Send TradingView alerts to a bot's private URL. One strategy can feed many accounts at once, each sized to its own capital." },
-  { t: "57-metric tear sheet", d: "CAGR, Sharpe, Sortino, Calmar, drawdowns, VaR, capture ratios, win rate, profit factor, streaks and more, for backtest and live." },
-  { t: "Live vs backtest", d: "Each bot keeps an end-of-day track record next to the backtest that justified it, so drift shows up early." },
+  { t: "57-metric tear sheet", d: "CAGR, Sharpe, Sortino, Calmar, drawdowns, VaR, capture ratios, win rate, profit factor and more, with the live track record beside the backtest so drift shows early." },
+  { t: "Start from tested patterns", d: "The Pattern Lab shows which setups survived holdout, permutation and regime tests on each asset class and timeframe, and which did not, before you automate anything." },
   { t: "Monte Carlo", d: "Run thousands of simulated paths for a bot's symbols or your whole portfolio to see the range of outcomes, not just the average." },
   { t: "Portfolio analysis", d: "Import holdings from any broker's CSV export for P&L, concentration, sector mix, risk, income, quant grades and an AI review." },
   { t: "AI on every screen", d: "Ask IRAI questions about the ticker, theme, portfolio or bot you're looking at; read AI summaries of the latest news on every ticker." },
@@ -55,8 +56,9 @@ export default function AlgoTrader() {
       <section className="border-b border-line">
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
           <span className="rounded-full border border-primary/40 px-3 py-1 text-xs text-primary">IRAI AlgoTrader · included with Pro</span>
-          <h1 className="mt-5 max-w-3xl text-4xl md:text-6xl">Turn your trading ideas into bots you control.</h1>
-          <p className="mt-5 max-w-2xl text-lg text-muted">Describe a strategy in plain English, test it on years of data, and run it with real risk controls. Start on paper; connect your broker when you&apos;re ready.</p>
+          <h1 className="mt-5 max-w-3xl text-4xl md:text-6xl">Your trading rules, tested before they trade.</h1>
+          <p className="mt-5 max-w-2xl text-lg text-muted">Describe a strategy in plain English. IRAI builds it, backtests it on years of data and runs it on paper with real risk controls,
+            so you see exactly how it behaves before a single live order. Connect your broker when you&apos;re ready.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button href={start}>Build my first bot</Button>
             <Button variant="outline" href={pro ? "/portfolio" : "/pricing"}>Analyze my portfolio</Button>
@@ -65,6 +67,29 @@ export default function AlgoTrader() {
           <div className="mt-10"><div className="mb-3 text-sm">Seamless connection to Webull, Robinhood, Fidelity, Charles Schwab, <a href="https://www.interactivebrokers.com/en/whyib/overview.php" target="_blank" rel="noopener noreferrer" className="underline decoration-primary/60 underline-offset-2 hover:text-primary">Interactive Brokers</a>, E*TRADE and other top platforms <span className="text-muted">(coming soon)</span>:</div>
             <BrokerMarquee />
             <p className="mt-2 text-[11px] text-muted">Live broker connections are coming soon; bots trade paper accounts today. Broker names and marks are trademarks of their respective owners. Irradiance is independent and not affiliated with or endorsed by any broker.</p></div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
+        <TiltShot src="/showcase/bot.webp" alt="A paper-trading bot with its backtest curve, live-vs-backtest metrics, risk controls and webhook" url="irradiance.ai/bots" rest="right"
+          chips={[{ text: "Live vs backtest, side by side", pos: "tl" }, { text: "Stop-loss · take-profit · auto-close", pos: "br" }]} />
+        <div><div className="text-xs uppercase tracking-wide text-primary">Every bot, fully accountable</div>
+          <h2 className="mt-2 text-3xl">See what your bot did, and what it was supposed to do</h2>
+          <p className="mt-3 text-muted">Each bot page puts the backtest that justified it next to its live paper record, metric by metric, so you can tell bad luck from a broken edge.
+            Risk controls, the webhook and every fill sit on the same screen.</p>
+          <ul className="mt-4 space-y-2 text-sm">{["57 statistics from CAGR and Sharpe to capture ratios and streaks", "Change a stop-loss or position cap in seconds", "Copy the webhook straight into a TradingView alert"].map(x => <li key={x}>✓ {x}</li>)}</ul>
+          <p className="mt-3 text-[11px] text-muted">Screenshot uses demo data. Backtests can overstate results; paper fills are an upper bound on live fills.</p></div>
+      </section>
+
+      <section className="border-y border-line bg-card/40">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
+          <div className="lg:order-2"><TiltShot src="/showcase/patterns.webp" alt="Pattern Lab scorecard with stress-test results by asset class" url="irradiance.ai/patterns" rest="left"
+            chips={[{ text: "9 stress tests per pattern", pos: "tr" }]} /></div>
+          <div><div className="text-xs uppercase tracking-wide text-primary">Pattern Lab, included</div>
+            <h2 className="mt-2 text-3xl">Automate only what survives the stress tests</h2>
+            <p className="mt-3 text-muted">Before you turn a setup into a bot, check it in the Pattern Lab: holdout data it never saw, walk-forward folds, a permutation test against random entries,
+              false-discovery control, regime stability, threshold sensitivity and trading costs, on every asset class and timeframe.</p>
+            <Button className="mt-5" href="/patterns">Open the Pattern Lab</Button></div>
         </div>
       </section>
 

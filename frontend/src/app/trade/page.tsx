@@ -26,7 +26,7 @@ export default function Trade() {
     <div className="mx-auto max-w-7xl px-4 py-10">
       <div className="text-xs uppercase tracking-wide text-primary">IRAI AlgoTrader</div>
       <h1 className="text-3xl">Trade</h1>
-      <p className="mt-1 max-w-2xl text-sm text-muted">Start from a ready-made strategy, see how it would have done, and launch it as a paper-trading bot with your own risk controls. Or connect a brokerage account.</p>
+      <p className="mt-1 max-w-2xl text-sm text-muted">Pick a ready-made strategy, see exactly how it would have done over the last few years, and launch it as a paper-trading bot with your own risk controls in one click. Live brokerage connections are next: get early access below.</p>
 
       <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-xl">Ready-made strategies</h2>

@@ -72,7 +72,7 @@ function Lab() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
-      <PageHeader title="Strategy Lab" intro={<>Backtest rules-based strategies on live daily history for any ticker. The engine is a port of the open-source <b>StockSharp</b> strategy, indicator, history-emulation and statistics model. Orders fill on the next bar, after commission and slippage.</>}>
+      <PageHeader title="Strategy Lab" intro={<>Find out how a trading rule would have done before you risk a dollar. Backtest moving-average, RSI, Bollinger, MACD and breakout rules on daily history for any ticker, with costs included and an out-of-sample check. The engine is a port of the open-source <b>StockSharp</b> strategy, indicator, history-emulation and statistics model. Orders fill on the next bar, after commission and slippage.</>}>
         <span className="text-xs text-muted">Research and education only. Backtests are hypothetical and ignore taxes, borrow and liquidity.</span>
       </PageHeader>
       <div className="grid gap-6 lg:grid-cols-4">

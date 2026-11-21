@@ -92,7 +92,7 @@ export function Header() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <TickerSearch />
-          <ThemeToggle />
+          <span className="hidden sm:contents"><ThemeToggle /></span>
           {user ? (
             <>
               <Link href="/terminal" className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-primary sm:block">Terminal</Link>
@@ -104,7 +104,7 @@ export function Header() {
           ) : (
             <>
               <Link href="/login" className="hidden rounded-md px-3 py-1.5 text-sm text-muted hover:text-fg sm:block">Sign in</Link>
-              <Link href="/pricing" className="solar-bg rounded-lg px-3 py-1.5 text-sm font-semibold text-primary-fg">Upgrade</Link>
+              <Link href="/signup" className="solar-bg whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold text-primary-fg">Start free</Link>
             </>
           )}
           {user && <button className="rounded-md p-2 text-muted lg:hidden" onClick={() => window.dispatchEvent(new Event("irai:toggle-sidebar"))} aria-label="Open portal menu" title="Portal menu">▤</button>}

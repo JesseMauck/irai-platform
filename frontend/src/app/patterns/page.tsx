@@ -5,6 +5,7 @@ import { useApi } from "@/lib/hooks";
 import { num, pct, tone } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, ErrorNote, Skeleton, SourceBadge } from "@/components/ui";
+import { TiltShot } from "@/components/Tilt";
 
 type Tab = "tests" | "regimes" | "states" | "leadlag" | "micro";
 const TABS: { id: Tab; label: string; blurb: string }[] = [
@@ -29,9 +30,15 @@ export default function Patterns() {
         <button key={t.id} onClick={() => setTab(t.id)} className={`rounded-full border px-3 py-1.5 text-sm ${tab === t.id ? "border-primary bg-primary/10" : "border-line text-muted hover:text-fg"}`}>{t.label}</button>))}</div>
       <p className="mt-2 text-xs text-muted">{TABS.find(t => t.id === tab)?.blurb}</p>
       {!ready ? <div className="mt-6"><Skeleton rows={6} /></div> : !user ? (
-        <Card className="mt-6 p-8 text-center"><h2 className="text-lg font-semibold">Create a free account to open the Pattern Lab</h2>
-          <p className="mx-auto mt-1 max-w-lg text-sm text-muted">Free members see today&apos;s market regime and state. Pro unlocks every symbol, the full lead-lag map, historical analogues and the live order-book ladder.</p>
-          <Button className="mt-4" href="/signup?next=/patterns">Start free</Button></Card>
+        <div className="mt-8 grid items-center gap-10 lg:grid-cols-2">
+          <TiltShot src="/showcase/patterns.webp" alt="Pattern Lab scorecard with stress-test results" url="irradiance.ai/patterns" rest="right" chips={[{ text: "9 stress tests per cell", pos: "tl" }]} />
+          <div><h2 className="text-2xl font-semibold">Create a free account to open the Pattern Lab</h2>
+            <p className="mt-2 text-sm text-muted">Free members see the scorecard and today&apos;s market regime and state. Pro unlocks the full evidence behind every cell, every symbol,
+              the complete lead-lag map, historical analogues, your own pattern tests and the live order-book ladder.</p>
+            <ul className="mt-4 space-y-1 text-sm">{["Six patterns × six asset classes × four timeframes, retested nightly", "Only called robust if it passes every stress test", "Market regimes, recurring states and lead-lag links"].map(x => <li key={x}>✓ {x}</li>)}</ul>
+            <div className="mt-5 flex gap-3"><Button href="/signup?next=/patterns">Start free</Button><Button variant="outline" href="/signup?plan=pro&next=/patterns">Try Pro free for 7 days</Button></div>
+            <p className="mt-2 text-[11px] text-muted">Screenshot uses demo data.</p></div>
+        </div>
       ) : tab === "tests" ? <Tests /> : tab === "regimes" ? <Regimes /> : tab === "states" ? <States /> : tab === "leadlag" ? <LeadLag /> : <Micro />}
       <p className="mt-6 text-[11px] text-muted">Statistical patterns describe the past and can stop working without warning. Pattern Lab is research and education, not a recommendation to buy or sell anything.</p>
     </div>

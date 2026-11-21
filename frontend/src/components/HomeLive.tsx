@@ -13,7 +13,7 @@ export function HomeAdrPreview() {
   const { data: pair } = useApi<AdrRow>(top ? `/api/monitors/adr/${top.adr_symbol}` : null);
   return (
     <div className="grid gap-4 lg:grid-cols-5">
-      <Card className="lg:col-span-3">{data ? <AdrTable rows={data.rows.slice(0, 5)} compactView /> : <Skeleton />}</Card>
+      <Card className="min-w-0 lg:col-span-3">{data ? <AdrTable rows={data.rows.slice(0, 5)} compactView /> : <Skeleton />}</Card>
       <Card className="p-4 lg:col-span-2">
         {pair ? <>
           <div className="mb-2 flex items-center justify-between">
