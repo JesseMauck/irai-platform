@@ -241,7 +241,7 @@ def _store(db: Session, chamber: str, doc: str, url: str, filed: dt.date | None,
     return n
 
 
-def refresh(db: Session, max_docs: int = 60, days: int = 120) -> dict[str, Any]:
+def refresh(db: Session, max_docs: int = 60, days: int = 120, senate_docs: int = 40) -> dict[str, Any]:
     stats = {"house": 0, "senate": 0, "docs": 0, "scanned": 0, "errors": 0}
     done = set(db.scalars(select(DisclosureDoc.id)).all())
     since = dt.date.today() - dt.timedelta(days=days)
@@ -285,6 +285,7 @@ def refresh(db: Session, max_docs: int = 60, days: int = 120) -> dict[str, Any]:
     s = None
     try:
         s = senate_session()
+        budget = senate_docs
         if True:
             for rep in senate_reports(s, since):
                 if budget <= 0:
