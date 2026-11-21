@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import html as html_lib
 import io
 import json
 import logging
@@ -167,7 +168,7 @@ def parse_senate_html(html: str) -> list[dict[str, Any]]:
     tbody = re.search(r"<tbody>(.*?)</tbody>", html, re.S)
     out = []
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tbody.group(1) if tbody else "", re.S):
-        cells = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        cells = [html_lib.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c))).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
         if len(cells) < 8:
             continue
         _, date, owner, ticker, asset, atype, typ, amount = cells[:8]
@@ -200,7 +201,8 @@ def match_member(rows: list[dict[str, Any]], last: str, first: str, chamber: str
         n, term = r.get("name", {}), (r.get("terms") or [{}])[-1]
         if term.get("type") != ("rep" if chamber == "house" else "sen"):
             continue
-        if re.sub(r"[^a-z]", "", (n.get("last") or "").lower()) != ln:
+        lg = re.sub(r"[^a-z]", "", (n.get("last") or "").lower())
+        if lg != ln and not (len(ln) >= 4 and (lg.endswith(ln) or ln.endswith(lg))):
             continue
         if state and term.get("state") != state:
             continue

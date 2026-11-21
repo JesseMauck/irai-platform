@@ -434,3 +434,10 @@ def patterns_start(_: User = Depends(require_admin)):
     if not engine.start_background("manual"):
         raise HTTPException(409, "A pattern study is already running")
     return {"started": True}
+
+
+@router.post("/disclosures/run")
+def disclosures_start(_: User = Depends(require_admin)):
+    from ..disclosures import congress, thirteenf
+
+    return {"congress": congress.start_background(), "13f": thirteenf.start_background()}

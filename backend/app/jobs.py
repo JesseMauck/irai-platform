@@ -175,6 +175,13 @@ def tick() -> dict:
         with SessionLocal() as db:
             if datapipe.due(db):
                 out["datapipe"] = "started" if datapipe.start_background("schedule") else "busy"
+    if settings.live and os.environ.get("IRAI_DISCLOSURES", "1") != "0":
+        from .disclosures import congress, thirteenf
+
+        if congress.due():
+            out["congress"] = "started" if congress.start_background() else "busy"
+        if thirteenf.due():
+            out["13f"] = "started" if thirteenf.start_background() else "busy"
     if settings.live and os.environ.get("IRAI_PATTERNS", "1") != "0":
         from .quant import engine as pattern_engine
 
