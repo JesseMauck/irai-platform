@@ -237,3 +237,28 @@ def _tok(c, plan=None):
         c.post("/api/billing/checkout", json={"plan": plan}, headers=hdr)
     c.cookies.clear()
     return hdr
+
+
+def test_info_units_are_fractions():
+    from app.market.source import normalise_info
+    aapl = normalise_info({"dividendYield": 0.41, "trailingAnnualDividendYield": 0.0041})
+    assert abs(aapl["dividend_yield"] - 0.0041) < 1e-9
+    assert abs(normalise_info({"dividendYield": 2.8})["dividend_yield"] - 0.028) < 1e-9
+    voo = normalise_info({"netExpenseRatio": 0.03})
+    assert abs(voo["expense_ratio"] - 0.0003) < 1e-9
+    assert abs(normalise_info({"annualReportExpenseRatio": 0.0049, "netExpenseRatio": 0.49})["expense_ratio"] - 0.0049) < 1e-9
+
+
+def test_live_snapshot_drops_demo_fallbacks(monkeypatch):
+    from app import screener
+    from app.market import service
+    real = service.bars
+
+    def bars(sym, tf="1d"):
+        b = real(sym, tf)
+        return {**b, "source": "DEMO" if sym == "EA" else "LIVE"}
+
+    monkeypatch.setattr(service, "bars", bars)
+    snap = screener.build(["AAPL", "EA", "MSFT"], with_info=False, live_quotes=False)
+    assert snap["source"] == "LIVE" and snap["dropped"] == ["EA"]
+    assert [r["symbol"] for r in snap["rows"]] == ["AAPL", "MSFT"]

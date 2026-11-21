@@ -216,6 +216,26 @@ class YahooSource:
                 for x in quotes if x.get("symbol")]
 
 
+def _frac_yield(info: dict[str, Any]) -> float | None:
+    """Dividend yield as a fraction (0.025 = 2.5%). yfinance's dividendYield is in percent; the trailing and
+    fund `yield` fields are fractions, so prefer those."""
+    for k in ("trailingAnnualDividendYield", "yield"):
+        v = _num(info.get(k))
+        if v is not None and 0 <= v < 1:
+            return v
+    v = _num(info.get("dividendYield"))
+    return v / 100 if v is not None else None
+
+
+def _frac_expense(info: dict[str, Any]) -> float | None:
+    """Expense ratio as a fraction (0.0003 = 0.03%). annualReportExpenseRatio is a fraction; netExpenseRatio is percent."""
+    v = _num(info.get("annualReportExpenseRatio"))
+    if v is not None and 0 <= v < 0.1:
+        return v
+    v = _num(info.get("netExpenseRatio"))
+    return v / 100 if v is not None else None
+
+
 def normalise_info(info: dict[str, Any]) -> dict[str, Any]:
     """The subset of yfinance's .info the platform uses, with stable key names."""
     g = info.get
@@ -233,7 +253,7 @@ def normalise_info(info: dict[str, Any]) -> dict[str, Any]:
         "profit_margin": _num(g("profitMargins")),
         "debt_to_equity": _num(g("debtToEquity")), "revenue_growth": _num(g("revenueGrowth")),
         "earnings_growth": _num(g("earningsGrowth")), "beta": _num(g("beta")),
-        "dividend_yield": _num(g("dividendYield")),
+        "dividend_yield": _frac_yield(info),
         "target_mean_price": _num(g("targetMeanPrice")), "recommendation": g("recommendationKey"),
         "target_high_price": _num(g("targetHighPrice")), "target_low_price": _num(g("targetLowPrice")),
         "target_median_price": _num(g("targetMedianPrice")), "recommendation_mean": _num(g("recommendationMean")),
@@ -247,7 +267,7 @@ def normalise_info(info: dict[str, Any]) -> dict[str, Any]:
         "price_to_sales": _num(g("priceToSalesTrailing12Months")),
         # funds
         "nav_price": _num(g("navPrice")), "total_assets": _num(g("totalAssets")),
-        "expense_ratio": _num(g("netExpenseRatio")) or _num(g("annualReportExpenseRatio")),
+        "expense_ratio": _frac_expense(info),
         "fund_family": g("fundFamily"), "category": g("category"),
         "ytd_return": _num(g("ytdReturn")),
     }

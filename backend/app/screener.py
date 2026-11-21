@@ -259,10 +259,6 @@ def build(symbols: list[str] | None = None, with_info: bool = True, live_quotes:
                    "operating_margin": _f(i.get("operating_margin")), "roe": _f(i.get("roe")), "debt_to_equity": _f(i.get("debt_to_equity")),
                    "short_percent_float": _f(i.get("short_percent_float")), "dividend_yield": _f(i.get("dividend_yield")),
                    "beta": _f(i.get("beta")) if i.get("beta") is not None else m.get("beta_calc"), "buzz": buzz.get(sym)}
-            if row["expense_ratio"] and row["expense_ratio"] > 0.2:  # some feeds give percent units
-                row["expense_ratio"] /= 100
-            if row["dividend_yield"] and row["dividend_yield"] > 1:
-                row["dividend_yield"] /= 100
             if row["kind"] == "etf":
                 row["sector"] = meta.get("sector")
             return row
@@ -272,8 +268,13 @@ def build(symbols: list[str] | None = None, with_info: bool = True, live_quotes:
 
     with ThreadPoolExecutor(max_workers=6) as ex:
         rows = [r for r in ex.map(one, syms) if r]
+    real = [r for r in rows if r["source"] != "DEMO"]
+    dropped = sorted(r["symbol"] for r in rows if r["source"] == "DEMO") if real else []
+    if real:  # a live build never mixes in simulated rows: symbols that fell back to demo data are left out
+        rows = real
     srcs = {r["source"] for r in rows}
-    out = {"rows": rows, "at": dt.datetime.now(dt.timezone.utc).isoformat(), "source": "DEMO" if "DEMO" in srcs else "LIVE" if rows else None,
+    out = {"rows": rows, "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+           "source": None if not rows else "DEMO" if "DEMO" in srcs else "STALE" if "STALE" in srcs else "LIVE", "dropped": dropped,
            "seconds": round(time.time() - t0, 1), "universe": len(syms)}
     log.info("screener snapshot %s", json.dumps({k: v for k, v in out.items() if k != "rows"} | {"rows": len(rows)}))
     return out
@@ -427,9 +428,14 @@ def due(now_et: dt.datetime) -> bool:
     from .db import SessionLocal
     from .models import ScreenerSnapshot
 
+    from .config import settings
+
     with SessionLocal() as db:
-        last = db.scalar(select(ScreenerSnapshot.created_at).order_by(ScreenerSnapshot.id.desc()))
-    if not last:
+        row = db.execute(select(ScreenerSnapshot.created_at, ScreenerSnapshot.source).order_by(ScreenerSnapshot.id.desc()).limit(1)).first()
+    if not row:
+        return True
+    last, src = row
+    if settings.live and src == "DEMO":  # a live deployment should replace a simulated snapshot straight away
         return True
     last = last if last.tzinfo else last.replace(tzinfo=dt.timezone.utc)
     age = (dt.datetime.now(dt.timezone.utc) - last).total_seconds()
