@@ -18,7 +18,7 @@ from sqlalchemy import text  # noqa: E402
 
 from .db import SessionLocal, init_db  # noqa: E402
 from .middleware import RateLimit, RequestContext, configure_logging  # noqa: E402
-from .routers import admin, auth, billing, community, content, insight, lab, market, me, monitors, valuebot, workspace  # noqa: E402
+from .routers import admin, analyst, auth, billing, community, content, insight, lab, market, me, monitors, valuebot, workspace  # noqa: E402
 from .seed import seed_reference  # noqa: E402
 
 
@@ -34,13 +34,13 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="IRAI — Irradiance Research API", version="1.0", lifespan=lifespan)
+app = FastAPI(title="IRAI: Irradiance Research API", version="1.0", lifespan=lifespan)
 app.add_middleware(RateLimit)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
                    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["*"])
 app.add_middleware(RequestContext)
 
-for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin, insight, workspace):
+for r in (auth, market, monitors, content, community, me, billing, valuebot, lab, admin, insight, workspace, analyst):
     app.include_router(r.router)
 app.include_router(insight.buzz_router)
 

@@ -5,11 +5,11 @@
  },
  {
   "q": "Where does the data come from?",
-  "a": "Our research engines compute ADR, ETF and fundamental signals from market and filing data — prices and history from Yahoo Finance, filings from SEC EDGAR. Every number carries its source label: LIVE, PROXY (local market closed), STALE (last stored price) or DEMO. Licensed feeds replace the free adapters without changing the interface."
+  "a": "Our research engines compute ADR, ETF and fundamental signals from market and filing data: prices and history from Yahoo Finance, filings from SEC EDGAR. Every number carries its source label: LIVE, PROXY (local market closed), STALE (last stored price) or DEMO. Licensed feeds replace the free adapters without changing the interface."
  },
  {
   "q": "What does the grade actually measure?",
-  "a": "Each grade is a 0–100 percentile within a peer group — for example, Relative Value asks whether a name is cheap for its quality, growth and risk, not just cheap. The methodology page shows every input, formula and known limitation."
+  "a": "Each grade is a 0–100 percentile within a peer group. For example, Relative Value asks whether a name is cheap for its quality, growth and risk, not just cheap. The methodology page shows every input, formula and known limitation."
  },
  {
   "q": "Can I cancel or downgrade?",
@@ -17,7 +17,7 @@
  },
  {
   "q": "Why do some signals say “not tradable”?",
-  "a": "Because a gap is not always an opportunity. Borrow costs, ownership limits, stale fair values and round-trip costs can all make a deviation untradeable — we show the engine’s rejection reasons next to every signal."
+  "a": "Because a gap is not always an opportunity. Borrow costs, ownership limits, stale fair values and round-trip costs can all make a deviation untradeable. We show the engine’s rejection reasons next to every signal."
  },
  {
   "q": "Can I type any ticker?",

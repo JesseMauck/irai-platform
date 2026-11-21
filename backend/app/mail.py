@@ -92,4 +92,4 @@ def link(path: str) -> str:
     return settings.public_url.rstrip("/") + path
 
 
-FOOTER = "\n\n—\nIrradiance · Illuminating the market research.\nResearch and education only. Not investment advice."
+FOOTER = "\n\n--\nIrradiance · Illuminating markets.\nResearch and education only. Not investment advice."

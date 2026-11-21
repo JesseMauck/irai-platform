@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { TickerInput } from "@/components/TickerInput";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -77,7 +78,7 @@ function Lab() {
       <div className="grid gap-6 lg:grid-cols-4">
         <Card className="h-fit space-y-4 p-5">
           <div><label className="text-xs text-muted">Ticker</label>
-            <input value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-2 uppercase" /></div>
+            <div className="mt-1"><TickerInput value={symbol} onChange={setSymbol} /></div></div>
           <div><label className="text-xs text-muted">History</label>
             <div className="mt-1 flex gap-1">{["1y", "2y", "5y"].map(r => <button key={r} onClick={() => setRange(r)} className={`flex-1 rounded px-2 py-1 text-sm ${r === range ? "bg-accent text-fg" : "text-muted"}`}>{r}</button>)}</div></div>
           <div><label className="text-xs text-muted">Strategy</label>

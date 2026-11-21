@@ -42,7 +42,7 @@ export default function Reports() {
       </div>
       <ErrorNote error={error ?? err} />
       {!data ? <Skeleton /> : data.length === 0 ? (
-        <Card className="mt-6 p-8 text-center text-muted">{archived ? "Nothing archived." : q ? "No reports match." : "No reports yet — run your first valuation."}</Card>
+        <Card className="mt-6 p-8 text-center text-muted">{archived ? "Nothing archived." : q ? "No reports match." : "No reports yet. Run your first valuation."}</Card>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[760px] text-sm">
@@ -68,7 +68,7 @@ export default function Reports() {
           </table>
         </div>
       )}
-      <p className="mt-4 text-xs text-muted">&ldquo;Price then&rdquo; is the market price when the valuation ran. Research and education only — not investment advice.</p>
+      <p className="mt-4 text-xs text-muted">&ldquo;Price then&rdquo; is the market price when the valuation ran. Research and education only, not investment advice.</p>
     </div>
   );
 }

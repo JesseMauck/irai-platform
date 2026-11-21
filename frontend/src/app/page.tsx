@@ -8,15 +8,15 @@ import { backendJson, pageMeta } from "@/lib/seo";
 const ENGINES = [
   { href: "/monitor/adr", title: "ADR Monitor", body: "Cross-listed shares against their local lines, net of each pair’s structural basis. Every gap comes with the reasons it may not be tradable.",
     points: ["Premium vs basis ± 2σ band", "Z-score with entry/exit thresholds", "Half-life and borrow context"] },
-  { href: "/monitor/etf", title: "ETF Monitor", body: "Fund premiums and discounts against an estimate of portfolio value — and the implementation tier that tells you how much to trust it.",
+  { href: "/monitor/etf", title: "ETF Monitor", body: "Fund premiums and discounts against an estimate of portfolio value, plus the implementation tier that tells you how much to trust it.",
     points: ["NAV with implementation tiers", "Expense ratio and fund assets", "Flags for gaps that matter"] },
-  { href: "/monitor/fundamental", title: "Fundamental RV", body: "Peer-relative valuation: cheap or expensive for their quality, growth and risk — shown as a residual against a peer regression, not a raw multiple.",
+  { href: "/monitor/fundamental", title: "Fundamental RV", body: "Peer-relative valuation: cheap or expensive for their quality, growth and risk, measured as a residual against a peer regression, not a raw multiple.",
     points: ["Quality-adjusted residuals", "Peer groups with regression line", "Point-in-time grades"] },
 ];
 
 const AUDIENCES: [string, string][] = [
   ["Self-directed investors", "Stress-test a thesis before you act on it. See what growth and margins the current price assumes, and where your story differs."],
-  ["Analysts and students", "Get a complete, editable DCF in minutes — filings pulled, cost of capital priced, earnings normalised — then refine every input yourself."],
+  ["Analysts and students", "Get a complete, editable DCF in minutes: filings pulled, cost of capital priced, earnings normalised, then refine every input yourself."],
   ["Clubs, newsletters and small teams", "Share valuation reports and monitor views with a link. Every number carries its source, so the discussion is about assumptions, not data."],
 ];
 
@@ -28,9 +28,9 @@ const STEPS = [
 ];
 
 export const metadata = {
-  ...pageMeta("Irradiance.AI — AI stock valuation & relative-value research",
-    "Value any stock in minutes with ValueBot: AI-built DCF valuations from SEC filings, plus live ADR and ETF premium monitors and quality-adjusted relative-value grades — every assumption shown.", "/"),
-  title: { absolute: "Irradiance.AI — AI stock valuation & relative-value research" },
+  ...pageMeta("Irradiance.AI: AI stock valuation & relative-value research",
+    "Value any stock in minutes with ValueBot: AI-built DCF valuations from SEC filings, plus live ADR and ETF premium monitors and quality-adjusted relative-value grades, every assumption shown.", "/"),
+  title: { absolute: "Irradiance.AI: AI stock valuation & relative-value research" },
 };
 
 export default async function Home() {
@@ -42,14 +42,14 @@ export default async function Home() {
       <section className="hero-glow border-b border-line">
         <div className="mx-auto max-w-7xl px-4 py-20 md:py-28">
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-up" /> Live market data — press ⌘K and type any ticker
+            <span className="h-1.5 w-1.5 rounded-full bg-up" /> Live market data: press ⌘K and type any ticker
           </span>
           <h1 className="mt-6 max-w-4xl text-5xl font-semibold tracking-tight md:text-6xl">
             Value any stock in minutes. <span className="solar-text">See every assumption.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
             Irradiance.AI turns SEC filings and live market data into research you can check: AI-built DCF valuations,
-            ADR and ETF premium monitors, and relative-value grades that show their working — not black-box ratings.
+            ADR and ETF premium monitors, and relative-value grades that show their working, not black-box ratings.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button href="/valuebot">Value a stock free →</Button>
@@ -69,7 +69,7 @@ export default async function Home() {
           <div>
             <span className="text-xs uppercase tracking-wide text-primary">ValueBot · AI valuation</span>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight">Your thesis, turned into a valuation you can defend</h2>
-            <p className="mt-3 text-muted">Type a ticker and tell the story you believe — growth, margins, reinvestment, risk, moat. ValueBot reads the company&rsquo;s SEC filings, prices its cost of capital from live markets, and runs an 18-stage narrative-and-numbers DCF. In a few minutes you get an intrinsic value, the assumptions behind it, and what the market price already implies.</p>
+            <p className="mt-3 text-muted">Type a ticker and tell the story you believe: growth, margins, reinvestment, risk, moat. ValueBot reads the company&rsquo;s SEC filings, prices its cost of capital from live markets, and runs an 18-stage narrative-and-numbers DCF. In a few minutes you get an intrinsic value, the assumptions behind it, and what the market price already implies.</p>
             <ul className="mt-4 space-y-1 text-sm text-fg-2">
               <li>• FCFF DCF, excess-return (banks) or dividend discount, picked automatically</li>
               <li>• Possible / plausible / probable story tests</li>
@@ -141,7 +141,7 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 py-16">
         <div className="mb-6 flex items-end justify-between">
           <div><h2 className="text-2xl font-semibold">A community that shows its work</h2>
-            <p className="mt-1 text-muted">Trade posts capture entry prices from market data at posting time — members can prove when they called it, not just that they say they did.</p></div>
+            <p className="mt-1 text-muted">Trade posts capture entry prices from market data at posting time, so members can prove when they called it, not just that they say they did.</p></div>
           <Link href="/community" className="text-sm hover:text-primary">Browse the forum →</Link>
         </div>
         <HomeCommunity />
@@ -162,7 +162,7 @@ export default async function Home() {
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 py-14 md:flex-row md:items-center">
           <div>
             <h2 className="text-2xl font-semibold">See what the market is pricing in.</h2>
-            <p className="mt-1 text-muted">Run your first ValueBot valuation free — it takes about as long as reading this page.</p>
+            <p className="mt-1 text-muted">Run your first ValueBot valuation free. It takes about as long as reading this page.</p>
           </div>
           <div className="flex gap-3"><Button href="/valuebot">Value a stock free →</Button><Button href="/pricing" variant="outline">Compare plans</Button></div>
         </div>

@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 export const SITE = {
   url: "https://irradiance.ai",
   name: "Irradiance.AI",
-  tagline: "Illuminating the market research",
+  tagline: "Illuminating markets",
   description:
-    "AI-powered equity research: ValueBot DCF valuations from SEC filings, ADR and ETF premium monitors, and quality-adjusted relative-value grades — with every input and assumption shown.",
+    "AI-powered equity research: ValueBot DCF valuations from SEC filings, ADR and ETF premium monitors, and quality-adjusted relative-value grades, with every input and assumption shown.",
   twitter: "@irradianceai",
 };
 

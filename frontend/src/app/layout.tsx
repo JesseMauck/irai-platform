@@ -12,14 +12,14 @@ import { SITE } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: { default: "Irradiance.AI — AI stock valuation & relative-value research", template: "%s · Irradiance.AI" },
+  title: { default: "Irradiance.AI: AI stock valuation & relative-value research", template: "%s · Irradiance.AI" },
   description: SITE.description,
   applicationName: SITE.name,
   keywords: ["stock valuation", "DCF calculator", "AI stock analysis", "intrinsic value", "reverse DCF", "ADR arbitrage",
     "ADR premium", "ETF premium discount", "relative value", "equity research", "SEC filings", "backtesting"],
   alternates: { canonical: SITE.url },
-  openGraph: { type: "website", siteName: SITE.name, url: SITE.url, title: "Irradiance.AI — Illuminating the market research", description: SITE.description },
-  twitter: { card: "summary_large_image", site: SITE.twitter, title: "Irradiance.AI — Illuminating the market research", description: SITE.description },
+  openGraph: { type: "website", siteName: SITE.name, url: SITE.url, title: "Irradiance.AI: Illuminating markets", description: SITE.description },
+  twitter: { card: "summary_large_image", site: SITE.twitter, title: "Irradiance.AI: Illuminating markets", description: SITE.description },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   category: "finance",
 };
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         {/* Apply the saved or system theme before paint, so there's no flash. */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("irai-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement,t=localStorage.getItem("irai-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";d.dataset.theme=t;var a=localStorage.getItem("irai-accent");if(a)d.dataset.accent=a;var n=localStorage.getItem("irai-density");if(n)d.dataset.density=n}catch(e){}` }} />
         <JsonLd data={ORG_LD} />
       </head>
       <body className="min-h-screen">

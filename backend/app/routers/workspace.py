@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import re
 import statistics
 from typing import Any
@@ -17,7 +18,7 @@ from .. import fundamentals, research
 from ..config import settings
 from ..db import get_db
 from ..market import service
-from ..models import Article, Pin, ResearchTheme, Thread, User, Watchlist
+from ..models import Article, BuzzSnapshot, Pin, ResearchTheme, Thread, User, Watchlist
 from ..security import current_user, limits, optional_user
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
@@ -82,39 +83,238 @@ def themes(user: User | None = Depends(optional_user), db: Session = Depends(get
 
 
 @router.get("/themes/{slug}")
-def theme(slug: str, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
-    """Theme with live constituents, breadth, driver readings and buzz."""
+def theme(slug: str, bench: str = Query("SPY", pattern="^(SPY|QQQ|IWM|DIA|ACWI|VT)$"),
+          user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    """Theme dashboard: constituents with returns/risk/valuation, an equal-weight theme index vs SPY,
+    breadth, dispersion, correlation, leaders/laggards, driver readings and buzz."""
     t = _get_theme(db, slug, user)
     out = _theme_out(t, user, _pinned(db, user, "theme"))
-    rows = []
-    for sym in t.tickers[:25]:
-        try:
-            c = service.chart(sym, "1y")
-        except Exception:  # noqa: BLE001
-            continue
-        closes = [h["close"] for h in c["history"]]
-        q = c["quote"]
-        sma50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else None
-        rows.append({"symbol": sym, "name": q.get("name"), "price": q.get("price"), "change_pct": q.get("change_pct"),
-                     "ret_1m": closes[-1] / closes[-22] - 1 if len(closes) > 22 else None,
-                     "ret_ytd": _ytd(c["history"]), "above_50d": bool(sma50 and q.get("price") and q["price"] > sma50),
-                     "source": q.get("source")})
-    out["constituents"] = rows
-    m1 = [r["ret_1m"] for r in rows if r["ret_1m"] is not None]
-    out["breadth"] = {"above_50d_pct": (sum(r["above_50d"] for r in rows) / len(rows)) if rows else None,
-                      "median_1m": statistics.median(m1) if m1 else None, "count": len(rows)}
+    syms = t.tickers[:25]
+    out.update(theme_analytics(syms, bench))
+    buzz = {b.symbol: b for b in db.scalars(select(BuzzSnapshot).where(BuzzSnapshot.symbol.in_(syms))).all()} if syms else {}
+    for r in out["constituents"]:
+        b = buzz.get(r["symbol"])
+        r["buzz"] = {"score": b.score, "level": b.level} if b else None
     drivers = []
     for d in t.drivers:
         reading = None
         if d.get("symbol"):
             try:
-                q = service.quote(d["symbol"])
-                reading = {"symbol": d["symbol"], "price": q.get("price"), "change_pct": q.get("change_pct"), "source": q.get("source")}
+                c = service.chart(d["symbol"], "1y")
+                q = c["quote"]
+                rr = research._returns(c["history"])
+                reading = {"symbol": d["symbol"], "price": q.get("price"), "change_pct": q.get("change_pct"), "source": q.get("source"),
+                           "ret_1m": rr.get("1m"), "ret_3m": rr.get("3m"),
+                           "spark": [h["close"] for h in c["history"][-63:]]}
             except Exception:  # noqa: BLE001
                 pass
         drivers.append({**d, "reading": reading})
     out["drivers"] = drivers
     return out
+
+
+def _corr(a: list[float], b: list[float]) -> float | None:
+    n = min(len(a), len(b))
+    if n < 30:
+        return None
+    a, b = a[-n:], b[-n:]
+    ma, mb = statistics.fmean(a), statistics.fmean(b)
+    va = sum((x - ma) ** 2 for x in a)
+    vb = sum((y - mb) ** 2 for y in b)
+    if not va or not vb:
+        return None
+    return sum((x - ma) * (y - mb) for x, y in zip(a, b)) / math.sqrt(va * vb)
+
+
+def _rets_by_date(hist: list[dict]) -> dict[str, float]:
+    out, prev = {}, None
+    for h in hist:
+        c = h.get("close")
+        if c and prev:
+            out[h["date"]] = c / prev - 1
+        prev = c or prev
+    return out
+
+
+def theme_analytics(syms: list[str], bench: str = "SPY") -> dict[str, Any]:
+    from concurrent.futures import ThreadPoolExecutor
+
+    def load(sym: str):
+        try:
+            c = service.chart(sym, "1y")
+        except Exception:  # noqa: BLE001
+            return None
+        try:
+            info = service.info(sym)
+        except Exception:  # noqa: BLE001
+            info = {}
+        return sym, c, info
+
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        loaded = [x for x in ex.map(load, [*syms, bench]) if x]
+    bench_row = next((x for x in loaded if x[0] == bench), None)
+    loaded = [x for x in loaded if x[0] in syms]
+    rows, daily = [], {}
+    for sym, c, info in loaded:
+        closes = [h["close"] for h in c["history"] if h.get("close")]
+        q = c["quote"]
+        rr = research._returns(c["history"])
+        sma50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else None
+        sma200 = sum(closes[-200:]) / 200 if len(closes) >= 200 else None
+        hi = max(closes[-252:]) if closes else None
+        daily[sym] = _rets_by_date(c["history"])
+        rows.append({"symbol": sym, "name": info.get("name") or q.get("name"), "price": q.get("price"), "change_pct": q.get("change_pct"),
+                     "ret_1m": rr["1m"], "ret_3m": rr["3m"], "ret_ytd": _ytd(c["history"]), "ret_1y": rr["12m"],
+                     "volatility": rr["volatility"], "max_drawdown": rr["max_drawdown"],
+                     "from_high": (closes[-1] / hi - 1) if hi else None,
+                     "above_50d": bool(sma50 and closes and closes[-1] > sma50), "above_200d": bool(sma200 and closes and closes[-1] > sma200),
+                     "market_cap": info.get("market_cap"), "forward_pe": info.get("forward_pe"), "ev_ebitda": info.get("ev_ebitda"),
+                     "revenue_growth": info.get("revenue_growth"), "operating_margin": info.get("operating_margin"),
+                     "dividend_yield": info.get("dividend_yield"), "beta": info.get("beta"), "sector": info.get("sector"),
+                     "source": q.get("source")})
+    # equal-weight index (daily rebalanced) on common dates, rebased to 100
+    dates = sorted(set().union(*[set(d) for d in daily.values()])) if daily else []
+    idx, level = [], 100.0
+    for d in dates:
+        rs = [daily[s][d] for s in daily if d in daily[s]]
+        if len(rs) >= max(1, len(daily) // 2):
+            level *= 1 + statistics.fmean(rs)
+            idx.append({"date": d, "theme": round(level, 3)})
+    bench_out = None
+    if bench_row and idx:
+        bh = {h["date"]: h["close"] for h in bench_row[1]["history"] if h.get("close")}
+        base = next((bh[p["date"]] for p in idx if p["date"] in bh), None)
+        for p in idx:
+            if base and p["date"] in bh:
+                p["bench"] = round(bh[p["date"]] / base * 100, 3)
+        bclose = [h["close"] for h in bench_row[1]["history"] if h.get("close")]
+        br = research._returns(bench_row[1]["history"])
+        bench_out = {"symbol": bench, "ret_1m": br["1m"], "ret_3m": br["3m"], "ret_ytd": _ytd(bench_row[1]["history"]), "ret_1y": br["12m"],
+                     "volatility": br["volatility"], "max_drawdown": br["max_drawdown"], "source": bench_row[1]["quote"].get("source"), "last": bclose[-1] if bclose else None}
+
+    def idx_ret(n: int | None = None, ytd: bool = False):
+        if not idx:
+            return None
+        if ytd:
+            y = str(dt.date.today().year)
+            prior = [p for p in idx if p["date"] < y]
+            return idx[-1]["theme"] / prior[-1]["theme"] - 1 if prior else None
+        return idx[-1]["theme"] / idx[-1 - n]["theme"] - 1 if len(idx) > n else None
+
+    ir = [b / a - 1 for a, b in zip([p["theme"] for p in idx], [p["theme"] for p in idx][1:])]
+    peak, mdd = 0.0, 0.0
+    for p in idx:
+        peak = max(peak, p["theme"])
+        mdd = min(mdd, p["theme"] / peak - 1)
+    theme_stats = {"ret_1m": idx_ret(21), "ret_3m": idx_ret(63), "ret_ytd": idx_ret(ytd=True), "ret_1y": idx_ret(250),
+                   "volatility": statistics.pstdev(ir) * math.sqrt(252) if len(ir) > 20 else None, "max_drawdown": mdd if idx else None}
+    if bench_row and len(ir) > 30:
+        bd = _rets_by_date(bench_row[1]["history"])
+        pairs = [(r, bd[p["date"]]) for r, p in zip(ir, idx[1:]) if p["date"] in bd]
+        if len(pairs) > 30:
+            xs, ys = [b for _, b in pairs], [a for a, _ in pairs]
+            vb = statistics.pvariance(xs)
+            theme_stats["beta_vs_bench"] = (sum((x - statistics.fmean(xs)) * (y - statistics.fmean(ys)) for x, y in pairs) / len(pairs) / vb) if vb else None
+            theme_stats["corr_vs_bench"] = _corr(ys, xs)
+    # average pairwise correlation over the last 6 months (diversification inside the theme)
+    keys = list(daily)
+    recent = dates[-126:]
+    cors = []
+    for i in range(len(keys)):
+        for j in range(i + 1, len(keys)):
+            a = [daily[keys[i]][d] for d in recent if d in daily[keys[i]] and d in daily[keys[j]]]
+            b = [daily[keys[j]][d] for d in recent if d in daily[keys[i]] and d in daily[keys[j]]]
+            c = _corr(a, b)
+            if c is not None:
+                cors.append(c)
+
+    def med(k: str):
+        v = [r[k] for r in rows if r.get(k) is not None and not (k in ("forward_pe", "ev_ebitda") and r[k] <= 0)]
+        return statistics.median(v) if v else None
+
+    m1 = [r["ret_1m"] for r in rows if r["ret_1m"] is not None]
+    ranked = sorted([r for r in rows if r["ret_1m"] is not None], key=lambda r: r["ret_1m"], reverse=True)
+    caps = sum(r["market_cap"] or 0 for r in rows)
+    return {
+        "constituents": rows,
+        "breadth": {"above_50d_pct": (sum(r["above_50d"] for r in rows) / len(rows)) if rows else None,
+                    "above_200d_pct": (sum(r["above_200d"] for r in rows) / len(rows)) if rows else None,
+                    "advancing_pct": (sum(1 for r in rows if (r["change_pct"] or 0) > 0) / len(rows)) if rows else None,
+                    "median_1m": statistics.median(m1) if m1 else None,
+                    "dispersion_1m": (statistics.pstdev(m1) if len(m1) > 2 else None), "count": len(rows)},
+        "index": {"series": idx, "stats": theme_stats, "bench": bench_out,
+                  "method": "Equal-weight, rebalanced daily, rebased to 100 one year ago. Benchmark rebased on the same date."},
+        "correlation": {"avg_pairwise_6m": statistics.fmean(cors) if cors else None, "pairs": len(cors)},
+        "valuation": {"median_forward_pe": med("forward_pe"), "median_ev_ebitda": med("ev_ebitda"), "median_revenue_growth": med("revenue_growth"),
+                      "median_operating_margin": med("operating_margin"), "median_dividend_yield": med("dividend_yield"),
+                      "total_market_cap": caps or None},
+        "leaders": [{"symbol": r["symbol"], "ret_1m": r["ret_1m"]} for r in ranked[:3]],
+        "laggards": [{"symbol": r["symbol"], "ret_1m": r["ret_1m"]} for r in ranked[-3:][::-1]] if len(ranked) > 3 else [],
+        "sectors": _sector_mix(rows),
+    }
+
+
+def _when(v: Any) -> str | None:
+    """RSS pubDate (RFC 822) or GDELT seendate (20261120T153000Z) → ISO 8601."""
+    from email.utils import parsedate_to_datetime
+
+    if not v:
+        return None
+    try:
+        return parsedate_to_datetime(str(v)).astimezone(dt.timezone.utc).isoformat()
+    except (TypeError, ValueError):
+        pass
+    try:
+        return dt.datetime.strptime(str(v), "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc).isoformat()
+    except ValueError:
+        return None
+
+
+def _sector_mix(rows: list[dict]) -> list[dict]:
+    mix: dict[str, int] = {}
+    for r in rows:
+        mix[r.get("sector") or "ETF / other"] = mix.get(r.get("sector") or "ETF / other", 0) + 1
+    return [{"sector": k, "count": v} for k, v in sorted(mix.items(), key=lambda kv: -kv[1])]
+
+
+@router.get("/themes/{slug}/news")
+def theme_news(slug: str, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    """Merged headline feed for the theme's largest constituents plus upcoming earnings dates (catalysts)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    t = _get_theme(db, slug, user)
+    syms = t.tickers[:10]
+
+    def one(sym: str):
+        try:
+            hs = research.headlines(sym, limit=6)
+        except Exception:  # noqa: BLE001
+            hs = []
+        nxt = None
+        try:
+            e = fundamentals.earnings(sym)
+            nxt = next((x for x in reversed(e.get("quarterly") or []) if x.get("upcoming")), None)
+        except Exception:  # noqa: BLE001
+            pass
+        return sym, hs, nxt
+
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        res = list(ex.map(one, syms))
+    seen, items = set(), []
+    for sym, hs, _ in res:
+        for h in hs:
+            key = (h.get("title") or "").strip().lower()[:90]
+            if key and key not in seen:
+                seen.add(key)
+                items.append({**h, "symbol": sym})
+    for h in items:
+        h["published_iso"] = _when(h.get("published"))
+    items.sort(key=lambda h: h["published_iso"] or "", reverse=True)
+    cats = sorted([{"symbol": s, "date": n.get("date"), "eps_estimate": n.get("eps_estimate")} for s, _, n in res if n and n.get("date")],
+                  key=lambda c: str(c["date"]))
+    return {"slug": slug, "headlines": items[:30], "catalysts": cats, "source": "LIVE" if settings.live else "DEMO",
+            "provider": {"label": "Yahoo Finance RSS and GDELT (headlines); Yahoo Finance (earnings calendar)", "url": None},
+            "as_of": dt.datetime.now(dt.timezone.utc).isoformat()}
 
 
 def _ytd(hist: list[dict]) -> float | None:
@@ -123,43 +323,65 @@ def _ytd(hist: list[dict]) -> float | None:
     return hist[-1]["close"] / prior[-1]["close"] - 1 if prior and hist else None
 
 
-@router.get("/themes/{slug}/pestel")
-def theme_pestel(slug: str, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
-    """PESTEL radar: news attention (7 days vs the 30-day norm), tone and headlines per factor, from GDELT."""
-    t = _get_theme(db, slug, user)
+PESTEL_TTL_H = 6
+
+
+def compute_pestel(t: ResearchTheme) -> dict[str, Any]:
+    """Query GDELT for each PESTEL factor (volume + headlines) plus one theme-level tone series.
+    GDELT is slow and throttles bursts, so calls run 3 at a time and results are cached on the theme."""
+    from concurrent.futures import ThreadPoolExecutor
+
     base = " OR ".join(f'"{k}"' if " " in k else k for k in (t.keywords or [t.name]))
     base = f"({base})" if " OR " in base else base
-    out: dict[str, Any] = {"slug": slug, "factors": [], "provider": {"label": "GDELT Project (open news data)",
-                                                                        "url": "https://www.gdeltproject.org/"}}
-    if not settings.live:
-        out["factors"] = [{"key": k, "label": lab, "attention": None, "tone": None, "headlines": []} for k, (lab, _) in PESTEL.items()]
-        out["source"] = "DEMO"
-        return out
-    for key, (label, terms) in PESTEL.items():
-        query = f"{base} {terms} sourcelang:english"
 
-        def fetch(query=query):
-            vol = research._gdelt({"query": query, "mode": "timelinevolraw", "timespan": "30d"})
-            tone = research._gdelt({"query": query, "mode": "timelinetone", "timespan": "7d"})
-            arts = research._gdelt({"query": query, "mode": "artlist", "maxrecords": "5", "sort": "hybridrel", "timespan": "7d"})
-            return vol, tone, arts
-
+    def one(key: str) -> dict[str, Any]:
+        label, terms = PESTEL[key]
+        q = f"{base} {terms} sourcelang:english"
         try:
-            vol, tone, arts = research._memo("pestel", f"{slug}:{key}", 3 * 3600, fetch)
+            vol = research._gdelt({"query": q, "mode": "timelinevolraw", "timespan": "30d"})
+            arts = research._gdelt({"query": q, "mode": "artlist", "maxrecords": "5", "sort": "hybridrel", "timespan": "7d"})
         except Exception as e:  # noqa: BLE001
-            out["factors"].append({"key": key, "label": label, "error": type(e).__name__, "headlines": []})
-            continue
+            return {"key": key, "label": label, "attention": None, "tone": None, "error": type(e).__name__, "headlines": []}
         series = research.parse_gdelt_timeline(vol)
         recent, norm = (sum(series[-7:]) / 7, statistics.mean(series[:-7])) if len(series) > 14 else (None, None)
-        tones = research.parse_gdelt_timeline(tone)
-        out["factors"].append({
-            "key": key, "label": label, "articles_7d_avg": recent, "articles_30d_avg": norm,
-            "attention": (recent / norm) if recent is not None and norm else None,
-            "tone": statistics.mean(tones) if tones else None,
-            "headlines": [{"title": a.get("title"), "url": a.get("url"), "domain": a.get("domain"), "seen": a.get("seendate")}
-                          for a in (arts.get("articles") or [])[:5]]})
-    out["source"] = "LIVE"
-    out["note"] = "Attention 1.0 = normal news flow for this theme and factor; above 1.5 is unusually active. Tone ranges roughly −10 to +10."
+        return {"key": key, "label": label, "articles_7d_avg": recent, "articles_30d_avg": norm,
+                "attention": (recent / norm) if recent is not None and norm else None, "tone": None,
+                "headlines": [{"title": a.get("title"), "url": a.get("url"), "domain": a.get("domain"), "seen": a.get("seendate")}
+                              for a in (arts.get("articles") or [])[:5]]}
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        factors = list(ex.map(one, PESTEL))
+    try:
+        tones = research.parse_gdelt_timeline(research._gdelt({"query": f"{base} sourcelang:english", "mode": "timelinetone", "timespan": "7d"}))
+        theme_tone = statistics.mean(tones) if tones else None
+    except Exception:  # noqa: BLE001
+        theme_tone = None
+    return {"slug": t.slug, "factors": factors, "theme_tone": theme_tone, "source": "LIVE",
+            "provider": {"label": "GDELT Project (open news data)", "url": "https://www.gdeltproject.org/"},
+            "note": "Attention 1.0 = normal news flow for this theme and factor; above 1.5 is unusually active. Tone is GDELT's "
+                    "average article tone for the theme over 7 days, roughly −10 (negative) to +10 (positive).",
+            "computed_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+
+
+def pestel_fresh(t: ResearchTheme) -> bool:
+    at = t.pestel_at
+    if at is not None and at.tzinfo is None:
+        at = at.replace(tzinfo=dt.timezone.utc)
+    return bool(t.pestel and at and dt.datetime.now(dt.timezone.utc) - at < dt.timedelta(hours=PESTEL_TTL_H))
+
+
+@router.get("/themes/{slug}/pestel")
+def theme_pestel(slug: str, refresh: bool = False, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    """PESTEL radar from GDELT, cached on the theme for 6 hours (the worker refreshes curated themes)."""
+    t = _get_theme(db, slug, user)
+    if not settings.live:
+        return {"slug": slug, "source": "DEMO", "theme_tone": None, "provider": {"label": "GDELT Project (open news data)", "url": "https://www.gdeltproject.org/"},
+                "factors": [{"key": k, "label": lab, "attention": None, "tone": None, "headlines": []} for k, (lab, _) in PESTEL.items()]}
+    if t.pestel and (pestel_fresh(t) or not (refresh and user and t.owner_id == user.id)):
+        return {**t.pestel, "cached_at": t.pestel_at.isoformat() if t.pestel_at else None, "stale": not pestel_fresh(t)}
+    out = compute_pestel(t)
+    t.pestel, t.pestel_at = out, dt.datetime.now(dt.timezone.utc)
+    db.commit()
     return out
 
 
@@ -329,7 +551,7 @@ def _rule_based_read(table: dict[str, Any]) -> str:
     if graded:
         lines.append(f"- Highest overall quant grade: {graded[0]['symbol']} ({graded[0]['rating']}, {graded[0]['rating_label']})")
     lines += ["", "Trade-offs: cheaper names often carry lower growth or quality; check whether a valuation gap is explained "
-              "by the grades before treating it as an opportunity. Research and education only — not investment advice."]
+              "by the grades before treating it as an opportunity. Research and education only, not investment advice."]
     return "\n".join(lines)
 
 

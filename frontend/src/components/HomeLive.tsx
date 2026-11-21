@@ -17,7 +17,7 @@ export function HomeAdrPreview() {
       <Card className="p-4 lg:col-span-2">
         {pair ? <>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="font-semibold">{pair.adr_symbol} vs {pair.local_symbol} — premium to local</h3><SourceBadge source={pair.source} />
+            <h3 className="font-semibold">{pair.adr_symbol} vs {pair.local_symbol}: premium to local</h3><SourceBadge source={pair.source} />
           </div>
           <AdrChart row={pair} height={240} />
           <p className="mt-2 text-xs text-muted">Premium (amber) vs structural basis (dashed) with a ±2σ band.</p>
@@ -33,7 +33,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
   if (!g) return <Card className="p-6"><Skeleton rows={6} /></Card>;
   if (g.locked) return (
     <Card className="relative overflow-hidden p-6">
-      <h3 className="text-sm text-muted">Relative Value — <span className="font-semibold text-fg">{g.symbol}</span></h3>
+      <h3 className="text-sm text-muted">Relative Value: <span className="font-semibold text-fg">{g.symbol}</span></h3>
       <div className="mt-3 flex items-end gap-3"><div className="select-none stat text-4xl blur-sm">88th percentile</div><GradeChip grade={g.grade} /></div>
       <div className="mt-5 select-none space-y-2 blur-sm">{["Peer group", "Multiple", "Quality composite", "Residual", "Coverage confidence"].map(k => <div key={k} className="flex justify-between text-sm"><span className="text-muted">{k}</span><span>00.0x vs 00.0x</span></div>)}</div>
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-card via-card/95 to-transparent p-6 pt-16 text-center">
@@ -54,7 +54,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between">
-        <h3 className="text-sm text-muted">Relative Value — <Link href={`/ticker/${g.symbol}`} className="font-semibold text-fg hover:text-primary">{g.symbol}</Link></h3>
+        <h3 className="text-sm text-muted">Relative Value: <Link href={`/ticker/${g.symbol}`} className="font-semibold text-fg hover:text-primary">{g.symbol}</Link></h3>
         <SourceBadge source={g.source} />
       </div>
       <div className="mt-3 flex items-end gap-3"><div className="stat text-4xl num">{ord(g.rv_percentile)} percentile</div><GradeChip grade={g.grade} /></div>
@@ -63,7 +63,7 @@ export function HomeGradeCard({ symbol = "NVDA" }: { symbol?: string }) {
       </dl>
       <p className="mt-4 rounded-lg bg-accent/60 p-3 text-sm text-fg-2">
         <span className="font-medium text-fg">Plain language:</span> {g.name} trades at {x(g.multiple)} against a peer median of {x(g.peer_median_multiple)}.
-        After adjusting for quality, the residual sits at the {ord(g.rv_percentile)} percentile — {cheap ? "cheap for what it is, not merely cheap" : "rich for what it is, not merely expensive"}.
+        After adjusting for quality, the residual sits at the {ord(g.rv_percentile)} percentile: {cheap ? "cheap for what it is, not merely cheap" : "rich for what it is, not merely expensive"}.
       </p>
     </Card>
   );
@@ -81,7 +81,7 @@ export function HomeCommunity() {
             <li key={t.id} className="py-2.5"><Link href={`/community/threads/${t.id}`} className="text-sm font-medium hover:text-primary">{t.title}</Link>
               <div className="text-xs text-muted">{t.community} · @{t.author} · {t.replies} replies · {ago(t.last_activity_at)}</div></li>
           ))}
-          {threads?.length === 0 && <li className="py-3 text-sm text-muted">No threads yet — start one.</li>}
+          {threads?.length === 0 && <li className="py-3 text-sm text-muted">No threads yet. Start one.</li>}
         </ul>
       </Card>
       <Card className="p-5">

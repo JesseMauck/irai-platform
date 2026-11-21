@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { compact, num, pct } from "@/lib/format";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, ErrorNote, PageHeader, SourceBadge } from "@/components/ui";
+import { TickerInput } from "@/components/TickerInput";
 
 interface MC {
   mode: "price" | "portfolio"; symbols: string[]; weights: number[]; start_value: number; horizon_days: number; paths: number; method: string;
@@ -61,6 +62,12 @@ function MonteCarlo() {
   const [mc, setMc] = useState<MC | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<Error | null>(null);
   const portfolio = rows.length > 1;
+  // Pick up ?symbol= (and ?symbols=A,B) on first load and on client-side navigation from a ticker page.
+  const qsSym = sp.get("symbol"), qsSyms = sp.get("symbols");
+  useEffect(() => {
+    if (qsSyms) setRows(qsSyms.split(",").filter(Boolean).slice(0, 10).map(s => ({ symbol: s.toUpperCase(), weight: "1" })));
+    else if (qsSym) setRows([{ symbol: qsSym.toUpperCase(), weight: "1" }]);
+  }, [qsSym, qsSyms]);
   const run = async () => {
     setBusy(true); setErr(null);
     const f = (s: string) => (s.trim() ? parseFloat(s) : null);
@@ -82,7 +89,7 @@ function MonteCarlo() {
           <div><div className="mb-1 text-xs text-muted">Holdings {portfolio && "(weights are normalised)"}</div>
             {rows.map((r, i) => (
               <div key={i} className="mb-2 flex gap-2">
-                <input value={r.symbol} onChange={e => setRows(rows.map((x, j) => j === i ? { ...x, symbol: e.target.value } : x))} placeholder="Ticker" aria-label="Ticker" className="w-full rounded border border-line bg-bg px-2 py-1.5 text-sm uppercase" />
+                <TickerInput value={r.symbol} onChange={v => setRows(rs => rs.map((x, j) => j === i ? { ...x, symbol: v } : x))} />
                 {portfolio && <input value={r.weight} onChange={e => setRows(rows.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))} aria-label="Weight" className="w-20 rounded border border-line bg-bg px-2 py-1.5 text-right text-sm" />}
                 {rows.length > 1 && <button onClick={() => setRows(rows.filter((_, j) => j !== i))} aria-label="Remove" className="text-muted hover:text-down">×</button>}
               </div>))}

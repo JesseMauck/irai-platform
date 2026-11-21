@@ -71,6 +71,7 @@ export default function Account() {
           </Card>
           <ApiKeys plan={user.plan} />
           <Card className="p-5"><h2 className="font-semibold">ValueBot</h2><p className="mt-1 text-sm text-muted">Your valuations, notes and models.</p><Button href="/valuebot/reports" variant="outline" className="mt-3 w-full">My reports</Button></Card>
+          <Card className="p-5"><h2 className="font-semibold">Customize</h2><p className="mt-1 text-sm text-muted">Theme, accent colour, start page, your own ticker bar and default views.</p><Button href="/account/customize" variant="outline" className="mt-3 w-full">Customize Irradiance</Button></Card>
           <YourData />
         </div>
       </div>

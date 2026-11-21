@@ -437,3 +437,44 @@ def delete_account(body: DeleteIn, user: User = Depends(current_user), db: Sessi
     db.delete(user)
     db.commit()
     return {"ok": True}
+
+
+# ── customization ────────────────────────────────────────────────────────────────────────────────
+from typing import Literal  # noqa: E402
+
+TICKER_TABS = Literal["summary", "analyst", "chart", "financials", "earnings", "dividends", "peers-ratios", "technicals", "filings", "news", "analysis", "preferreds"]
+LANDINGS = Literal["/", "/terminal", "/research", "/monitor/adr", "/valuebot/reports", "/account", "/community", "/lab"]
+
+
+class Preferences(BaseModel):
+    theme: Literal["system", "light", "dark"] = "system"
+    accent: Literal["solar", "ocean", "emerald", "violet", "mono"] = "solar"
+    density: Literal["comfortable", "compact"] = "comfortable"
+    landing: LANDINGS = "/"
+    ticker_bar: list[str] = Field(default_factory=list, max_length=20)
+    default_ticker_tab: TICKER_TABS = "summary"
+    chart_range: Literal["1mo", "3mo", "6mo", "1y", "5y"] = "1y"
+    benchmark: Literal["SPY", "QQQ", "IWM", "DIA", "ACWI", "VT"] = "SPY"
+    show_tab_guides: bool = True
+    show_ticker_bar: bool = True
+
+
+@router.get("/preferences")
+def get_preferences(user: User = Depends(current_user)):
+    return Preferences(**(user.preferences or {})).model_dump()
+
+
+@router.put("/preferences")
+def put_preferences(body: Preferences, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    import re
+
+    syms, seen = [], set()
+    for s in body.ticker_bar:
+        s = s.strip().upper()
+        if re.match(r"^[A-Z0-9.\-=^]{1,20}$", s) and s not in seen:
+            seen.add(s)
+            syms.append(s)
+    body.ticker_bar = syms
+    user.preferences = body.model_dump()
+    db.commit()
+    return user.preferences

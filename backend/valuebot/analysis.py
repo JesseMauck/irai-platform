@@ -127,7 +127,7 @@ def risk_inputs(snap: dict, metrics: list[dict], risk: dict | None) -> dict[str,
         m = damodaran.best_match(snap.get("industry"), table)
         if m:
             bu = adj.bottom_up_beta([{"name": m, "weight": 1, "unlevered_beta": table[m]}], de, US_MARGINAL_TAX)
-            beta, beta_src, segs = bu["levered_beta"], f"Bottom-up beta: Damodaran industry '{m}'", bu
+            beta, beta_src, segs = bu["levered_beta"], f"Bottom-up beta: '{m}' industry average (NYU Stern public datasets)", bu
     if snap.get("beta") and not segs:
         notes.append("Regression betas are backward looking and noisy; enter business segments for a bottom-up beta.")
 
@@ -140,7 +140,7 @@ def risk_inputs(snap: dict, metrics: list[dict], risk: dict | None) -> dict[str,
             if _f(e.get("crp")) is None:
                 m = damodaran.best_match(e["region"], table, cutoff=0.7)
                 e["crp"] = table[m] if m else 0.0
-                e["crp_source"] = f"Damodaran: {m}" if m else "not found: assumed 0"
+                e["crp_source"] = f"Country risk premium dataset: {m}" if m else "not found: assumed 0"
     erp, crp = adj.erp_from_exposure(settings.equity_risk_premium,
                                      [{**e, "weight": _f(e.get("weight")) or 0, "crp": _f(e.get("crp")) or 0} for e in exposures])
     erp_src = (f"Mature ERP {settings.equity_risk_premium:.2%} + revenue-weighted country risk {crp:.2%}"

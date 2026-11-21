@@ -3,13 +3,16 @@ import Link from "next/link";
 import type { TickerBarItem } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { num, pct } from "@/lib/format";
+import { useAuth } from "@/components/AuthProvider";
 
 export function TickerBar() {
-  const { data } = useApi<TickerBarItem[]>("/api/market/tickerbar", 30_000);
+  const { user, prefs } = useAuth();
+  const { data } = useApi<TickerBarItem[]>("/api/market/tickerbar", 30_000, [user?.id, prefs.ticker_bar.join(",")]);
+  if (user && !prefs.show_ticker_bar) return null;
   const items = data ?? [];
   const demo = items.some(i => i.source !== "LIVE");
   return (
-    <div className="flex h-9 items-center overflow-hidden border-b border-line bg-card/60 text-xs">
+    <div className="flex h-9 items-center overflow-hidden border-b border-line bg-card/60 text-xs print:hidden">
       <span className="z-10 shrink-0 border-r border-line bg-card px-3 py-2 text-muted">
         {items.length === 0 ? "Loading markets…" : demo ? "Markets · some prices demo/stale" : "Markets · live"}
       </span>

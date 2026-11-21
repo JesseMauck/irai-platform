@@ -395,14 +395,14 @@ export function TechnicalsPanel({ symbol }: { symbol: string }) {
 }
 
 // ── Filings, news, preferreds, analysis ─────────────────────────────────────────────────────────
-interface Filings { filings: { form: string; label: string; date: string; url: string }[]; source: string; note?: string; edgar_url?: string; company?: string }
+interface Filings { filings: { form: string; label: string; date: string; url: string; routine?: boolean }[]; source: string; note?: string; edgar_url?: string; company?: string }
 
 export function FilingsPanel({ symbol, limit = 25 }: { symbol: string; limit?: number }) {
   const { data: f } = useApi<Filings>(`/api/insight/${encodeURIComponent(symbol)}/filings`);
-  const [form, setForm] = useState("All");
+  const [form, setForm] = useState("Key");
   if (!f) return <Card className="p-5"><Skeleton rows={6} /></Card>;
-  const forms = ["All", ...Array.from(new Set(f.filings.map(x => x.form))).slice(0, 8)];
-  const rows = f.filings.filter(x => form === "All" || x.form === form).slice(0, limit);
+  const forms = ["Key", "All", ...Array.from(new Set(f.filings.filter(x => !x.routine).map(x => x.form))).slice(0, 7)];
+  const rows = f.filings.filter(x => form === "All" || (form === "Key" ? !x.routine : x.form === form)).slice(0, limit);
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">SEC filings</h2>

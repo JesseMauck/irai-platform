@@ -98,7 +98,10 @@ def ratings(symbol: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001
         info = {}
     r = _returns(hist)
-    g = info.get
+    def g(k):  # treat non-meaningful zeros (e.g. banks report no gross margin) as missing
+        v = info.get(k)
+        return None if k in ("gross_margin", "ev_ebitda") and (v is None or v <= 0) else v
+
     pe = g("forward_pe") or g("trailing_pe")
     factors = {
         "valuation": {"score": _avg([_scale(pe, 8, 45, invert=True) if pe and pe > 0 else None,
@@ -158,6 +161,11 @@ FORM_LABELS = {"10-K": "Annual report", "10-Q": "Quarterly report", "8-K": "Curr
                "424B2": "Prospectus", "N-CSR": "Fund shareholder report", "N-PORT-P": "Fund portfolio holdings"}
 
 
+# High-volume filings (structured-note prospectuses, free-writing prospectuses, plan registrations) that bury
+# the reports investors care about; shown only when "All filings" is selected.
+ROUTINE_FORMS = {"424B2", "424B3", "424B4", "424B5", "424B7", "FWP", "S-8", "S-8 POS", "11-K", "CORRESP", "UPLOAD", "SC 13G/A", "13F-HR/A"}
+
+
 def _cik(symbol: str) -> int | None:
     from valuebot.data import sec
 
@@ -167,7 +175,7 @@ def _cik(symbol: str) -> int | None:
         return None
 
 
-def filings(symbol: str, limit: int = 40) -> dict[str, Any]:
+def filings(symbol: str, limit: int = 60) -> dict[str, Any]:
     symbol = service.normalise_symbol(symbol)
     if not settings.live:
         return {"symbol": symbol, "filings": [], "source": "DEMO", "note": "SEC filings need live mode."}
@@ -179,13 +187,18 @@ def filings(symbol: str, limit: int = 40) -> dict[str, Any]:
         with _http() as c:
             subs = c.get(SEC_SUBMISSIONS.format(cik=cik)).raise_for_status().json()
         rec = subs.get("filings", {}).get("recent", {})
-        out = []
+        out, n_key, n_routine = [], 0, 0
         for form, acc, date, doc, desc in zip(rec.get("form", []), rec.get("accessionNumber", []), rec.get("filingDate", []),
                                               rec.get("primaryDocument", []), rec.get("primaryDocDescription", [])):
-            out.append({"form": form, "label": FORM_LABELS.get(form, desc or form), "date": date,
+            routine = form in ROUTINE_FORMS
+            if (routine and n_routine >= 15) or (not routine and n_key >= limit):
+                if n_key >= limit:
+                    break
+                continue
+            n_routine += routine
+            n_key += not routine
+            out.append({"form": form, "label": FORM_LABELS.get(form, desc or form), "date": date, "routine": routine,
                         "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{doc}"})
-            if len(out) >= limit:
-                break
         return {"symbol": symbol, "cik": cik, "company": subs.get("name"), "filings": out, "source": "LIVE",
                 "edgar_url": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}"}
 

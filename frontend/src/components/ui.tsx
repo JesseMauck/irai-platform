@@ -66,7 +66,7 @@ export function LockedRows({ locked, what = "rows" }: { locked: number; what?: s
 }
 
 export function DataNote({ children }: { children?: React.ReactNode }) {
-  return <p className="mt-3 text-xs text-muted">{children ?? "LIVE = market feed (US quotes usually real-time; many non-US exchanges delayed 15–20 min). EOD = official end-of-day open data (ECB FX reference rates, U.S. Treasury yields). STALE = last stored price. DEMO = synthetic placeholder shown only when no real data is available. Research and education only — not investment advice."}</p>;
+  return <p className="mt-3 text-xs text-muted">{children ?? "LIVE = market feed (US quotes usually real-time; many non-US exchanges delayed 15–20 min). EOD = official end-of-day open data (ECB FX reference rates, U.S. Treasury yields). STALE = last stored price. DEMO = synthetic placeholder shown only when no real data is available. Research and education only, not investment advice."}</p>;
 }
 
 export function TickerLink({ symbol, className = "" }: { symbol: string; className?: string }) {

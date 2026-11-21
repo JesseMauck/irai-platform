@@ -67,7 +67,7 @@ export function NotesEditor({ jobId, initial, updatedAt }: { jobId: string; init
         <textarea value={text} onChange={e => setText(e.target.value)} rows={14} placeholder={"## My thesis\n\n- What has to go right\n- What would change my mind\n\n## Catalysts\n"}
           className="mt-3 w-full rounded-lg border border-line bg-bg p-3 font-mono text-sm leading-6" />
       ) : (
-        <div className="prose-irai mt-2 min-h-24">{text ? <ReactMarkdown>{text}</ReactMarkdown> : <p className="text-muted">No notes yet — switch to Write.</p>}</div>
+        <div className="prose-irai mt-2 min-h-24">{text ? <ReactMarkdown>{text}</ReactMarkdown> : <p className="text-muted">No notes yet. Switch to Write.</p>}</div>
       )}
       <div className="mt-3 flex items-center gap-3">
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save notes"}</Button>

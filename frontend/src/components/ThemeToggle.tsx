@@ -1,17 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 type Theme = "light" | "dark";
 
 /** Light/dark switch. The choice is saved in this browser; until then the system setting is used. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
+  const { user, prefs, savePrefs } = useAuth();
   useEffect(() => { setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark"); }, []);
   const toggle = () => {
     const next: Theme = theme === "light" ? "dark" : "light";
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem("irai-theme", next); } catch { /* storage unavailable */ }
     setTheme(next);
+    if (user) savePrefs({ ...prefs, theme: next }).catch(() => {});
   };
   const label = theme === "light" ? "Switch to dark mode" : "Switch to light mode";
   return (

@@ -87,7 +87,7 @@ function Compare() {
                 <span className="text-xs text-muted">{res.analysis.engine === "claude" ? `Written by Claude (${res.analysis.model}) from the table above` : "Rule-based summary"}</span></div>
               <div className="prose-irai mt-2"><ReactMarkdown>{res.analysis.markdown}</ReactMarkdown></div>
               {res.analysis.note && <p className="mt-3 text-xs text-muted">{res.analysis.note}</p>}
-              <p className="mt-3 text-[11px] text-muted">AI-generated from the data shown; verify before relying on it. Research and education only — not investment advice.</p>
+              <p className="mt-3 text-[11px] text-muted">AI-generated from the data shown; verify before relying on it. Research and education only, not investment advice.</p>
             </Card>
           )}
         </>

@@ -76,3 +76,22 @@ h4, h5, h6 { font-family: var(--font-sans); }
 /* TradingView embed: make the iframe fill its container (the script otherwise sizes it to defaults). */
 .tradingview-widget-container, .tradingview-widget-container__widget { height: 100%; width: 100%; }
 .tradingview-widget-container iframe { height: 100% !important; width: 100% !important; }
+
+/* Printable reports: force a light, ink-friendly palette regardless of theme. */
+@media print {
+  @page { size: letter; margin: 14mm 12mm 16mm; }
+  html, html[data-theme] { --color-bg: #fff; --color-fg: #111; --color-card: #fff; --color-line: #d9d9de; --color-muted: #555; --color-accent: #f2f2f5; }
+  body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-avoid-break { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+
+/* User customization: accent colour and density (set on <html> from saved preferences). */
+html[data-accent="ocean"] { --color-primary: #3b8ef5; --color-primary-fg: #04142b; }
+html[data-accent="emerald"] { --color-primary: #22b07d; --color-primary-fg: #03200f; }
+html[data-accent="violet"] { --color-primary: #8b6cf6; --color-primary-fg: #120a2e; }
+html[data-accent="mono"] { --color-primary: #9aa4b5; --color-primary-fg: #0b1220; }
+html[data-theme="light"][data-accent="mono"] { --color-primary: #3a4252; --color-primary-fg: #fff; }
+html[data-density="compact"] { font-size: 14px; }
+html[data-density="compact"] .p-5 { padding: 0.9rem; }
+html[data-density="compact"] .p-4 { padding: 0.7rem; }

@@ -12,7 +12,7 @@ export default function Fundamental() {
   const rows = (data?.rows ?? []).filter(r => group === "All" || r.peer_group === group);
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
-      <PageHeader title="Fundamental Relative Value" intro="How far each company sits from the valuation its peers justify — cheap for its quality, not just cheap. Computed from live fundamentals." />
+      <PageHeader title="Fundamental Relative Value" intro="How far each company sits from the valuation its peers justify: cheap for its quality, not just cheap. Computed from live fundamentals." />
       <div className="mb-4 flex flex-wrap gap-2">
         {groups.map(g => <button key={g} onClick={() => setGroup(g)} className={`rounded-full px-3 py-1 text-sm ${g === group ? "bg-primary/15 text-primary" : "bg-card text-muted hover:text-fg"}`}>{g}</button>)}
       </div>
@@ -24,7 +24,7 @@ export default function Fundamental() {
         <ol className="mt-4 list-decimal space-y-2 pl-5 text-muted">
           <li>Group companies by industry with comparable size and disclosure.</li>
           <li>Build a quality composite: standardized ROE + operating margin − leverage.</li>
-          <li>Regress log(EV/EBITDA) — or P/E where EV/EBITDA is missing — on quality within the group.</li>
+          <li>Regress log(EV/EBITDA) (or P/E where EV/EBITDA is missing) on quality within the group.</li>
           <li>The residual becomes a percentile and a letter grade. Each computation is stored point-in-time and never restated.</li>
         </ol>
       </section>

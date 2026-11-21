@@ -9,10 +9,12 @@ import { useAuth } from "@/components/AuthProvider";
 import { LineChart } from "@/components/Chart";
 import { GradeChip } from "@/components/Monitors";
 import { Button, Card, DataNote, Skeleton, SourceBadge } from "@/components/ui";
+import { AnalystPanel } from "@/components/Analyst";
+import { TabGuide } from "@/components/TabGuide";
 import { AnalysisPanel, BuzzCard, BuzzMeter, ConsensusCard, DividendsPanel, EarningsPanel, FilingsPanel, NewsPanel, PeersPanel,
   PreferredsPanel, RatingsCard, StatementsPanel, TechnicalsPanel, TradingViewChart, type Buzz } from "@/components/research";
 
-const TABS = ["Summary", "Chart", "Financials", "Earnings", "Dividends", "Peers & ratios", "Technicals", "Filings", "News", "Analysis", "Preferreds"] as const;
+const TABS = ["Summary", "Analyst", "Chart", "Financials", "Earnings", "Dividends", "Peers & ratios", "Technicals", "Filings", "News", "Analysis", "Preferreds"] as const;
 type Tab = (typeof TABS)[number];
 const slug = (t: string) => t.toLowerCase().replace(/[^a-z]+/g, "-").replace(/-$/, "");
 
@@ -23,18 +25,21 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
   const symbol = decodeURIComponent(raw).toUpperCase();
   const { data, error, loading } = useApi<TickerPage>(`/api/market/ticker/${encodeURIComponent(symbol)}`, 30_000);
   const [range, setRange] = useState<(typeof RANGES)[number]>("1y");
+  const { prefs: p0 } = useAuth();
+  useEffect(() => { setRange(p0.chart_range); }, [p0.chart_range]);
   const { data: chart } = useApi<{ history: HistoryPoint[] }>(range === "1y" ? null : `/api/market/chart/${encodeURIComponent(symbol)}?range=${range}`);
   const hist = range === "1y" ? data?.history ?? [] : chart?.history ?? [];
-  const { user } = useAuth();
+  const { user, prefs } = useAuth();
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("Summary");
   useEffect(() => {
-    const sync = () => { const t = TABS.find(x => slug(x) === location.hash.slice(1)); setTab(t ?? "Summary"); };
+    const fallback = TABS.find(x => slug(x) === prefs.default_ticker_tab) ?? "Summary";
+    const sync = () => { const t = TABS.find(x => slug(x) === location.hash.slice(1)); setTab(t ?? fallback); };
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
-  }, []);
+  }, [prefs.default_ticker_tab]);
   const go = (t: Tab) => { setTab(t); history.replaceState(null, "", t === "Summary" ? location.pathname : `#${slug(t)}`); };
   const { data: buzz } = useApi<Buzz>(`/api/insight/${encodeURIComponent(symbol)}/buzz`);
 
@@ -51,7 +56,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
   if (error || !data) return (
     <div className="mx-auto max-w-3xl px-4 py-20 text-center">
       <h1 className="text-2xl font-semibold">{symbol}</h1>
-      <p className="mt-3 text-muted">{error?.message ?? "No data"}. Check the symbol — non-US listings use an exchange suffix, e.g. 7203.T, BP.L, 0005.HK.</p>
+      <p className="mt-3 text-muted">{error?.message ?? "No data"}. Check the symbol. Non-US listings use an exchange suffix, e.g. 7203.T, BP.L, 0005.HK.</p>
     </div>
   );
   const { quote: q, info, grade } = data;
@@ -77,6 +82,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           {buzz && <div className="mr-2 self-center"><BuzzMeter score={buzz.score} level={buzz.level} compactView /></div>}
           <Button variant="outline" onClick={addToWatchlist}>+ Watchlist</Button>
           <Button variant="outline" href={`/compare?symbols=${encodeURIComponent(symbol)}`}>Compare</Button>
+          <Button variant="outline" href={`/ticker/${encodeURIComponent(symbol)}/report`}>Print report</Button>
           <Button variant="outline" href={`/lab/montecarlo?symbol=${encodeURIComponent(symbol)}`}>Monte Carlo</Button>
           <Button variant="outline" href={`/lab?symbol=${encodeURIComponent(symbol)}`}>Backtest</Button>
           {isEquity && <Button href={`/valuebot?ticker=${encodeURIComponent(symbol)}`}>Value with ValueBot</Button>}
@@ -88,7 +94,9 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
         <div className="flex gap-1">{TABS.filter(t => isEquity || !["Earnings", "Financials", "Preferreds", "Filings"].includes(t)).map(t =>
           <button key={t} onClick={() => go(t)} className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm ${tab === t ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}>{t}</button>)}</div>
       </nav>
+      {prefs.show_tab_guides && <TabGuide tab={tab} />}
 
+      {tab === "Analyst" && <div className="mt-4"><AnalystPanel symbol={symbol} /></div>}
       {tab === "Chart" && <div className="relative left-1/2 mt-4 w-[calc(100vw-2rem)] max-w-[1800px] -translate-x-1/2"><TradingViewChart symbol={symbol} tall /></div>}
       {tab === "Financials" && <div className="mt-6"><StatementsPanel symbol={symbol} /></div>}
       {tab === "Earnings" && <div className="mt-6"><EarningsPanel symbol={symbol} /></div>}

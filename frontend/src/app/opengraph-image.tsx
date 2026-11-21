@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Irradiance.AI — AI-powered equity research with the methodology shown";
+export const alt = "Irradiance.AI: AI-powered equity research with the methodology shown";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -22,7 +22,7 @@ export default function OgImage() {
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2, maxWidth: 980 }}>Value any stock in minutes — and see every assumption.</div>
+          <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2, maxWidth: 980 }}>Value any stock in minutes and see every assumption.</div>
           <div style={{ marginTop: 24, fontSize: 30, color: "#94a3b8", maxWidth: 960 }}>ValueBot DCF valuations from SEC filings · ADR &amp; ETF premium monitors · quality-adjusted relative-value grades</div>
         </div>
         <div style={{ display: "flex", fontSize: 24, color: "#f5a524" }}>irradiance.ai · Research and education, not investment advice</div>

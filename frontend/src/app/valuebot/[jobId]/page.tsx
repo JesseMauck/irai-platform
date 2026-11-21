@@ -52,7 +52,7 @@ export default function Run({ params }: { params: Promise<{ jobId: string }> }) 
                 <span className={s.status === "done" ? "text-up" : s.status === "running" ? "animate-pulse text-primary" : s.status === "error" ? "text-down" : "text-muted"}>
                   {s.status === "done" ? "✓" : s.status === "running" ? "●" : s.status === "error" ? "✕" : "○"}</span>
                 <span className={s.status === "pending" ? "text-muted" : ""}>{s.label}</span>
-                {s.detail && <span className="truncate text-muted">— {s.detail}</span>}
+                {s.detail && <span className="truncate text-muted">· {s.detail}</span>}
               </li>
             ))}
           </ol>

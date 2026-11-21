@@ -37,8 +37,17 @@ export interface Plan {
 }
 export interface User {
   id: number; email: string; handle: string; display_name: string; plan: Plan["key"]; is_admin: boolean;
-  verified_trader: boolean; limits: Plan["limits"];
+  verified_trader: boolean; limits: Plan["limits"]; preferences?: Partial<Preferences>;
 }
+export interface Preferences {
+  theme: "system" | "light" | "dark"; accent: "solar" | "ocean" | "emerald" | "violet" | "mono"; density: "comfortable" | "compact";
+  landing: string; ticker_bar: string[]; default_ticker_tab: string; chart_range: "1mo" | "3mo" | "6mo" | "1y" | "5y";
+  benchmark: "SPY" | "QQQ" | "IWM" | "DIA" | "ACWI" | "VT"; show_tab_guides: boolean; show_ticker_bar: boolean;
+}
+export const DEFAULT_PREFS: Preferences = {
+  theme: "system", accent: "solar", density: "comfortable", landing: "/", ticker_bar: [], default_ticker_tab: "summary",
+  chart_range: "1y", benchmark: "SPY", show_tab_guides: true, show_ticker_bar: true,
+};
 export interface ArticleCard {
   slug: string; title: string; category: string; tickers: string[]; summary: string; author: string;
   published_at: string; read_minutes: number; premium: boolean;

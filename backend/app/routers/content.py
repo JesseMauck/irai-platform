@@ -87,3 +87,44 @@ def coverage(db: Session = Depends(get_db)):
             "equities": sorted(set(db.scalars(select(PeerMember.symbol)).all())),
             "articles": [{"slug": a.slug, "published_at": a.published_at.date().isoformat() if a.published_at else None}
                          for a in db.scalars(select(Article).order_by(Article.published_at.desc()))]}
+
+
+# ── waitlists for upcoming products ──────────────────────────────────────────────────────────────
+from pydantic import BaseModel, EmailStr, Field  # noqa: E402
+
+from ..models import WaitlistEntry  # noqa: E402
+
+WAITLIST_PRODUCTS = {"algotrader"}
+BROKERS = {"webull", "robinhood", "fidelity", "schwab", "ibkr", "etrade", "vanguard", "merrill", "tastytrade", "public", "alpaca", "other"}
+
+
+class WaitlistIn(BaseModel):
+    email: EmailStr | None = None
+    brokers: list[str] = Field(default_factory=list, max_length=12)
+    note: str | None = Field(None, max_length=1000)
+
+
+@router.post("/waitlist/{product}")
+def join_waitlist(product: str, body: WaitlistIn, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    if product not in WAITLIST_PRODUCTS:
+        raise HTTPException(404, "Unknown product")
+    email = (user.email if user else body.email or "").strip().lower()
+    if not email:
+        raise HTTPException(422, "Email required")
+    brokers = sorted({b for b in body.brokers if b in BROKERS})
+    row = db.scalar(select(WaitlistEntry).where(WaitlistEntry.email == email, WaitlistEntry.product == product))
+    if row:
+        row.brokers, row.note = brokers or row.brokers, body.note or row.note
+    else:
+        row = WaitlistEntry(product=product, email=email, user_id=user.id if user else None, brokers=brokers, note=body.note)
+        db.add(row)
+    db.commit()
+    return {"ok": True, "product": product, "brokers": row.brokers}
+
+
+@router.get("/waitlist/{product}/me")
+def my_waitlist(product: str, user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    if not user:
+        return {"joined": False}
+    row = db.scalar(select(WaitlistEntry).where(WaitlistEntry.email == user.email.lower(), WaitlistEntry.product == product))
+    return {"joined": bool(row), "brokers": row.brokers if row else []}

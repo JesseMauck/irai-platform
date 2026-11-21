@@ -55,7 +55,7 @@ function Write() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <PageHeader title={kind === "strategy" ? "Share a strategy" : "Write an analysis"} intro="Long-form research tagged to tickers. Show your numbers, state your risks and disclose any position." />
       <Card className="mt-6 space-y-4 p-5">
-        <input value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Title — the thesis in one line" className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-lg" />
+        <input value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="Title: the thesis in one line" className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-lg" />
         <div className="grid gap-3 md:grid-cols-4">
           <label className="text-xs text-muted md:col-span-2">Tickers (first is primary)<input value={f.tickers} onChange={e => setF({ ...f, tickers: e.target.value })} placeholder="AAPL, MSFT" className="mt-1 w-full rounded border border-line bg-bg px-2 py-1.5 text-sm uppercase" /></label>
           {kind === "analysis" && <label className="text-xs text-muted">Outlook<select value={f.outlook} onChange={e => setF({ ...f, outlook: e.target.value })} className="mt-1 w-full rounded border border-line bg-bg px-2 py-1.5 text-sm"><option value="bullish">Bullish</option><option value="neutral">Neutral</option><option value="bearish">Bearish</option></select></label>}

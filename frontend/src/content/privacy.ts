@@ -13,7 +13,7 @@ export const PRIVACY: Section[] = [
     "A. Information you give us",
     { list: [
       "Account and profile: your email address, username (handle), display name, an optional bio, your password (stored only as a one-way bcrypt hash; we cannot read it) and your account preferences.",
-      "Billing: payments are handled by Square. We never receive or store your full card number, CVV or bank credentials. We keep the subscription details Square sends us — your Square customer and subscription identifiers, plan, status and billing dates — for account management and records.",
+      "Billing: payments are handled by Square. We never receive or store your full card number, CVV or bank credentials. We keep the subscription details Square sends us (your Square customer and subscription identifiers, plan, status and billing dates) for account management and records.",
       "Research and content: what you create on the platform, such as watchlists, alerts, saved screens, ValueBot inputs (ticker, thesis and story settings), report titles, notes and saved scenarios, Strategy Lab and Monte Carlo runs, and the posts, comments, trade ideas and votes you publish in the community.",
       "Messages: emails you send to support and any feedback you give us.",
     ] },

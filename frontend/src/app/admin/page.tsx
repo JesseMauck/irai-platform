@@ -193,9 +193,9 @@ function Billing() {
         {vars && Object.entries(vars).map(([k, v]) => <div key={k}>{k}={v}</div>)}
         {found && <div className="mt-3 font-sans">
           <div className="mb-1 text-muted">Plans found in Square ({found.length})</div>
-          {found.length === 0 && <p className="text-muted">None yet — use “Create subscription plans”.</p>}
+          {found.length === 0 && <p className="text-muted">None yet. Use “Create subscription plans”.</p>}
           {found.map(v => <div key={v.id} className="flex flex-wrap gap-x-3 border-t border-line py-1">
-            <span>{v.plan} — {v.name}</span><span className="text-muted">{v.cadence}{v.amount_cents != null ? ` · $${(v.amount_cents / 100).toFixed(2)}` : ""}</span>
+            <span>{v.plan}: {v.name}</span><span className="text-muted">{v.cadence}{v.amount_cents != null ? ` · $${(v.amount_cents / 100).toFixed(2)}` : ""}</span>
             <span className="font-mono">{v.id}</span><span className={v.suggested ? "text-up" : "text-muted"}>{v.suggested ?? "not matched"}</span></div>)}
         </div>}
         {!locs && !vars && !found && <p className="font-sans text-muted">Results appear here.</p>}

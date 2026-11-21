@@ -8,12 +8,16 @@ import { Button, Card, ErrorNote } from "@/components/ui";
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
-  const next = useSearchParams().get("next") ?? "/terminal";
+  const nextParam = useSearchParams().get("next");
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [err, setErr] = useState<Error | null>(null);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(null);
-    try { await login(email, password); router.push(next.startsWith("/") ? next : "/account"); } catch (x) { setErr(x as Error); }
+    try {
+      const u = await login(email, password);
+      const next = nextParam ?? (u.preferences?.landing && u.preferences.landing !== "/" ? u.preferences.landing : "/terminal");
+      router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/account");
+    } catch (x) { setErr(x as Error); }
   };
   return (
     <div className="mx-auto max-w-md px-4 py-20">

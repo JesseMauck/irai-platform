@@ -33,7 +33,7 @@ def _month() -> str:
 
 def _run(r: ValuationRun) -> dict:
     return {"id": r.job_id, "ticker": r.ticker, "stance": r.stance, "status": r.status, "method": r.method,
-            "title": r.title or f"{r.ticker} — {r.stance} valuation", "pinned": bool(r.pinned),
+            "title": r.title or f"{r.ticker}: {r.stance} valuation", "pinned": bool(r.pinned),
             "archived": bool(r.archived), "has_notes": bool(r.notes_md),
             "scenario_count": len(r.scenarios or []),
             "value_per_share": r.value_per_share, "price": r.price, "upside": r.upside,
@@ -197,7 +197,7 @@ def _notes_html(r: ValuationRun) -> str:
     import markdown as md
 
     parts = ['<section style="page-break-before:always;font-family:Inter,Arial,sans-serif">',
-             f"<h1>{html.escape(r.title or r.ticker)} — member notes</h1>"]
+             f"<h1>{html.escape(r.title or r.ticker)}: member notes</h1>"]
     if r.notes_md:
         parts.append(md.markdown(html.escape(r.notes_md), extensions=["tables", "sane_lists"]))
     if r.scenarios:
@@ -208,7 +208,7 @@ def _notes_html(r: ValuationRun) -> str:
             drv = ", ".join(f"{html.escape(k)} = {v:g}" for k, v in sc["assumptions"].items())
             parts.append(f"<tr><td>{html.escape(sc['name'])}</td><td>{sc['value_per_share']:,.2f}</td><td>{up}</td><td>{drv}</td></tr>")
         parts.append("</table>")
-    parts.append("<p style='color:#666;font-size:10px'>Member notes are the author's own views. Research and education only — not investment advice.</p></section>")
+    parts.append("<p style='color:#666;font-size:10px'>Member notes are the author's own views. Research and education only, not investment advice.</p></section>")
     return "".join(parts)
 
 

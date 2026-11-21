@@ -28,7 +28,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
             <div className="mt-4 flex justify-center gap-2"><Button href="/pricing">See plans</Button><Button href="/login" variant="outline">Sign in</Button></div>
           </Card>
         )}
-        <p className="mt-12 border-t border-line pt-4 text-xs text-muted">Research and education only — not investment advice.</p>
+        <p className="mt-12 border-t border-line pt-4 text-xs text-muted">Research and education only, not investment advice.</p>
       </>}
     </article>
   );

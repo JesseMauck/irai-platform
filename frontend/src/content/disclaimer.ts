@@ -16,7 +16,7 @@ export const DISCLAIMER: Section[] = [
     ] },
   ] },
   { id: "models", title: "3. Model outputs, AI tools and ValueBot valuations", blocks: [
-    "Automated tools, quantitative models and AI features on Irradiance — including ValueBot valuations, intrinsic-value and price estimates, scenario and Monte Carlo analyses, Strategy Lab backtests, quant ratings, ADR and ETF signals, buzz scores and screening metrics — are hypothetical estimates built from historical data, mathematical formulas and assumptions that may be incomplete, flawed or proved wrong by future events.",
+    "Automated tools, quantitative models and AI features on Irradiance, including ValueBot valuations, intrinsic-value and price estimates, scenario and Monte Carlo analyses, Strategy Lab backtests, quant ratings, ADR and ETF signals, buzz scores and screening metrics, are hypothetical estimates built from historical data, mathematical formulas and assumptions that may be incomplete, flawed or proved wrong by future events.",
     { list: [
       "Probabilistic and subject to error: model and AI outputs may contain inaccuracies, omissions or computational errors. They are never guarantees of intrinsic value or future market prices.",
       "Assumptions drive results: small changes to inputs such as growth, margins or discount rates can change a valuation materially. Every ValueBot report shows its assumptions so you can test them.",
@@ -37,6 +37,6 @@ export const DISCLAIMER: Section[] = [
   ] },
   { id: "risk", title: "6. Assumption of risk and limitation of liability", blocks: [
     "Investing and trading involve substantial risk, including the loss of all principal. By using Irradiance you acknowledge that you are solely responsible for your own research and financial decisions.",
-    "To the fullest extent permitted by law, Irradiance disclaims all liability for any direct, indirect, incidental or consequential loss or damage — including trading losses or lost profits — arising from or in reliance on any content, market data, or ValueBot or other model output on the site. See our Terms of Service for the full limitation of liability.",
+    "To the fullest extent permitted by law, Irradiance disclaims all liability for any direct, indirect, incidental or consequential loss or damage, including trading losses or lost profits, arising from or in reliance on any content, market data, or ValueBot or other model output on the site. See our Terms of Service for the full limitation of liability.",
   ] },
 ];

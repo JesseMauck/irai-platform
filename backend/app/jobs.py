@@ -126,6 +126,25 @@ def prewarm(db, pause: float = 0.4) -> dict:
     return {"fetched": ok, "live": live, "cooling_down": service.cooling_down()}
 
 
+def refresh_pestel(db) -> dict:
+    """Recompute the stalest curated theme's PESTEL radar (one per tick keeps GDELT happy)."""
+    import datetime as dt
+
+    from sqlalchemy import select
+
+    from .models import ResearchTheme
+    from .routers.workspace import compute_pestel, pestel_fresh
+
+    themes = db.scalars(select(ResearchTheme).where(ResearchTheme.owner_id.is_(None))).all()
+    stale = sorted((t for t in themes if not pestel_fresh(t)), key=lambda t: t.pestel_at.timestamp() if t.pestel_at else 0.0)
+    if not stale:
+        return {"refreshed": None}
+    t = stale[0]
+    t.pestel, t.pestel_at = compute_pestel(t), dt.datetime.now(dt.timezone.utc)
+    db.commit()
+    return {"refreshed": t.slug}
+
+
 def tick() -> dict:
     global _last_prewarm, _last_adr_scan
     out = {}
@@ -136,6 +155,8 @@ def tick() -> dict:
     if settings.live:
         with SessionLocal() as db:
             out["buzz"] = scan_buzz(db)
+        with SessionLocal() as db:
+            out["pestel"] = refresh_pestel(db)
     if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
         _last_prewarm = time.time()
         with SessionLocal() as db:

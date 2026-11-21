@@ -31,7 +31,12 @@ def status():
 
 
 @router.get("/tickerbar")
-def tickerbar(db: Session = Depends(get_db)):
+def tickerbar(user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
+    custom = ((user.preferences or {}).get("ticker_bar") if user else None) or []
+    if custom:
+        q = service.quotes(custom)
+        return [{"symbol": s, "label": s, "price": q[s]["price"], "change_pct": q[s].get("change_pct"), "source": q[s].get("source")}
+                for s in custom if s in q]
     rows = db.scalars(select(Instrument).where(Instrument.in_ticker_bar).order_by(Instrument.sort_order)).all()
     q = service.quotes([r.symbol for r in rows])
     return [{"symbol": r.symbol, "label": r.ticker_bar_label or r.symbol, "price": q[r.symbol]["price"],

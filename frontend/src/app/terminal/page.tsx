@@ -68,7 +68,7 @@ export default function Terminal() {
         <form onSubmit={e => { e.preventDefault(); run(cmd); }} className="flex flex-1 items-center gap-2 rounded-lg border border-line bg-card px-3 py-2">
           <span className="font-mono text-primary">&gt;</span>
           <input ref={cmdRef} value={cmd} onChange={e => setCmd(e.target.value)} aria-label="Command"
-            placeholder="Ticker to load (AAPL) · CMP AAPL MSFT · VB NVDA · MC TSLA · BT SPY · ADD AMD · DES KO   — press / to focus"
+            placeholder="Ticker to load (AAPL) · CMP AAPL MSFT · VB NVDA · MC TSLA · BT SPY · ADD AMD · DES KO   (press / to focus)"
             className="w-full bg-transparent font-mono text-sm outline-none" />
         </form>
         <div className="flex gap-2 text-sm"><Link href="/research" className="rounded-lg border border-line px-3 py-2 hover:bg-accent">Research</Link><Link href="/compare" className="rounded-lg border border-line px-3 py-2 hover:bg-accent">Compare</Link><Link href="/screeners" className="rounded-lg border border-line px-3 py-2 hover:bg-accent">Screeners</Link></div>
@@ -135,7 +135,7 @@ export default function Terminal() {
         </div>
       </div>
       <section className="mt-4"><h2 className="mb-2 text-xs uppercase tracking-wider text-muted">ADR scanner</h2><AdrOpportunityStrip minZ={1.5} /></section>
-      <p className="mt-4 text-[11px] text-muted">Every figure carries its source badge. Research and education only — not investment advice.</p>
+      <p className="mt-4 text-[11px] text-muted">Every figure carries its source badge. Research and education only, not investment advice.</p>
     </div>
   );
 }

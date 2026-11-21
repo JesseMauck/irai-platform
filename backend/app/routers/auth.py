@@ -34,7 +34,8 @@ class LoginIn(BaseModel):
 
 def user_out(u: User) -> dict:
     return {"id": u.id, "email": u.email, "handle": u.handle, "display_name": u.display_name, "plan": u.plan,
-            "is_admin": u.is_admin, "verified_trader": u.verified_trader, "limits": limits(u)}
+            "is_admin": u.is_admin, "verified_trader": u.verified_trader, "limits": limits(u),
+            "preferences": u.preferences or {}}
 
 
 def _session(resp: Response, u: User) -> dict:

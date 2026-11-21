@@ -1,7 +1,7 @@
 import { pageMeta } from "@/lib/seo";
 import { PageHeader } from "@/components/ui";
 
-export const metadata = pageMeta("Methodology — how every number is calculated",
+export const metadata = pageMeta("Methodology: how every number is calculated",
   "The formulas behind Irradiance.AI: ADR premium and structural basis, ETF NAV tiers, quality-adjusted relative-value regressions, and ValueBot's DCF stages.", "/methodology");
 
 const SECTIONS: [string, string, [string, string][]][] = [
@@ -23,7 +23,7 @@ const SECTIONS: [string, string, [string, string][]][] = [
     ["Residual", "log(multiple) minus the fitted value from a regression on quality. Negative = cheaper than its quality justifies."],
     ["Grade", "The residual's percentile in the group (A+ ≥ 95th … F < 15th). Each computation is stored point-in-time and never restated."],
   ]],
-  ["ValueBot", "A Damodaran-style narrative-and-numbers DCF, run in 18 stages.", [
+  ["ValueBot", "A narrative-and-numbers DCF, run in 18 stages.", [
     ["Data", "SEC EDGAR XBRL facts for US filers, Yahoo Finance statements otherwise; price, beta and consensus from Yahoo Finance."],
     ["Framework", "Banks and insurers → excess return; high-payout utilities and REITs → dividend discount; everything else → FCFF."],
     ["Risk", "Risk-free = 10-year Treasury minus the US default spread; bottom-up beta; ERP weighted by where revenue is earned; synthetic rating → cost of debt."],
@@ -35,7 +35,7 @@ const SECTIONS: [string, string, [string, string][]][] = [
 export default function Methodology() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
-      <PageHeader title="Methodology" intro="How every grade, score and signal is computed — inputs, formulas and limitations. Nothing on this site is a recommendation." />
+      <PageHeader title="Methodology" intro="How every grade, score and signal is computed: inputs, formulas and limitations. Nothing on this site is a recommendation." />
       {SECTIONS.map(([h, intro, items]) => (
         <section key={h} className="mb-12">
           <h2 className="text-2xl font-semibold">{h}</h2><p className="mt-2 text-muted">{intro}</p>

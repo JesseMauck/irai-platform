@@ -45,6 +45,7 @@ class User(TimestampMixin, Base):
     disabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # Sessions issued before this moment are rejected (set on password reset / "sign out everywhere").
     tokens_valid_after: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    preferences: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # UI customization, validated in routers/me.py
 
     subscriptions: Mapped[list[Subscription]] = relationship(back_populates="user", cascade="all, delete-orphan")
     watchlists: Mapped[list[Watchlist]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -440,6 +441,8 @@ class ResearchTheme(TimestampMixin, Base):
     drivers: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)  # [{name, why, symbol?}]
     notes_md: Mapped[str | None] = mapped_column(Text)
     public: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    pestel: Mapped[dict[str, Any] | None] = mapped_column(JSON)          # cached PESTEL radar (GDELT is slow/throttled)
+    pestel_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Pin(Base):
@@ -450,4 +453,32 @@ class Pin(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str] = mapped_column(String(12))  # theme | watchlist | ticker | report | screen
     ref: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AnalystReport(Base):
+    """One Analyst Bot run: staged progress while it gathers data, then the AI-written analysis."""
+    __tablename__ = "analyst_reports"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    status: Mapped[str] = mapped_column(String(10), default="queued")  # queued | running | done | error
+    stages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    error: Mapped[str | None] = mapped_column(String(500))
+    engine: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WaitlistEntry(Base):
+    """Interest in an upcoming product (e.g. the IRAI AlgoTrader add-on), with the brokers the person uses."""
+    __tablename__ = "waitlist_entries"
+    __table_args__ = (UniqueConstraint("email", "product", name="uq_waitlist_email_product"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product: Mapped[str] = mapped_column(String(30), index=True)
+    email: Mapped[str] = mapped_column(String(255))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    brokers: Mapped[list[str]] = mapped_column(JSON, default=list)
+    note: Mapped[str | None] = mapped_column(String(1000))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

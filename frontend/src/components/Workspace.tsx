@@ -72,7 +72,7 @@ export function ThemeEditor({ initial, onSaved, onCancel }: { initial?: Theme; o
       <textarea value={f.description} onChange={e => setF({ ...f, description: e.target.value })} rows={2} placeholder="What the theme is about" className={field} />
       <input value={f.tickers} onChange={e => setF({ ...f, tickers: e.target.value })} placeholder="Tickers: TSLA, NVDA, ISRG" className={`${field} uppercase`} />
       <input value={f.keywords} onChange={e => setF({ ...f, keywords: e.target.value })} placeholder="News keywords for the PESTEL radar: humanoid robot, robotics" className={field} />
-      <label className="block text-xs text-muted">Key drivers — one per line: <span className="font-mono">name | why it matters | optional ticker to track</span>
+      <label className="block text-xs text-muted">Key drivers, one per line: <span className="font-mono">name | why it matters | optional ticker to track</span>
         <textarea value={f.drivers} onChange={e => setF({ ...f, drivers: e.target.value })} rows={4} placeholder={"Labor costs | Higher wages make automation pay back faster\nAI model progress | Better models widen what robots can do | NVDA"} className={`${field} mt-1 font-mono`} /></label>
       <textarea value={f.notes_md} onChange={e => setF({ ...f, notes_md: e.target.value })} rows={6} placeholder="Your research notes (Markdown). Private unless you share the theme." className={`${field} font-mono`} />
       <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" checked={f.public} onChange={e => setF({ ...f, public: e.target.checked })} /> Visible to other members (notes stay private)</label>

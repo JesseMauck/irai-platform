@@ -21,7 +21,7 @@ export default function SharedRun({ params }: { params: Promise<{ token: string 
           <Card key={k} className="p-4"><div className="text-xs text-muted">{k}</div><div className="stat text-2xl">{v}</div></Card>)}</div>
         {r.section_titles.filter(([k]) => r.sections[k]).map(([k, t]) => <section key={k} className="mt-8"><h2 className="text-xl font-semibold">{t}</h2><div className="prose-irai"><ReactMarkdown>{r.sections[k]}</ReactMarkdown></div></section>)}
         {r.files.xlsx && <a href={`/api/valuebot/share/${token}/files/${r.files.xlsx}`} className="mt-8 inline-block text-primary">Download the Excel model →</a>}
-        <p className="mt-10 text-xs text-muted">AI-assisted valuation for research and education — not investment advice.</p>
+        <p className="mt-10 text-xs text-muted">AI-assisted valuation for research and education, not investment advice.</p>
       </>}
     </div>
   );

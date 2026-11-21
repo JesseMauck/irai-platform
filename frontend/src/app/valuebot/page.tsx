@@ -62,7 +62,7 @@ function ValueBotForm() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <PageHeader title="ValueBot" intro="Pick a public company, tell its story, and get a Damodaran-style narrative-and-numbers valuation: a written report, an editable Excel model with live formulas, and bull, bear and market-implied scenarios.">
+      <PageHeader title="ValueBot" intro="Pick a public company, tell its story, and get a narrative-and-numbers valuation: a written report, an editable Excel model with live formulas, and bull, bear and market-implied scenarios.">
         {usage && <div className="text-sm text-muted">{usage.limit == null ? "Unlimited runs" : `${usage.remaining} of ${usage.limit} runs left this month`}</div>}
       </PageHeader>
       <div className="grid gap-6 lg:grid-cols-3">
