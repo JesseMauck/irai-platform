@@ -15,7 +15,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint,
+from sqlalchemy import (JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint,
                         func)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -703,3 +703,63 @@ class PatternStudy(Base):
     seconds: Mapped[float | None] = mapped_column(Float)
     results: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class CongressTrade(Base):
+    """A stock transaction disclosed by a member of Congress (House PTR PDFs or Senate eFD reports)."""
+    __tablename__ = "congress_trades"
+    __table_args__ = (UniqueConstraint("row_key", name="uq_congress_row"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    row_key: Mapped[str] = mapped_column(String(64))
+    chamber: Mapped[str] = mapped_column(String(8), index=True)  # house | senate
+    member: Mapped[str] = mapped_column(String(120), index=True)
+    party: Mapped[str | None] = mapped_column(String(12))
+    state: Mapped[str | None] = mapped_column(String(4))
+    district: Mapped[str | None] = mapped_column(String(6))
+    owner: Mapped[str | None] = mapped_column(String(20))  # self | spouse | joint | dependent
+    ticker: Mapped[str | None] = mapped_column(String(16), index=True)
+    asset: Mapped[str] = mapped_column(String(300))
+    asset_type: Mapped[str | None] = mapped_column(String(40))
+    tx_type: Mapped[str] = mapped_column(String(16), index=True)  # buy | sell | sell_partial | exchange
+    amount: Mapped[str] = mapped_column(String(40))
+    amount_low: Mapped[float | None] = mapped_column(Float)
+    amount_high: Mapped[float | None] = mapped_column(Float)
+    traded: Mapped[dt.date | None] = mapped_column(Date, index=True)
+    filed: Mapped[dt.date | None] = mapped_column(Date, index=True)
+    doc_id: Mapped[str] = mapped_column(String(80), index=True)
+    url: Mapped[str] = mapped_column(String(300))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DisclosureDoc(Base):
+    """A disclosure document already processed (so refreshes are incremental)."""
+    __tablename__ = "disclosure_docs"
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)  # e.g. house:20035408, senate:<uuid>
+    status: Mapped[str] = mapped_column(String(12))  # parsed | empty | scanned | error
+    trades: Mapped[int] = mapped_column(Integer, default=0)
+    processed_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Filing13F(Base):
+    """One 13F-HR report for a tracked manager: aggregated holdings for the quarter."""
+    __tablename__ = "filings_13f"
+    __table_args__ = (UniqueConstraint("accession", name="uq_13f_accession"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fund_key: Mapped[str] = mapped_column(String(40), index=True)
+    cik: Mapped[int] = mapped_column(Integer)
+    period: Mapped[dt.date] = mapped_column(Date, index=True)
+    filed: Mapped[dt.date] = mapped_column(Date)
+    accession: Mapped[str] = mapped_column(String(30))
+    total_value: Mapped[float] = mapped_column(Float)
+    positions: Mapped[int] = mapped_column(Integer)
+    holdings: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CusipMap(Base):
+    __tablename__ = "cusip_map"
+    cusip: Mapped[str] = mapped_column(String(12), primary_key=True)
+    ticker: Mapped[str | None] = mapped_column(String(16))
+    name: Mapped[str | None] = mapped_column(String(200))
+    source: Mapped[str] = mapped_column(String(12))
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

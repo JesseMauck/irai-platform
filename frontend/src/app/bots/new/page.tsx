@@ -43,7 +43,20 @@ function NewBot() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<Error | null>(null);
   const schema = meta?.strategies.find(s => s.key === strategy);
-  const tplKey = useSearchParams().get("template");
+  const sp = useSearchParams();
+  const tplKey = sp.get("template");
+  const promptQ = sp.get("prompt");
+  const applyDraft = (d: Draft, text: string) => {
+    setDraft(d); setStrategy(d.strategy); setParams(d.params); if (d.symbols.length) setSymbols(d.symbols);
+    setRisk(r => ({ ...r, stop: d.stop_loss_pct ? String(+(d.stop_loss_pct * 100).toFixed(2)) : "", tp: d.take_profit_pct ? String(+(d.take_profit_pct * 100).toFixed(2)) : "", auto: d.daily_auto_close }));
+    if (/alert|webhook|tradingview|signal/i.test(text)) setMode("webhook");
+    setName(n => n || d.name || text.slice(0, 60));
+  };
+  useEffect(() => { // arrived from Ask IRAI with an idea: draft it straight away
+    if (!promptQ || !pro) return;
+    setIdea(promptQ); setBusy("draft");
+    api<Draft>("/api/bots/draft", { method: "POST", json: { prompt: promptQ } }).then(d => applyDraft(d, promptQ)).catch(e => setErr(e as Error)).finally(() => setBusy(null));
+  }, [promptQ, pro]);
   useEffect(() => {
     if (!tplKey || !pro) return;
     api<{ key: string; title: string; summary: string; config: { mode: "strategy" | "webhook"; strategy: string | null; params: Record<string, number>; symbols: string[]; max_position_pct?: number; stop_loss_pct?: number | null; take_profit_pct?: number | null; daily_auto_close?: boolean } }[]>("/api/trade/templates").then(ts => {
@@ -60,11 +73,7 @@ function NewBot() {
   const runDraft = async () => {
     setBusy("draft"); setErr(null);
     try {
-      const d = await api<Draft>("/api/bots/draft", { method: "POST", json: { prompt: idea } });
-      setDraft(d); setStrategy(d.strategy); setParams(d.params); if (d.symbols.length) setSymbols(d.symbols);
-      setRisk(r => ({ ...r, stop: d.stop_loss_pct ? String(+(d.stop_loss_pct * 100).toFixed(2)) : "", tp: d.take_profit_pct ? String(+(d.take_profit_pct * 100).toFixed(2)) : "", auto: d.daily_auto_close }));
-      if (/alert|webhook|tradingview|signal/i.test(idea)) setMode("webhook");
-      if (!name) setName(d.name || idea.slice(0, 60));
+      applyDraft(await api<Draft>("/api/bots/draft", { method: "POST", json: { prompt: idea } }), idea);
     } catch (e) { setErr(e as Error); } finally { setBusy(null); }
   };
   const addSym = (s: string) => { const x = s.trim().toUpperCase(); if (x && !symbols.includes(x) && symbols.length < 20) setSymbols([...symbols, x]); setAdd(""); };

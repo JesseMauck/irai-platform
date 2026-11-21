@@ -1,13 +1,15 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "@/lib/api";
 import { chatsChanged, getAssistantContext, onAssistantContext, onOpenIrai } from "@/lib/assistant";
 import { useAuth } from "@/components/AuthProvider";
 
-interface M { role: "user" | "assistant"; content: string }
+interface Act { label: string; href: string; desc?: string; primary?: boolean }
+interface M { role: "user" | "assistant"; content: string; actions?: Act[]; opened?: string }
+const safe = (h: string) => h.startsWith("/") && !h.startsWith("//");
 
 function fromPath(path: string) {
   const t = path.match(/^\/ticker\/([^/]+)/);
@@ -17,16 +19,17 @@ function fromPath(path: string) {
 }
 
 const SUGGEST: Record<string, string[]> = {
-  ticker: ["What are the main risks here?", "Explain the valuation in plain English", "What changed in the latest news?"],
+  ticker: ["What are the main risks here?", "Compare this to 3 peers", "Run a DCF valuation", "Print a full research report"],
   theme: ["What drives this theme?", "Which constituents lead and lag?", "What are the PESTEL risks?"],
   portfolio: ["What stands out in my portfolio?", "Explain my risk profile", "What should I research next?"],
   bot: ["Explain what this bot does", "How do my risk controls work?", "Why might live results differ from the backtest?"],
-  other: ["What can Irradiance do?", "How does ValueBot value a company?", "What is the ADR monitor?"],
+  other: ["Compare ORCL to 3 other stocks", "Run a DCF on NVDA", "What are hedge funds buying?", "Show me today's oversold stocks", "Build a bot that holds SPY while it's above its 200-day"],
 };
 
 export function AskIrai() {
   const { user } = useAuth();
   const path = usePathname() || "/";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<M[]>([]);
   const [q, setQ] = useState("");
@@ -58,8 +61,11 @@ export function AskIrai() {
     const next = [...msgs, { role: "user" as const, content: text.trim() }];
     setMsgs(next); setQ(""); setBusy(true); setErr(null);
     try {
-      const r = await api<{ reply: string; chat_id: number | null }>("/api/assistant", { method: "POST", json: { messages: next, path, symbol, theme: pc.theme, bot_id: pc.bot_id, portfolio_id, chat_id: chatId } });
-      setMsgs([...next, { role: "assistant", content: r.reply }]);
+      const r = await api<{ reply: string; chat_id: number | null; actions?: Act[]; navigate?: string | null }>("/api/assistant", { method: "POST", json: { messages: next.map(m => ({ role: m.role, content: m.content, ...(m.actions?.length ? { actions: m.actions } : {}) })), path, symbol, theme: pc.theme, bot_id: pc.bot_id, portfolio_id, chat_id: chatId } });
+      const acts = (r.actions ?? []).filter(a => safe(a.href));
+      const go = r.navigate && safe(r.navigate) ? r.navigate : null;
+      setMsgs([...next, { role: "assistant", content: r.reply, actions: acts, opened: go ?? undefined }]);
+      if (go && go !== path + (typeof window !== "undefined" ? window.location.search : "")) router.push(go);
       if (r.chat_id) { setChatId(r.chat_id); chatsChanged(); }
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
@@ -82,7 +88,11 @@ export function AskIrai() {
             : !user ? <div className="text-muted"><p>Ask questions about any ticker, theme, portfolio or bot, in plain English.</p><Link href={`/login?next=${encodeURIComponent(path)}`} className="mt-2 inline-block text-primary">Sign in to ask</Link></div>
               : !msgs.length ? <div><p className="text-muted">Ask about what&apos;s on this page, or anything on Irradiance.</p>
                 <div className="mt-3 flex flex-col gap-1.5">{SUGGEST[kind].map(s => <button key={s} onClick={() => send(s)} className="rounded-lg border border-line px-3 py-1.5 text-left text-xs hover:border-primary">{s}</button>)}</div></div>
-              : msgs.map((m, i) => <div key={i} className={m.role === "user" ? "ml-8 rounded-lg bg-primary/10 px-3 py-2" : "prose-irai text-sm"}>{m.role === "user" ? m.content : <ReactMarkdown>{m.content}</ReactMarkdown>}</div>)}
+              : msgs.map((m, i) => <div key={i} className={m.role === "user" ? "ml-8 rounded-lg bg-primary/10 px-3 py-2" : "text-sm"}>{m.role === "user" ? m.content : <>
+                <div className="prose-irai"><ReactMarkdown>{m.content}</ReactMarkdown></div>
+                {m.actions && m.actions.length > 0 && <div className="mt-2 flex flex-col gap-1.5">{m.actions.filter(a => safe(a.href)).map((a, k) => (
+                  <Link key={a.href} href={a.href} title={a.desc} className={`group flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs ${k === 0 ? "solar-bg font-semibold text-primary-fg" : "border border-line hover:border-primary"}`}>
+                    <span className="truncate">{a.label}</span><span aria-hidden className="shrink-0">{m.opened === a.href ? "✓ opened" : "→"}</span></Link>))}</div>}</>}</div>)}
             {busy && <div className="text-xs text-muted">Thinking…</div>}
             {err && <div className="text-xs text-down">{err}</div>}
             <div ref={end} />
