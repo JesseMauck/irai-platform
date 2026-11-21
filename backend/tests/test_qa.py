@@ -222,6 +222,8 @@ def test_triage_rules_then_llm_then_queue():
                                           context={"live_market_data": False}), 1)
         closed, _ = fnd.record(db, _finding(issue_type="rejected_valid_request", severity="medium", actual="HTTP 422: market is closed"), 1)
         blip, _ = fnd.record(db, _finding(issue_type="slow_response", category="latency", severity="low"), 1)
+        nolive, _ = fnd.record(db, _finding(issue_type="rejected_valid_request", severity="medium", flow="webhook_trader",
+                                            actual="HTTP 422: No live price for BMY (feed unavailable, only DEMO data); not trading on it"), 1)
         db.commit()
         calls = []
 
@@ -230,7 +232,8 @@ def test_triage_rules_then_llm_then_queue():
             return {"verdict": "valid", "category": "trading_logic", "severity": "high", "rationale": "cap ignored",
                     "likely_location": "app/paper.py per_symbol_budget", "regression_test": "def test_cap(): ..."}
         out = triage.triage(db, S(), llm=fake_llm)
-        assert calls == ["position_over_cap"] and out["claude"] == 1 and out["rules"] == 3
+        assert calls == ["position_over_cap"] and out["claude"] == 1 and out["rules"] == 4
+        assert db.get(QaIssue, nolive.id).status == "false_positive"
         assert db.get(QaIssue, real.id).status == "valid"
         assert db.get(QaIssue, demo.id).status == "false_positive"
         assert db.get(QaIssue, closed.id).status == "false_positive"

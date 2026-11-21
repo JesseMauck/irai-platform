@@ -170,3 +170,27 @@ def test_trend_filter_starts_invested_in_an_uptrend():
     assert r.statistics["exposure"] > 0.45  # invested from bar ~200 to the end
     r2 = emulator.run(REGISTRY["sma_cross"](short=50, long=200), up, emulator.EmulationSettings(initial_capital=10_000))
     assert r2.statistics["exposure"] == 0  # the crossover sample waits for a fresh cross
+
+
+def test_live_mode_never_fills_at_demo_prices(client, monkeypatch):
+    """QA finding fill_on_demo_price: with the live feed down, the DEMO fallback must not become a paper fill."""
+    from app.market import service
+
+    real_quote = service.quote
+    monkeypatch.setattr(paper, "_live", lambda: True)
+    monkeypatch.setattr(service, "quote", lambda s, *a, **k: {**real_quote(s, *a, **k), "source": "DEMO"})
+    hdr = _user(client)
+    a = client.post("/api/paper/accounts", headers=hdr, json={"name": "Main", "starting_cash": 100000}).json()
+    b = client.post("/api/bots", headers=hdr, json={"name": "Hold", "strategy": "buy_hold", "symbols": ["AAPL"],
+                                                    "accounts": [{"account_id": a["id"], "capital": 50000}]}).json()
+    d = client.post(f"/api/bots/{b['id']}/run", headers=hdr).json()["bot"]
+    assert not d["trades"] and not d["positions"]
+    assert any(s["status"] == "error" and "DEMO" in (s["detail"] or "") for s in d["signals"])
+    h = client.post("/api/bots", headers=hdr, json={"name": "Hook", "mode": "webhook", "symbols": ["AAPL"],
+                                                    "accounts": [{"account_id": a["id"], "capital": 10000}]}).json()
+    r = client.post(h["webhook_path"], json={"ticker": "AAPL", "action": "buy"})
+    assert r.status_code == 422 and "DEMO" in r.json()["detail"]
+    assert not client.get(f"/api/bots/{h['id']}", headers=hdr).json()["trades"]
+    # demo mode (the whole platform on synthetic data, by design) still trades
+    monkeypatch.setattr(paper, "_live", lambda: False)
+    assert client.post(f"/api/bots/{b['id']}/run", headers=hdr).json()["bot"]["trades"]

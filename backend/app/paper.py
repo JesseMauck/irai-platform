@@ -50,11 +50,22 @@ def new_token() -> str:
 
 
 # ── prices and fills ─────────────────────────────────────────────────────────────────────────────
+def _live() -> bool:
+    from .config import settings
+
+    return settings.live
+
+
 def price(symbol: str) -> tuple[float, str]:
+    """Latest tradable price. In live mode a DEMO (synthetic fallback) quote is refused: paper fills, stops and
+    marks must never use fictional prices. Callers fall back (marks use average cost) or log the signal as an error."""
     q = service.quote(symbol)
     if not q.get("price"):
         raise PaperError(f"No price for {symbol}")
-    return float(q["price"]), q.get("source") or "LIVE"
+    src = q.get("source") or "LIVE"
+    if src == "DEMO" and _live():
+        raise PaperError(f"No live price for {symbol} (feed unavailable, only DEMO data); not trading on it")
+    return float(q["price"]), src
 
 
 def sleeve_equity(sl: BotSleeve, prices: dict[str, float] | None = None) -> float:
@@ -177,11 +188,16 @@ def evaluate(db: Session, bot: Bot, source: str = "schedule") -> dict[str, Any]:
             out[sym] = {"error": str(e)}
             continue
         fills = 0
-        for sl in bot.sleeves:
-            if exp > 0 and _stopped_today(db, sl, sym):
-                continue  # don't re-enter on the same day a risk control closed the position
-            if target_value(db, sl, sym, exp * per_symbol_budget(bot, sleeve_equity(sl)), "signal"):
-                fills += 1
+        try:
+            for sl in bot.sleeves:
+                if exp > 0 and _stopped_today(db, sl, sym):
+                    continue  # don't re-enter on the same day a risk control closed the position
+                if target_value(db, sl, sym, exp * per_symbol_budget(bot, sleeve_equity(sl)), "signal"):
+                    fills += 1
+        except PaperError as e:  # no tradable price (e.g. only DEMO data in live mode): skip this symbol, keep the rest
+            log_signal(db, bot, source, "long" if exp > 0 else "flat", sym, "error", str(e)[:400])
+            out[sym] = {"error": str(e)}
+            continue
         log_signal(db, bot, source, "long" if exp > 0 else "flat", sym, "executed" if fills else "ignored",
                    f"target exposure {exp:.0%}; {fills} fill(s)" + (f"; {', '.join(f'{k} {v:.2f}' for k, v in list(ind.items())[:3])}" if ind else ""))
         out[sym] = {"exposure": exp, "fills": fills}
@@ -249,7 +265,11 @@ def handle_webhook(db: Session, bot: Bot, payload: dict[str, Any]) -> dict[str, 
                 qty = float(payload["quantity"]) if payload.get("quantity") else pos.quantity
                 fills += bool(trade(db, sl, sym, -min(qty, pos.quantity), "webhook"))
         else:
-            px, src = price(sym)
+            try:
+                px, src = price(sym)
+            except PaperError as e:
+                log_signal(db, bot, "webhook", act, sym, "error", str(e)[:400], payload)
+                raise
             eq = sleeve_equity(sl)
             if payload.get("quantity"):
                 qty = float(payload["quantity"])

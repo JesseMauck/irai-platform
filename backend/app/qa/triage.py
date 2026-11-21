@@ -69,6 +69,8 @@ LEGIT_PATTERNS = [
     (re.compile(r"market (is )?closed", re.I), "rejected because the market is closed, which is the documented behavior"),
     (re.compile(r"needs the \w+ plan", re.I), "plan gate (402) working as designed"),
     (re.compile(r"cooling down|rate.?limit", re.I), "upstream rate limit / cooldown; the service is expected to fall back"),
+    (re.compile(r"no live price .*only demo data", re.I), "paper trading correctly refused a DEMO-only price while the live feed was down; "
+     "the outage itself is tracked by demo_data_in_live_mode"),
 ]
 
 
