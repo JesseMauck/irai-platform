@@ -62,3 +62,36 @@ def health():
     body = {"ok": db_ok, "database": "ok" if db_ok else "unreachable", "market": service.status(),
             "valuebot": {"llm": vb.llm_enabled, "offline": vb.offline}}
     return body if db_ok else JSONResponse(body, status_code=503)
+
+
+_llm_check: dict = {}
+
+
+@app.get("/api/health/llm")
+def health_llm():
+    """Verifies the Claude API key and both configured models with a tiny request. Cached for 10 minutes so
+    this public endpoint can't be used to spend tokens."""
+    import time
+
+    from valuebot.config import settings as vb
+
+    if not vb.llm_enabled:
+        return {"enabled": False, "reason": "ANTHROPIC_API_KEY not set (or VALUEBOT_OFFLINE=1)"}
+    if _llm_check and time.time() - _llm_check["at"] < 600:
+        return _llm_check["result"]
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=vb.anthropic_api_key)
+    models = {}
+    for role, model in (("main", vb.model), ("fast", vb.fast_model)):
+        t0 = time.time()
+        try:
+            r = client.messages.create(model=model, max_tokens=5, messages=[{"role": "user", "content": "Reply with OK."}])
+            text_out = "".join(b.text for b in r.content if getattr(b, "type", "") == "text").strip()
+            models[role] = {"model": model, "ok": True, "reply": text_out[:20], "ms": round((time.time() - t0) * 1000)}
+        except Exception as e:  # noqa: BLE001
+            models[role] = {"model": model, "ok": False, "error": f"{type(e).__name__}: {str(e)[:200]}"}
+    result = {"enabled": True, "ok": all(m["ok"] for m in models.values()), "models": models,
+              "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    _llm_check.update(at=time.time(), result=result)
+    return result

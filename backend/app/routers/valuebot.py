@@ -278,5 +278,14 @@ def export_xlsx(job_id: str, user: User = Depends(current_user), db: Session = D
                              headers={"Content-Disposition": f'attachment; filename="{r.ticker}_valuebot_model.xlsx"'})
 
 
+@router.post("/thesis")
+def draft_thesis(req: dict, user: User = Depends(current_user)):
+    """Thesis drafting calls Claude, so it needs a signed-in member (ValueBot's own route is open)."""
+    from valuebot.api import ThesisRequest
+    from valuebot.api import draft_thesis as vb_draft
+
+    return vb_draft(ThesisRequest(**req))
+
+
 # ValueBot's own routes come after ours so the overrides above win.
 router.include_router(valuebot_router)

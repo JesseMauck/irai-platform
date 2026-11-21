@@ -624,3 +624,11 @@ def test_export_and_delete_account(client):
     assert client.post("/api/me/delete", json={"password": "correct-horse-9", "confirm": "nope"}, headers=h).status_code == 400
     assert client.post("/api/me/delete", json={"password": "correct-horse-9", "confirm": "DELETE"}, headers=h).json()["ok"]
     assert client.get("/api/auth/me", headers=h).status_code == 401
+
+
+def test_thesis_requires_sign_in_and_llm_health(client):
+    assert client.post("/api/valuebot/thesis", json={"ticker": "DEMO", "stance": "neutral"}).status_code == 401
+    h = signup(client)
+    r = client.post("/api/valuebot/thesis", json={"ticker": "DEMO", "stance": "neutral"}, headers=h)
+    assert r.status_code == 200, r.text
+    assert client.get("/api/health/llm").json()["enabled"] is False  # offline in tests

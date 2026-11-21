@@ -78,6 +78,7 @@ RULES = [
     ("POST", "/api/valuebot/jobs", 10, 600),
     ("POST", "/api/valuebot/thesis", 20, 600),
     ("POST", "/api/lab/", 30, 60),
+    ("POST", "/api/workspace/compare", 20, 600),
     ("POST", "/api/community/", 30, 60),
     ("GET", "/api/", 300, 60),
 ]
