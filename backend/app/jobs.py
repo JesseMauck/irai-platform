@@ -168,6 +168,10 @@ def tick() -> dict:
         with SessionLocal() as db:
             out["prewarm"] = prewarm(db)
     with SessionLocal() as db:
+        from . import paper
+
+        out["bots"] = paper.run_schedule(db)
+    with SessionLocal() as db:
         out["alerts"] = len(evaluate_alerts(db))
     with SessionLocal() as db:
         out["screens"] = check_screen_alerts(db)

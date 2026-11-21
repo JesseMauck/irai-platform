@@ -387,7 +387,8 @@ def _rows(db: Session, model, col, uid: int, drop: tuple[str, ...] = ()) -> list
 @router.get("/export")
 def export_my_data(user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Everything we hold that is linked to your account, as JSON (secrets excluded)."""
-    from ..models import AnalystReport, BacktestRun, Portfolio, Post, Subscription, Thread, TradePost, ValuationRun, Vote
+    from ..models import (AnalystReport, BacktestRun, Bot, PaperAccount, PaperTrade, Portfolio, Post, Subscription, Thread, TradePost,
+                          ValuationRun, Vote)
 
     secret = ("password_hash", "hashed_password", "key_hash", "token_hash")
     profile = {c.name: getattr(user, c.name) for c in User.__table__.columns if c.name not in secret}
@@ -407,6 +408,9 @@ def export_my_data(user: User = Depends(current_user), db: Session = Depends(get
         "portfolios": [{"name": p.name, "source": p.source, "cash": p.cash, "benchmark": p.benchmark,
                         "holdings": [{"symbol": h.symbol, "quantity": h.quantity, "cost_basis": h.cost_basis} for h in p.holdings]}
                        for p in db.scalars(select(Portfolio).where(Portfolio.user_id == user.id))],
+        "paper_accounts": _rows(db, PaperAccount, "user_id", user.id),
+        "bots": _rows(db, Bot, "user_id", user.id, drop=("webhook_token",)),
+        "paper_trades": [r for b in db.scalars(select(Bot.id).where(Bot.user_id == user.id)) for r in _rows(db, PaperTrade, "bot_id", b)],
     }
 
 

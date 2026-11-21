@@ -517,3 +517,102 @@ class CalibrationRun(Base):
     trigger: Mapped[str] = mapped_column(String(12), default="schedule")  # schedule | manual
     results: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     summary: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+# ── Paper trading (IRAI AlgoTrader) ──────────────────────────────────────────────────────────────
+class PaperAccount(TimestampMixin, Base):
+    """Simulated brokerage account. `cash` is unallocated cash; capital given to bots lives in their sleeves."""
+    __tablename__ = "paper_accounts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    starting_cash: Mapped[float] = mapped_column(Float)
+    cash: Mapped[float] = mapped_column(Float)
+
+
+class Bot(TimestampMixin, Base):
+    __tablename__ = "bots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    description: Mapped[str | None] = mapped_column(Text)  # the plain-English idea it was built from
+    mode: Mapped[str] = mapped_column(String(12), default="strategy")  # strategy | webhook
+    strategy: Mapped[str | None] = mapped_column(String(30))
+    params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    symbols: Mapped[list[str]] = mapped_column(JSON, default=list)
+    max_position_pct: Mapped[float] = mapped_column(Float, default=1.0)  # of the sleeve, per symbol
+    stop_loss_pct: Mapped[float | None] = mapped_column(Float)
+    take_profit_pct: Mapped[float | None] = mapped_column(Float)
+    daily_auto_close: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(12), default="running", index=True)  # running | paused
+    webhook_token: Mapped[str] = mapped_column(String(48), unique=True, index=True)
+    backtest: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    last_eval_on: Mapped[str | None] = mapped_column(String(10))
+    last_autoclose_on: Mapped[str | None] = mapped_column(String(10))
+    last_risk_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    sleeves: Mapped[list[BotSleeve]] = relationship(back_populates="bot", cascade="all, delete-orphan", order_by="BotSleeve.id")
+
+
+class BotSleeve(TimestampMixin, Base):
+    """A bot's capital inside one paper account. One bot can feed many accounts."""
+    __tablename__ = "bot_sleeves"
+    __table_args__ = (UniqueConstraint("bot_id", "account_id", name="uq_sleeve_bot_account"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    bot_id: Mapped[int] = mapped_column(ForeignKey("bots.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("paper_accounts.id", ondelete="CASCADE"), index=True)
+    capital: Mapped[float] = mapped_column(Float)
+    cash: Mapped[float] = mapped_column(Float)
+    bot: Mapped[Bot] = relationship(back_populates="sleeves")
+    positions: Mapped[list[PaperPosition]] = relationship(back_populates="sleeve", cascade="all, delete-orphan")
+
+
+class PaperPosition(Base):
+    __tablename__ = "paper_positions"
+    __table_args__ = (UniqueConstraint("sleeve_id", "symbol", name="uq_position_sleeve_symbol"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sleeve_id: Mapped[int] = mapped_column(ForeignKey("bot_sleeves.id", ondelete="CASCADE"), index=True)
+    symbol: Mapped[str] = mapped_column(String(20))
+    quantity: Mapped[float] = mapped_column(Float)
+    avg_cost: Mapped[float] = mapped_column(Float)
+    opened_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    sleeve: Mapped[BotSleeve] = relationship(back_populates="positions")
+
+
+class PaperTrade(Base):
+    __tablename__ = "paper_trades"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sleeve_id: Mapped[int] = mapped_column(ForeignKey("bot_sleeves.id", ondelete="CASCADE"), index=True)
+    bot_id: Mapped[int] = mapped_column(ForeignKey("bots.id", ondelete="CASCADE"), index=True)
+    symbol: Mapped[str] = mapped_column(String(20))
+    side: Mapped[str] = mapped_column(String(4))  # buy | sell
+    quantity: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)
+    commission: Mapped[float] = mapped_column(Float, default=0.0)
+    realized_pnl: Mapped[float | None] = mapped_column(Float)
+    reason: Mapped[str] = mapped_column(String(20))  # signal | stop_loss | take_profit | auto_close | webhook | manual | close_bot
+    price_source: Mapped[str | None] = mapped_column(String(10))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class BotSignal(Base):
+    __tablename__ = "bot_signals"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    bot_id: Mapped[int] = mapped_column(ForeignKey("bots.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(12))  # schedule | webhook | manual | risk
+    action: Mapped[str] = mapped_column(String(12))
+    symbol: Mapped[str | None] = mapped_column(String(20))
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(12))  # executed | ignored | error
+    detail: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class SleeveEquity(Base):
+    """End-of-day equity per sleeve: the live track record."""
+    __tablename__ = "sleeve_equity"
+    __table_args__ = (UniqueConstraint("sleeve_id", "date", name="uq_sleeve_equity_day"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sleeve_id: Mapped[int] = mapped_column(ForeignKey("bot_sleeves.id", ondelete="CASCADE"), index=True)
+    bot_id: Mapped[int] = mapped_column(ForeignKey("bots.id", ondelete="CASCADE"), index=True)
+    date: Mapped[str] = mapped_column(String(10))
+    equity: Mapped[float] = mapped_column(Float)

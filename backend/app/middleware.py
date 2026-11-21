@@ -81,6 +81,8 @@ RULES = [
     ("POST", "/api/workspace/compare", 20, 600),
     ("POST", "/api/analyst/", 20, 600),
     ("POST", "/api/portfolio", 40, 600),
+    ("POST", "/api/bots/hook/", 60, 60),
+    ("POST", "/api/bots", 60, 600),
     ("POST", "/api/community/", 30, 60),
     ("GET", "/api/", 300, 60),
 ]
