@@ -190,3 +190,46 @@ def test_pattern_endpoints(client):
     r = client.post("/api/quant/patterns/test", headers=pro, json={"pattern": "squeeze_breakout", "asset_class": "fx", "timeframe": "1wk"}).json()
     assert r["results"][0]["asset_class"] == "fx" and r["source"] == "DEMO"
     assert client.post("/api/quant/patterns/test", headers=pro, json={"pattern": "nope", "asset_class": "fx", "timeframe": "1d"}).status_code == 422
+
+
+# ── analyst report quantitative profile ─────────────────────────────────────────────────────────
+def test_profile_sections_and_consistency(client):
+    from app.quant import profile
+
+    p = profile.build("AAPL", {"sector": "Technology"})
+    for k in ("performance", "trend", "momentum", "levels", "risk", "regime", "seasonality", "ranges", "scorecard", "chart"):
+        assert p.get(k), k
+    assert p["performance"]["sector_etf"] == "XLK"
+    assert abs(p["trend"]["price"] - engine.service.quote("AAPL")["price"]) < 1e-6  # demo bars anchored to the demo quote
+    lv = [r["price"] for r in p["levels"]["rows"]]
+    assert lv == sorted(lv, reverse=True)
+    r = p["risk"]
+    assert r["cvar95_1d"] >= r["var95_1d"] > 0 and -1 < r["max_drawdown_1y"] <= 0
+    m = next(x for x in p["ranges"]["rows"] if x["horizon"] == "1 month")
+    assert m["minus_2sd"] < m["minus_1sd"] < p["trend"]["price"] < m["plus_1sd"] < m["plus_2sd"]
+    assert {s["read"] for s in p["scorecard"]} <= {"Positive", "Neutral", "Negative", "n/a"}
+    assert profile.ordinal(0.63) == "63rd" and profile.ordinal(0.11) == "11th" and profile.ordinal(0.21) == "21st"
+    j = client.get("/api/insight/AAPL/profile").json()
+    assert j["symbol"] == "AAPL" and j["source"] == "DEMO"
+
+
+def test_analyst_report_has_expert_sections(client):
+    from app import analyst
+    from app.models import AnalystReport
+
+    with SessionLocal() as db:
+        r = analyst.new_report(None, "MSFT")
+        db.add(r)
+        db.commit()
+        rid = r.id
+    analyst.run(rid)
+    with SessionLocal() as db:
+        r = db.get(AnalystReport, rid)
+        a = r.result["analysis"]
+        assert r.status == "done" and r.result["quant"]["risk"]["vol_20d"] > 0
+        assert len(a["key_takeaways"]) >= 4 and len(a["scenarios"]) == 3
+        for k in ("price_action", "volatility_risk", "relative_performance", "options_positioning", "earnings_quality"):
+            assert isinstance(a[k], str) and a[k]
+        text = " ".join([a["summary"], a["price_action"], a["volatility_risk"]] + [x["conditions"] for x in a["scenarios"]]).lower()
+        for banned in (" buy ", " sell ", "price target of", "we recommend"):
+            assert banned not in text

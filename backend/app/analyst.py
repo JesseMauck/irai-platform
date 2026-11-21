@@ -15,6 +15,8 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+import numpy as np
+
 from . import fundamentals, research
 from .db import SessionLocal
 from .market import service
@@ -29,6 +31,7 @@ STAGES: list[tuple[str, str]] = [
     ("fundamentals", "Fundamentals and quant ratings"),
     ("earnings", "Earnings and dividends"),
     ("technicals", "Technicals"),
+    ("quant", "Quantitative profile: trend, volatility, risk, levels, regimes"),
     ("street", "Analyst consensus and peers"),
     ("ai", "AI analysis"),
     ("publish", "Publish report"),
@@ -160,6 +163,18 @@ def run(report_id: str) -> None:
                              if isinstance(t, dict) else {})}
     _set(report_id, "technicals", "done", t.get("trend") if isinstance(t, dict) else None)
 
+    # 6b quantitative profile (deterministic; charts and tables in the report come from here)
+    _set(report_id, "quant", "running")
+    from .quant import profile as qprofile
+
+    qp = _safe(qprofile.build, symbol, info)
+    if isinstance(qp, dict) and "error" not in qp:
+        pack["quant_profile"] = {"source_id": src(f"Irradiance quantitative profile from daily OHLCV ({qp.get('source')})"), **_slim(qp)}
+        _set(report_id, "quant", "done", f"{(qp.get('regime') or {}).get('current', 'n/a')} regime · 20-day vol {_p((qp.get('risk') or {}).get('vol_20d'), 0)}")
+    else:
+        qp = None
+        _set(report_id, "quant", "done", "unavailable")
+
     # 7 street + peers
     _set(report_id, "street", "running")
     cons = _safe(research.consensus, symbol)
@@ -184,9 +199,30 @@ def run(report_id: str) -> None:
                            "technicals": {"trend": pack["technicals"].get("trend"), "rsi14": pack["technicals"].get("rsi14")},
                            "next_earnings": pack["earnings"]["next"], "dividend_yield": (pack.get("dividends") or {}).get("yield_ttm"),
                            "fundamentals": {k: pack["fundamentals"].get(k) for k in ("forward_pe", "ev_ebitda", "operating_margin", "revenue_growth", "roe")}},
-              "analysis": analysis, "sources": sources}
+              "analysis": analysis, "sources": sources, "quant": qp,
+              "peers": pack.get("peers"), "earnings": pack.get("earnings"), "dividends": pack.get("dividends"),
+              "fundamentals_full": {k: v for k, v in pack["fundamentals"].items() if k != "source_id"},
+              "profile": {k: pack["market"].get(k) for k in ("sector", "industry", "market_cap", "summary", "exchange", "52w_high", "52w_low")},
+              "headlines": [{k: h.get(k) for k in ("title", "published", "outlet", "source_id")} for h in pack["news"]["headlines"][:10]],
+              "filings": pack.get("filings")}
     _set(report_id, "publish", "done", None, status="done", result=result, engine=engine,
          finished_at=dt.datetime.now(dt.timezone.utc))
+
+
+def _slim(qp: dict[str, Any]) -> dict[str, Any]:
+    """The profile without chart series, for the model to interpret."""
+    drop = {"chart", "relative_strength", "seasonality"}
+    out = {k: v for k, v in qp.items() if k not in drop}
+    out["risk"] = {k: v for k, v in (qp.get("risk") or {}).items() if k not in ("drawdown_series", "vol_series", "distribution")}
+    out["momentum"] = {k: v for k, v in (qp.get("momentum") or {}).items() if k != "series"}
+    if qp.get("regime"):
+        out["regime"] = {k: v for k, v in qp["regime"].items() if k != "strip"}
+    if qp.get("relative_strength"):
+        out["relative_strength_3m"] = qp["relative_strength"].get("change_3m")
+    sea = (qp.get("seasonality") or {}).get("by_month") or []
+    nxt = (dt.date.today().month % 12) + 1
+    out["seasonality_this_and_next_month"] = [m for m in sea if m["month"] in (dt.date.today().month, nxt)]
+    return out
 
 
 # ── writing ──────────────────────────────────────────────────────────────────────────────────────
@@ -205,13 +241,25 @@ SCHEMA = {
         "risks": {"type": "array", "items": {"type": "string"}},
         "questions": {"type": "array", "items": {"type": "string"}, "description": "Questions an analyst should research next."},
         "data_gaps": {"type": "array", "items": {"type": "string"}, "description": "Missing, stale or DEMO data the reader should know about."},
+        "key_takeaways": {"type": "array", "items": {"type": "object", "properties": {"point": {"type": "string"}, "sources": {"type": "array", "items": {"type": "string"}}}, "required": ["point", "sources"]},
+                          "description": "3-5 crisp, quantified takeaways a professional trader would want first."},
+        "price_action": {"type": "string", "description": "Trend structure (MA stack, crosses, ADX), key support/resistance levels and distances, volume confirmation (relative volume, up/down volume, OBV)."},
+        "volatility_risk": {"type": "string", "description": "Realised vol term structure and percentile, ATR, regime, beta/correlation, drawdown, VaR/CVaR, tail shape; what that means for position sizing in general terms."},
+        "relative_performance": {"type": "string", "description": "Performance vs SPY and the sector ETF across periods; relative strength trend."},
+        "options_positioning": {"type": "string", "description": "Implied vs realised vol, expected move, put/call, short interest and ownership. Say plainly if options data is unavailable."},
+        "earnings_quality": {"type": "string", "description": "Beat/miss history, estimate trend, margins and growth quality, balance sheet."},
+        "scenarios": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string", "enum": ["Upside", "Base", "Downside"]},
+                      "conditions": {"type": "string", "description": "What would have to happen, referencing the data and the statistical ranges in the pack (not your own price target)."},
+                      "sources": {"type": "array", "items": {"type": "string"}}}, "required": ["name", "conditions", "sources"]}},
     },
-    "required": ["headline", "summary", "whats_new", "bull_case", "bear_case", "valuation", "technical", "sentiment", "catalysts", "risks", "questions", "data_gaps"],
+    "required": ["key_takeaways", "price_action", "volatility_risk", "relative_performance", "options_positioning", "earnings_quality", "scenarios", "headline", "summary", "whats_new", "bull_case", "bear_case", "valuation", "technical", "sentiment", "catalysts", "risks", "questions", "data_gaps"],
 }
 
 SYSTEM = (
-    "You are a senior buy-side equity research analyst writing a same-day research note for sophisticated self-directed "
-    "investors. Use ONLY the JSON data pack provided: never invent numbers, dates, events or quotes, and never use outside "
+    "You are a senior buy-side equity research analyst and former prop-desk trader writing a same-day research note for "
+    "sophisticated self-directed investors. Write in the precise vernacular professionals use (MA stack, ADX, relative strength, "
+    "realised vs implied vol, ATR, drawdown, VaR, skew, positioning, estimate revisions, multiple compression/expansion) and "
+    "quantify every claim with the figures in the pack. Use ONLY the JSON data pack provided: never invent numbers, dates, events or quotes, and never use outside "
     "knowledge about recent events. Every bullet must cite one or more source ids (e.g. S3) from the pack. Be specific and "
     "quantitative (cite the figures), balanced (real bull and bear cases), and concise. If headlines are ambiguous, say so. "
     "Flag data gaps (missing fields, DEMO/STALE labels). This is research and education, not advice: never say buy, sell, hold, "
@@ -229,7 +277,7 @@ def write(pack: dict[str, Any], sources: list[dict[str, Any]]) -> tuple[dict[str
             user = ("Data pack (JSON):\n" + json.dumps(pack, default=str)[:90_000] +
                     "\n\nSource list:\n" + json.dumps([{k: s[k] for k in ("id", "label")} for s in sources])[:20_000] +
                     "\n\nWrite today's analysis note for this ticker.")
-            resp = client.messages.create(model=vb.model, max_tokens=3500, system=SYSTEM,
+            resp = client.messages.create(model=vb.model, max_tokens=6500, system=SYSTEM,
                                           messages=[{"role": "user", "content": user}],
                                           tools=[{"name": "submit_note", "description": "Submit the analysis note.", "input_schema": SCHEMA}],
                                           tool_choice={"type": "tool", "name": "submit_note"})
@@ -237,7 +285,7 @@ def write(pack: dict[str, Any], sources: list[dict[str, Any]]) -> tuple[dict[str
                 if block.type == "tool_use":
                     note = dict(block.input)
                     valid = {s["id"] for s in sources}
-                    for sec in ("whats_new", "bull_case", "bear_case", "catalysts"):  # drop citations to ids that don't exist
+                    for sec in ("whats_new", "bull_case", "bear_case", "catalysts", "key_takeaways", "scenarios"):  # drop citations to ids that don't exist
                         for item in note.get(sec) or []:
                             item["sources"] = [x for x in item.get("sources") or [] if x in valid]
                     return note, f"Claude ({vb.model})"
@@ -280,7 +328,7 @@ def rules_note(pack: dict[str, Any]) -> dict[str, Any]:
         "headline": f"{m['name']} {_p(m.get('change_pct'), 2)} today; {t.get('trend', 'mixed').lower()} trend, quant grade {qr.get('overall', 'n/a')}.",
         "summary": (f"{m['name']} trades at {m.get('price')} {m.get('currency') or ''} ({m.get('data_label')}). Over 12 months the stock is "
                     f"{_p(r.get('12m'))}; quant rating {qr.get('overall', 'n/a')} ({qr.get('label') or 'n/a'}). Buzz is "
-                    f"{(pack['news']['buzz'] or {}).get('level', 'n/a')}. This summary was generated by rules because the AI writer is not configured."),
+                    f"{(pack['news']['buzz'] or {}).get('level', 'n/a')}." + _rules_summary_tail(pack)),
         "whats_new": [{"point": h["title"], "sources": [h["source_id"]]} for h in news] or [{"point": "No recent headlines found.", "sources": []}],
         "bull_case": bull or [{"point": "No standout strengths in the available metrics.", "sources": []}],
         "bear_case": bear or [{"point": "No standout weaknesses in the available metrics.", "sources": []}],
@@ -290,5 +338,81 @@ def rules_note(pack: dict[str, Any]) -> dict[str, Any]:
         "catalysts": [{"event": "Next earnings report", "date": nxt.get("date"), "sources": sid("earnings")}] if nxt else [],
         "risks": ["Model and data limitations: verify figures in the linked sources."],
         "questions": ["What is driving recent news flow, and is it already in the price?", "How do margins and growth compare with peers over a full cycle?"],
-        "data_gaps": [] if m.get("data_label") == "LIVE" else [f"Price data is {m.get('data_label')}."],
+        "data_gaps": ([] if m.get("data_label") == "LIVE" else [f"Price data is {m.get('data_label')}."]) +
+                     ["Narrative written by the rules engine (AI writer unavailable); figures are computed, interpretation is templated."],
+        **_rules_quant(pack, sid),
     }
+
+
+def _rules_summary_tail(pack: dict[str, Any]) -> str:
+    from .quant.profile import ordinal
+
+    q = pack.get("quant_profile") or {}
+    t, rk, rg = q.get("trend") or {}, q.get("risk") or {}, q.get("regime") or {}
+    if not t:
+        return ""
+    return (f" Structurally the tape shows a {t.get('ma_stack', 'mixed')}, with price {_p(t.get('vs_sma200'))} versus the 200-day; "
+            f"20-day realised volatility is {_p(rk.get('vol_20d'), 0).lstrip('+')} ({ordinal(rk.get('vol_percentile_1y'))} percentile of the past year) "
+            f"and the volatility regime model reads {rg.get('current', 'n/a')}.")
+
+
+def _rules_quant(pack: dict[str, Any], sid) -> dict[str, Any]:
+    q = pack.get("quant_profile")
+    if not q:
+        return {"key_takeaways": [], "price_action": "Quantitative profile unavailable.", "volatility_risk": "n/a", "relative_performance": "n/a",
+                "options_positioning": "n/a", "earnings_quality": "n/a", "scenarios": []}
+    s_q = sid("quant_profile")
+    t, mo, rk, lv, vol = q["trend"], q["momentum"], q["risk"], q["levels"], q.get("volume") or {}
+    rg, op, pos = q.get("regime") or {}, q.get("options") or {}, q.get("positioning") or {}
+    perf = {r["period"]: r for r in q["performance"]["rows"]}
+    rngs = {r["horizon"]: r for r in q["ranges"]["rows"]}
+    near_res = next((x for x in reversed(lv["rows"]) if x["distance"] > 0.001), None)
+    near_sup = next((x for x in lv["rows"] if x["distance"] < -0.001), None)
+    cross = t.get("last_cross")
+    adx = t.get("adx14")
+    takeaways = [
+        {"point": f"Trend: {t['ma_stack']}; price {_p(t.get('vs_sma50'))} vs the 50-day and {_p(t.get('vs_sma200'))} vs the 200-day"
+                  + (f"; last {cross['type']} {cross['sessions_ago']} sessions ago" if cross else "") + (f"; ADX {adx:.0f} ({t['trend_strength']})." if adx else "."), "sources": s_q},
+        {"point": f"Momentum: RSI(14) {mo['rsi14']:.0f} ({mo['rsi_state']}), MACD {mo['macd_state']}, 12-1 month momentum {_p(mo.get('mom_12_1'))}." if mo.get("rsi14") else "Momentum data unavailable.", "sources": s_q},
+        {"point": f"Risk: 20-day realised vol {_p(rk.get('vol_20d'), 0).lstrip('+')}, ATR {rk['atr_pct'] * 100:.1f}% of price, 1-day 95% VaR {rk['var95_1d'] * 100:.1f}%, "
+                  f"max drawdown over the past year {_p(rk.get('max_drawdown_1y'))}.", "sources": s_q},
+        {"point": f"Relative performance: {_p(perf.get('3M', {}).get('stock'))} over 3 months vs {_p(perf.get('3M', {}).get('spy'))} for SPY"
+                  + (f" and {_p(perf['3M']['sector'])} for {q['performance']['sector_etf']}" if perf.get('3M', {}).get('sector') is not None else "") + ".", "sources": s_q},
+    ]
+    if rg:
+        takeaways.append({"point": f"Volatility regime: {rg['current']} for {rg['days_in_regime']} sessions; historical probability of staying in this regime the next day {rg['stay_probability'] * 100:.0f}%.", "sources": s_q})
+    pa = (f"{t['ma_stack'].capitalize()}. Price sits at {lv['pct_of_52w_range'] * 100:.0f}% of its 52-week range ({_p(lv['from_52w_high'])} from the high). "
+          + (f"Nearest overhead reference {near_res['level'].lower()} at {near_res['price']:.2f} ({_p(near_res['distance'])}); " if near_res else "")
+          + (f"nearest support {near_sup['level'].lower()} at {near_sup['price']:.2f} ({_p(near_sup['distance'])}). " if near_sup else "")
+          + (f"Participation: relative volume {vol['relative_volume']:.2f}x, 20-day up/down volume {vol['up_down_volume_20d']:.2f}, OBV {vol['obv_trend_1m']} over the month." if vol.get("relative_volume") and vol.get("up_down_volume_20d") else ""))
+    vr = (f"Realised vol term structure: 10-day {_p(rk.get('vol_10d'), 0).lstrip('+')}, 20-day {_p(rk.get('vol_20d'), 0).lstrip('+')}, 60-day {_p(rk.get('vol_60d'), 0).lstrip('+')}, 1-year {_p(rk.get('vol_1y'), 0).lstrip('+')}"
+          f" ({'rising' if (rk.get('vol_10d') or 0) > (rk.get('vol_60d') or 0) else 'easing'} short-term). "
+          + (f"Beta {rk['beta_1y']:.2f} and correlation {rk['correlation_1y']:.2f} to SPY; upside/downside capture {rk.get('upside_capture') or 0:.2f}/{rk.get('downside_capture') or 0:.2f}. " if rk.get("beta_1y") is not None else "")
+          + f"Tail profile: skew {rk.get('skew_1y') or 0:.2f}, excess kurtosis {rk.get('kurtosis_1y') or 0:.1f}; CVaR(95) {rk['cvar95_1d'] * 100:.1f}% a day. "
+          f"A 1-ATR move is about {rk['atr_pct'] * 100:.1f}%, a common yardstick for stop distance and position size.")
+    rp = "; ".join(f"{r['period']} {_p(r['stock'])} vs SPY {_p(r['spy'])}" for r in q["performance"]["rows"] if r["stock"] is not None and r["spy"] is not None)
+    if op:
+        oo = (f"Front expiry ({op.get('expiry')}, {op.get('days')} days): ATM implied vol {op['atm_iv'] * 100:.0f}%"
+              + (f", {op['iv_vs_realised']:.2f}x 20-day realised" if op.get("iv_vs_realised") else "")
+              + (f"; straddle-implied move ±{op['expected_move_pct'] * 100:.1f}%" if op.get("expected_move_pct") else "")
+              + (f"; put/call volume {op['put_call_volume']:.2f}, open interest {op['put_call_oi']:.2f}" if op.get("put_call_volume") and op.get("put_call_oi") else "") + ".")
+    else:
+        oo = "Listed options data was not available for this run."
+    if pos.get("short_percent_float") is not None or pos.get("held_by_institutions") is not None:
+        oo += f" Short interest {_p(pos.get('short_percent_float')).lstrip('+')} of float; institutions hold {_p(pos.get('held_by_institutions'), 0).lstrip('+')}."
+    e = pack.get("earnings") or {}
+    beats = [x for x in e.get("last_4") or [] if x.get("surprise_pct") is not None]
+    f = pack["fundamentals"]
+    eq = ((f"{sum(1 for x in beats if x['surprise_pct'] > 0)} of the last {len(beats)} quarters beat consensus EPS (average surprise {np.mean([x['surprise_pct'] for x in beats]):+.1f}%). " if beats else "")
+          + f"Operating margin {_p(f.get('operating_margin')).lstrip('+')}, revenue growth {_p(f.get('revenue_growth'))}, ROE {_p(f.get('roe')).lstrip('+')}"
+          + (f", debt/equity {f['debt_to_equity']:.0f}%." if f.get("debt_to_equity") else "."))
+    m1 = rngs.get("1 month")
+    sc = []
+    if m1:
+        sc = [{"name": "Upside", "conditions": f"Trend structure improves and momentum confirms (RSI holding above 50, MACD above signal); a +1σ one-month move from realised vol would be about {m1['plus_1sd']:.2f} (+{m1['one_sd_pct'] * 100:.1f}%)."
+               + (f" A close above {near_res['price']:.2f} would clear the nearest reference level." if near_res else ""), "sources": s_q},
+              {"name": "Base", "conditions": f"Volatility stays near current levels and price holds its range; roughly 68% of one-month outcomes would fall between {m1['minus_1sd']:.2f} and {m1['plus_1sd']:.2f} if volatility is unchanged.", "sources": s_q},
+              {"name": "Downside", "conditions": f"Support fails and the volatility regime shifts higher; a −1σ move is about {m1['minus_1sd']:.2f}, −2σ about {m1['minus_2sd']:.2f}."
+               + (f" Watch {near_sup['level'].lower()} at {near_sup['price']:.2f}." if near_sup else ""), "sources": s_q}]
+    return {"key_takeaways": takeaways, "price_action": pa, "volatility_risk": vr, "relative_performance": rp + ".", "options_positioning": oo,
+            "earnings_quality": eq, "scenarios": sc}

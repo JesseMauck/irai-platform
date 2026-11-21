@@ -13,6 +13,8 @@ export interface AnalystNote {
   valuation: string; technical: string; sentiment: string;
   catalysts: { event: string; date?: string | null; sources: string[] }[];
   risks: string[]; questions: string[]; data_gaps: string[];
+  key_takeaways?: Cited[]; price_action?: string; volatility_risk?: string; relative_performance?: string;
+  options_positioning?: string; earnings_quality?: string; scenarios?: { name: string; conditions: string; sources: string[] }[];
 }
 export interface AnalystSource { id: string; label: string; url: string | null; kind: string }
 export interface AnalystReport {
@@ -21,6 +23,12 @@ export interface AnalystReport {
   stages: { key: string; label: string; status: "pending" | "running" | "done" | "error"; detail: string | null }[];
   result: null | {
     symbol: string; name: string | null; generated_at: string; analysis: AnalystNote; sources: AnalystSource[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    quant?: any; peers?: { median?: Record<string, number | null>; rows: Record<string, number | string | null>[] } | null;
+    earnings?: { next?: { date?: string; eps_estimate?: number | null } | null; last_4?: { date: string; eps_estimate: number | null; eps_actual: number | null; surprise_pct: number | null }[] } | null;
+    dividends?: Record<string, number | string | null> | null; fundamentals_full?: Record<string, number | null>;
+    profile?: Record<string, string | number | null>; headlines?: { title: string; published?: string; outlet?: string; source_id: string }[];
+    filings?: { form: string; date: string; label: string; source_id: string }[];
     snapshot: {
       price: number | null; change_pct: number | null; currency: string | null; data_label: string;
       returns: Record<string, number | null>; quant: { overall: string; label: string; factors: Record<string, string> } | null;
@@ -69,6 +77,7 @@ export function AnalystNoteView({ r }: { r: AnalystReport }) {
         <h3 className="text-xl">{a.headline}</h3>
         <p className="mt-2 text-sm leading-relaxed">{a.summary}</p>
       </div>
+      {a.key_takeaways && a.key_takeaways.length > 0 && <List title="Key takeaways" items={a.key_takeaways} sources={src} />}
       <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
         <Stat k="Price" v={<>{num(s.price)} <span className={tone(s.change_pct)}>{pct(s.change_pct)}</span> <SourceBadge source={s.data_label} /></>} />
         <Stat k="Quant rating" v={s.quant ? `${s.quant.overall} · ${s.quant.label}` : "—"} />
@@ -84,6 +93,9 @@ export function AnalystNoteView({ r }: { r: AnalystReport }) {
         <List title="Bull case" items={a.bull_case} sources={src} cls="text-up" />
         <List title="Bear case" items={a.bear_case} sources={src} cls="text-down" />
       </div>
+      {a.price_action && <div className="grid gap-5 text-sm md:grid-cols-2">
+        {([["Price action & trend structure", a.price_action], ["Volatility & risk", a.volatility_risk], ["Relative performance", a.relative_performance], ["Options & positioning", a.options_positioning]] as const).map(([t, x]) => x ? <div key={t}><h3 className="font-semibold">{t}</h3><p className="mt-1">{x}</p></div> : null)}
+      </div>}
       <div className="grid gap-5 md:grid-cols-3 text-sm">
         <div><h3 className="font-semibold">Valuation</h3><p className="mt-1">{a.valuation}</p></div>
         <div><h3 className="font-semibold">Technicals</h3><p className="mt-1">{a.technical}</p></div>

@@ -79,10 +79,16 @@ h4, h5, h6 { font-family: var(--font-sans); }
 
 /* Printable reports: force a light, ink-friendly palette regardless of theme. */
 @media print {
-  @page { size: letter; margin: 14mm 12mm 16mm; }
+  @page { size: letter; margin: 14mm 12mm 16mm;
+    @bottom-left { content: "Irradiance.ai · Research and education only, not investment advice"; font: 7.5pt "Inter Variable", Inter, sans-serif; color: #777; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 7.5pt "Inter Variable", Inter, sans-serif; color: #777; } }
   html, html[data-theme] { --color-bg: #fff; --color-fg: #111; --color-card: #fff; --color-line: #d9d9de; --color-muted: #555; --color-accent: #f2f2f5; }
   body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-avoid-break { break-inside: avoid; }
+  .report-last { min-height: 247mm; }
+  .report .rsec { break-inside: avoid; }
+  .report dl > div { padding-top: 0.15rem; padding-bottom: 0.15rem; }
+  .report h1, .report h2, .report h3 { break-after: avoid; }
   a { color: inherit; text-decoration: none; }
 }
 

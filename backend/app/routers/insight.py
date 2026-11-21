@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import fundamentals, research
 from ..db import get_db
+from ..market import service
 from ..market.source import SourceError
 from ..models import BuzzSnapshot
 
@@ -48,6 +49,23 @@ def financials(symbol: str):
 @router.get("/{symbol}/buzz")
 def buzz(symbol: str, headlines: bool = True):
     return _guard(lambda s: research.buzz(s, with_headlines=headlines), symbol)
+
+
+@router.get("/{symbol}/profile")
+def quant_profile(symbol: str):
+    """Quantitative profile (trend, momentum, levels, volatility, risk, regime, seasonality, ranges) for reports; cached 30 minutes."""
+    from ..quant import profile
+
+    def go(s):
+        try:
+            info = service.info(s)
+        except Exception:  # noqa: BLE001
+            info = {}
+        return research._memo("qprofile", s, 1800, lambda: profile.build(s, info))
+    try:
+        return _guard(go, symbol)
+    except LookupError as e:
+        raise HTTPException(404, str(e)) from e
 
 
 @router.get("/{symbol}/statements")
