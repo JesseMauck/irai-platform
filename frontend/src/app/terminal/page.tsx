@@ -112,7 +112,7 @@ export default function Terminal() {
                 <Link href={`/community/write?ticker=${sym}`} className="rounded border border-line px-2 py-1 hover:bg-accent">Write analysis</Link>
               </span>
             </div>
-            <TradingViewChart symbol={sym} height={460} />
+            <TradingViewChart symbol={sym} height={560} />
           </Card>
           <div className="flex gap-1 text-sm">{(["ratings", "buzz", "news", "filings"] as const).map(t => <button key={t} onClick={() => setLower(t)} className={`rounded-md px-3 py-1 capitalize ${lower === t ? "bg-accent text-fg" : "text-muted"}`}>{t}</button>)}</div>
           {lower === "ratings" && <RatingsCard symbol={sym} />}

@@ -89,7 +89,7 @@ export default function Ticker({ params }: { params: Promise<{ symbol: string }>
           <button key={t} onClick={() => go(t)} className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm ${tab === t ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}>{t}</button>)}</div>
       </nav>
 
-      {tab === "Chart" && <div className="mt-6"><TradingViewChart symbol={symbol} height={620} /></div>}
+      {tab === "Chart" && <div className="relative left-1/2 mt-4 w-[calc(100vw-2rem)] max-w-[1800px] -translate-x-1/2"><TradingViewChart symbol={symbol} tall /></div>}
       {tab === "Financials" && <div className="mt-6"><StatementsPanel symbol={symbol} /></div>}
       {tab === "Earnings" && <div className="mt-6"><EarningsPanel symbol={symbol} /></div>}
       {tab === "Dividends" && <div className="mt-6"><DividendsPanel symbol={symbol} /></div>}

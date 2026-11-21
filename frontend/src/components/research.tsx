@@ -141,8 +141,10 @@ export function tvSymbol(s: string): string {
   return s.replace("-P", "/P");
 }
 
-export function TradingViewChart({ symbol, height = 520 }: { symbol: string; height?: number }) {
+export function TradingViewChart({ symbol, height = 520, tall = false }: { symbol: string; height?: number; tall?: boolean }) {
+  const wrap = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -153,14 +155,34 @@ export function TradingViewChart({ symbol, height = 520 }: { symbol: string; hei
     const dark = document.documentElement.dataset.theme !== "light";
     s.innerHTML = JSON.stringify({ autosize: true, symbol: tvSymbol(symbol), interval: "D", timezone: "Etc/UTC", theme: dark ? "dark" : "light",
       style: "1", locale: "en", allow_symbol_change: true, withdateranges: true, hide_side_toolbar: false, details: true,
-      studies: ["STD;SMA", "STD;RSI"], support_host: "https://www.tradingview.com", backgroundColor: dark ? "#0b1220" : "#ffffff" });
+      hotlist: false, calendar: false, studies: ["STD;SMA", "STD;RSI"], support_host: "https://www.tradingview.com",
+      backgroundColor: dark ? "#0b1220" : "#ffffff" });
     el.appendChild(s);
     return () => { el.innerHTML = ""; };
   }, [symbol]);
+  useEffect(() => {
+    const on = () => setFull(document.fullscreenElement === wrap.current);
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
+  const [pseudo, setPseudo] = useState(false); // fallback "full window" where the Fullscreen API is unavailable (iOS)
+  const toggleFull = () => {
+    if (pseudo) { setPseudo(false); return; }
+    if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
+    if (wrap.current?.requestFullscreen) wrap.current.requestFullscreen().catch(() => setPseudo(true));
+    else setPseudo(true);
+  };
+  const expanded = full || pseudo;
+  // "tall" fills the window under the header; full screen takes the whole display.
+  const h = expanded ? "100vh" : tall ? "max(640px, calc(100vh - 230px))" : `${height}px`;
   return (
     <div>
-      <div ref={ref} className="tradingview-widget-container overflow-hidden rounded-lg border border-line" style={{ height }} />
-      <p className="mt-2 text-[11px] text-muted">Interactive chart by <a href={`https://www.tradingview.com/symbols/${tvSymbol(symbol).replace(":", "-")}/`} target="_blank" rel="noopener noreferrer" className="underline">TradingView</a>. Draw, add indicators and save layouts with a free TradingView account. Build and backtest your own rules in the <Link href={`/lab?symbol=${encodeURIComponent(symbol)}`} className="underline">Strategy Lab</Link>.</p>
+      <div ref={wrap} className={`relative bg-bg ${pseudo ? "fixed inset-0 z-50" : ""}`}>
+        <button onClick={toggleFull} className="absolute right-2 top-2 z-10 rounded-md border border-line bg-card/90 px-2 py-1 text-xs hover:bg-accent"
+          aria-label={expanded ? "Exit full screen" : "Full screen chart"}>{expanded ? "✕ Exit full screen" : "⤢ Full screen"}</button>
+        <div ref={ref} className="tradingview-widget-container overflow-hidden rounded-lg border border-line" style={{ height: h, width: "100%" }} />
+      </div>
+      <p className="mt-2 text-[11px] text-muted">Interactive chart by <a href={`https://www.tradingview.com/symbols/${tvSymbol(symbol).replace(":", "-")}/`} target="_blank" rel="noopener noreferrer" className="underline">TradingView</a>: use the left toolbar to draw trend lines, Fibonacci levels and notes, and the Indicators button to add studies. Save layouts with a free TradingView account. Build and backtest your own rules in the <Link href={`/lab?symbol=${encodeURIComponent(symbol)}`} className="underline">Strategy Lab</Link>.</p>
     </div>
   );
 }

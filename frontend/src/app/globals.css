@@ -72,3 +72,7 @@ h4, h5, h6 { font-family: var(--font-sans); }
 .prose-irai ol, .prose-irai ul { padding-left: 1.25rem; color: var(--color-fg-2); line-height: 1.75; }
 .prose-irai ol { list-style: decimal; } .prose-irai ul { list-style: disc; }
 .prose-irai strong { color: var(--color-fg); }
+
+/* TradingView embed: make the iframe fill its container (the script otherwise sizes it to defaults). */
+.tradingview-widget-container, .tradingview-widget-container__widget { height: 100%; width: 100%; }
+.tradingview-widget-container iframe { height: 100% !important; width: 100% !important; }
