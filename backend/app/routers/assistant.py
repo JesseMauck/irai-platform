@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from .. import research
 from ..db import get_db
 from ..market import service
-from ..models import AnalystReport, AssistantUsage, Bot, Portfolio, ResearchTheme, User
+from ..models import AnalystReport, AssistantChat, AssistantUsage, Bot, Portfolio, ResearchTheme, User
 from ..security import current_user, limits
 
 log = logging.getLogger("irai.assistant")
@@ -48,6 +48,8 @@ class AskIn(BaseModel):
     theme: str | None = Field(None, max_length=80)
     portfolio_id: int | None = None
     bot_id: int | None = None
+    chat_id: int | None = None
+    save: bool = True
 
 
 def _ticker_ctx(sym: str, db: Session) -> dict[str, Any]:
@@ -132,8 +134,9 @@ def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(g
         t = ctx.get("ticker")
         hint = (f"{t['ticker']} trades at {t.get('price')} ({t.get('data_label')}); quant rating {(t.get('quant_rating') or {}).get('overall', 'n/a')}. "
                 if t else "")
-        return {"reply": hint + "The AI assistant isn't configured on this server yet, so I can't answer free-form questions. "
-                "Try the Analyst tab on a ticker, the Methodology page, or Learn.", "engine": "rules", "used": used, "limit": cap}
+        reply = (hint + "The AI assistant isn't configured on this server yet, so I can't answer free-form questions. "
+                 "Try the Analyst tab on a ticker, the Methodology page, or Learn.")
+        return {"reply": reply, "engine": "rules", "used": used, "limit": cap, "chat_id": _save_chat(db, user, body, reply)}
     msgs = [{"role": m.role, "content": m.content} for m in body.messages[-12:]]
     msgs[-1] = {"role": "user", "content": f"PAGE CONTEXT (JSON):\n{json.dumps(ctx, default=str)[:30_000]}\n\nQUESTION:\n{msgs[-1]['content']}"}
     try:
@@ -144,8 +147,53 @@ def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(g
     except Exception as e:  # noqa: BLE001
         log.warning("assistant failed: %s", e)
         raise HTTPException(503, "The assistant is busy; try again in a moment.")
-    return {"reply": reply, "engine": "claude", "used": used, "limit": cap,
+    chat_id = _save_chat(db, user, body, reply)
+    return {"reply": reply, "engine": "claude", "used": used, "limit": cap, "chat_id": chat_id,
             "context": [k for k in ("ticker", "theme", "portfolio", "bot") if k in ctx]}
+
+
+def _save_chat(db: Session, user: User, body: AskIn, reply: str) -> int | None:
+    if not body.save:
+        return None
+    msgs = [m.model_dump() for m in body.messages] + [{"role": "assistant", "content": reply}]
+    chat = db.get(AssistantChat, body.chat_id) if body.chat_id else None
+    if chat and chat.user_id != user.id:
+        chat = None
+    now = dt.datetime.now(dt.timezone.utc)
+    if chat:
+        chat.messages, chat.updated_at = msgs[-40:], now
+    else:
+        first = body.messages[0].content.strip().replace("\n", " ")
+        chat = AssistantChat(user_id=user.id, title=(first[:80] + ("…" if len(first) > 80 else "")), messages=msgs[-40:],
+                             context={k: v for k, v in {"path": body.path, "symbol": body.symbol, "theme": body.theme, "bot_id": body.bot_id}.items() if v},
+                             updated_at=now)
+        db.add(chat)
+    db.commit()
+    return chat.id
+
+
+@router.get("/assistant/chats")
+def chats(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    rows = db.scalars(select(AssistantChat).where(AssistantChat.user_id == user.id).order_by(AssistantChat.updated_at.desc()).limit(50)).all()
+    return [{"id": c.id, "title": c.title, "updated_at": c.updated_at.isoformat(), "messages": len(c.messages or []), "context": c.context} for c in rows]
+
+
+@router.get("/assistant/chats/{cid}")
+def chat(cid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    c = db.get(AssistantChat, cid)
+    if not c or c.user_id != user.id:
+        raise HTTPException(404, "Chat not found")
+    return {"id": c.id, "title": c.title, "messages": c.messages, "context": c.context, "updated_at": c.updated_at.isoformat()}
+
+
+@router.delete("/assistant/chats/{cid}")
+def delete_chat(cid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    c = db.get(AssistantChat, cid)
+    if not c or c.user_id != user.id:
+        raise HTTPException(404, "Chat not found")
+    db.delete(c)
+    db.commit()
+    return {"ok": True}
 
 
 # ── AI news summary ──────────────────────────────────────────────────────────────────────────────

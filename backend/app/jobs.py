@@ -163,6 +163,12 @@ def tick() -> dict:
         with SessionLocal() as db:
             if calibration.due(db):
                 out["calibration"] = "started" if calibration.start_background("schedule") else "busy"
+    if settings.live:
+        from . import paper, signals
+
+        with SessionLocal() as db:
+            if signals.due(db, paper.now_et()):
+                out["signals"] = "started" if signals.start_background() else "busy"
     if settings.live and time.time() - _last_prewarm >= PREWARM_EVERY:
         _last_prewarm = time.time()
         with SessionLocal() as db:

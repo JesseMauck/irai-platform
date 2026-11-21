@@ -411,3 +411,187 @@ def draft(body: DraftIn, user: User = Depends(pro)):
     except Exception as e:  # noqa: BLE001
         log.warning("draft failed, using rules: %s", e)
         return _rules_draft(body.prompt)
+
+
+# ── Trade: ready-made strategies and broker connections ─────────────────────────────────────────
+import time as _time  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+TEMPLATES = json.loads((_Path(__file__).resolve().parent.parent / "seed_data" / "strategy_templates.json").read_text())
+_tpl_cache: dict[str, tuple[float, dict]] = {}
+
+BROKERS = [
+    {"key": "webull", "name": "Webull", "initials": "WB"},
+    {"key": "robinhood", "name": "Robinhood", "initials": "RH"},
+    {"key": "fidelity", "name": "Fidelity", "initials": "FI"},
+    {"key": "schwab", "name": "Charles Schwab", "initials": "CS"},
+    {"key": "ibkr", "name": "Interactive Brokers", "initials": "IB", "url": "https://www.interactivebrokers.com/en/whyib/overview.php"},
+    {"key": "etrade", "name": "E*TRADE", "initials": "E*"},
+    {"key": "vanguard", "name": "Vanguard", "initials": "VG"},
+    {"key": "tastytrade", "name": "tastytrade", "initials": "tt"},
+    {"key": "alpaca", "name": "Alpaca", "initials": "AL"},
+]
+
+
+def _template_backtest(t: dict) -> dict | None:
+    c = t["config"]
+    if c["mode"] != "strategy":
+        return None
+    hit = _tpl_cache.get(t["key"])
+    if hit and _time.time() - hit[0] < 6 * 3600:
+        return hit[1]
+    bt = paper.backtest(c["strategy"], c.get("params") or {}, c["symbols"], c.get("max_position_pct", 1.0)) or None
+    small = {"stats": {k: (bt or {}).get("stats", {}).get(k) for k in ("cagr", "total_return", "sharpe", "max_drawdown", "volatility", "exposure", "benchmark_return")},
+             "start": (bt or {}).get("start"), "end": (bt or {}).get("end"),
+             "spark": ((bt or {}).get("series") or {}).get("equity", [])[::4]} if bt else None
+    _tpl_cache[t["key"]] = (_time.time(), small)
+    return small
+
+
+@router.get("/trade/templates")
+def templates():
+    return [{**{k: t[k] for k in ("key", "title", "category", "audience", "summary", "config")},
+             "strategy_title": REGISTRY[t["config"]["strategy"]].TITLE if t["config"].get("strategy") in REGISTRY else "Webhook signals",
+             "backtest": _template_backtest(t)} for t in TEMPLATES]
+
+
+@router.get("/trade/brokers")
+def brokers():
+    return {"brokers": [{**b, "status": "coming_soon", "logo": None} for b in BROKERS],  # official logos only with each broker's permission
+            "paper": {"status": "connected", "name": "IRAI paper trading"},
+            "note": "Live connections are in development with regulated connection partners; availability depends on each broker."}
+
+
+# ── Strategy marketplace ─────────────────────────────────────────────────────────────────────────
+from ..models import StrategyListing  # noqa: E402
+
+BANNED = re.compile(r"\b(guarantee[ds]?|risk[- ]free|can'?t lose|sure thing|no[- ]lose|100% win)\b", re.I)
+CATEGORIES = {"trend", "momentum", "mean-reversion", "breakout", "income", "signals", "other"}
+
+
+class ListingIn(BaseModel):
+    bot_id: int
+    title: str = Field(min_length=3, max_length=100)
+    summary: str = Field(min_length=40, max_length=3000)
+    category: str = "other"
+    price_monthly: float = Field(0, ge=0, le=500)
+
+
+class ListingPatch(BaseModel):
+    title: str | None = Field(None, min_length=3, max_length=100)
+    summary: str | None = Field(None, min_length=40, max_length=3000)
+    price_monthly: float | None = Field(None, ge=0, le=500)
+    status: str | None = Field(None, pattern="^(active|hidden)$")
+
+
+class CopyIn(BaseModel):
+    accounts: list[Funding] = Field(min_length=1, max_length=MAX_ACCOUNTS)
+    name: str | None = Field(None, max_length=80)
+
+
+def _listing_out(db: Session, x: StrategyListing, detail: bool = False) -> dict:
+    author = db.get(User, x.author_id)
+    live = None
+    if x.source_bot_id:
+        b = db.get(Bot, x.source_bot_id)
+        if b:
+            dates, eq = paper.live_curve(db, b)
+            if len(dates) > 1:
+                st = tearsheet.compute(dates, eq)
+                live = {"days": len(dates), "total_return": st["total_return"], "max_drawdown": st["max_drawdown"], "since": dates[0],
+                        "sharpe": st.get("sharpe")}
+    bt = (x.backtest or {}).get("stats") or {}
+    out = {"id": x.id, "title": x.title, "summary": x.summary if detail else x.summary[:240], "category": x.category,
+           "price_monthly": x.price_monthly, "copies": x.copies, "status": x.status,
+           "author": {"handle": author.handle if author else "member", "verified": bool(author and author.verified_trader)},
+           "config": {k: v for k, v in x.config.items()} if detail else {"mode": x.config.get("mode"), "strategy": x.config.get("strategy"), "symbols": x.config.get("symbols")},
+           "backtest": {k: bt.get(k) for k in ("cagr", "sharpe", "max_drawdown", "volatility", "total_return", "exposure")},
+           "live": live, "created_at": x.created_at.isoformat() if x.created_at else None}
+    if detail and x.backtest:
+        out["backtest_series"] = (x.backtest.get("series") or {})
+        out["backtest_full"] = bt
+    return out
+
+
+@router.get("/marketplace")
+def marketplace(category: str | None = None, sort: str = "popular", free: bool = False, db: Session = Depends(get_db)):
+    q = select(StrategyListing).where(StrategyListing.status == "active")
+    if category in CATEGORIES:
+        q = q.where(StrategyListing.category == category)
+    if free:
+        q = q.where(StrategyListing.price_monthly == 0)
+    q = q.order_by(StrategyListing.copies.desc() if sort == "popular" else StrategyListing.created_at.desc()).limit(100)
+    return [_listing_out(db, x) for x in db.scalars(q)]
+
+
+@router.get("/marketplace/mine")
+def my_listings(user: User = Depends(pro), db: Session = Depends(get_db)):
+    return [_listing_out(db, x) for x in db.scalars(select(StrategyListing).where(StrategyListing.author_id == user.id, StrategyListing.status != "removed"))]
+
+
+@router.get("/marketplace/{lid}")
+def listing(lid: int, db: Session = Depends(get_db)):
+    x = db.get(StrategyListing, lid)
+    if not x or x.status == "removed":
+        raise HTTPException(404, "Strategy not found")
+    return _listing_out(db, x, detail=True)
+
+
+@router.post("/marketplace")
+def publish(body: ListingIn, user: User = Depends(pro), db: Session = Depends(get_db)):
+    b = _own_bot(db, body.bot_id, user)
+    if BANNED.search(body.title + " " + body.summary):
+        raise HTTPException(422, "Listings can't promise or guarantee results. Describe how the strategy works and its risks instead.")
+    if body.category not in CATEGORIES:
+        raise HTTPException(422, "Unknown category")
+    if b.mode == "strategy" and not b.backtest:
+        b.backtest = paper.backtest(b.strategy, b.params, b.symbols, b.max_position_pct) or None
+    cfg = {"mode": b.mode, "strategy": b.strategy, "params": b.params, "symbols": b.symbols, "max_position_pct": b.max_position_pct,
+           "stop_loss_pct": b.stop_loss_pct, "take_profit_pct": b.take_profit_pct, "daily_auto_close": b.daily_auto_close}
+    x = StrategyListing(author_id=user.id, source_bot_id=b.id, title=body.title.strip(), summary=body.summary.strip(), category=body.category,
+                        config=cfg, backtest=b.backtest, price_monthly=round(body.price_monthly, 2))
+    db.add(x)
+    db.commit()
+    return _listing_out(db, x, detail=True)
+
+
+@router.patch("/marketplace/{lid}")
+def edit_listing(lid: int, body: ListingPatch, user: User = Depends(pro), db: Session = Depends(get_db)):
+    x = db.get(StrategyListing, lid)
+    if not x or x.author_id != user.id or x.status == "removed":
+        raise HTTPException(404, "Strategy not found")
+    data = body.model_dump(exclude_none=True)
+    if BANNED.search(" ".join(str(v) for v in data.values())):
+        raise HTTPException(422, "Listings can't promise or guarantee results.")
+    for k, v in data.items():
+        setattr(x, k, v.strip() if isinstance(v, str) else v)
+    db.commit()
+    return _listing_out(db, x, detail=True)
+
+
+@router.delete("/marketplace/{lid}")
+def remove_listing(lid: int, user: User = Depends(pro), db: Session = Depends(get_db)):
+    x = db.get(StrategyListing, lid)
+    if not x or x.author_id != user.id:
+        raise HTTPException(404, "Strategy not found")
+    x.status = "removed"
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/marketplace/{lid}/copy")
+def copy_listing(lid: int, body: CopyIn, user: User = Depends(pro), db: Session = Depends(get_db)):
+    x = db.get(StrategyListing, lid)
+    if not x or x.status != "active":
+        raise HTTPException(404, "Strategy not found")
+    if x.price_monthly > 0 and x.author_id != user.id:
+        raise HTTPException(402, "Paid strategies open soon. You can copy free strategies now.")
+    c = x.config
+    bot = create_bot(BotIn(name=(body.name or x.title)[:80], description=f"Copied from the marketplace: {x.title}", mode=c["mode"],
+                           strategy=c.get("strategy"), params=c.get("params") or {}, symbols=c.get("symbols") or [],
+                           max_position_pct=c.get("max_position_pct") or 1.0, stop_loss_pct=c.get("stop_loss_pct"),
+                           take_profit_pct=c.get("take_profit_pct"), daily_auto_close=bool(c.get("daily_auto_close")),
+                           accounts=body.accounts), user, db)
+    x.copies += 1
+    db.commit()
+    return bot

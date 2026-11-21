@@ -65,3 +65,18 @@ def test_assistant_quota_and_private_context(client, monkeypatch):
 def test_news_summary_shape(client):
     r = client.get("/api/insight/MSFT/news-summary").json()
     assert r["symbol"] == "MSFT" and "sources" in r
+
+
+def test_chats_saved_and_private(client):
+    hdr = _user(client)
+    r = client.post("/api/assistant", headers=hdr, json={"messages": [{"role": "user", "content": "What is EV/EBITDA?"}]}).json()
+    cid = r["chat_id"]
+    r2 = client.post("/api/assistant", headers=hdr, json={"chat_id": cid, "messages": [{"role": "user", "content": "What is EV/EBITDA?"}, {"role": "assistant", "content": r["reply"]}, {"role": "user", "content": "And P/E?"}]}).json()
+    assert r2["chat_id"] == cid
+    lst = client.get("/api/assistant/chats", headers=hdr).json()
+    assert lst[0]["id"] == cid and lst[0]["title"].startswith("What is EV/EBITDA") and lst[0]["messages"] == 4
+    other = _user(client)
+    assert client.get(f"/api/assistant/chats/{cid}", headers=other).status_code == 404
+    r3 = client.post("/api/assistant", headers=other, json={"chat_id": cid, "messages": [{"role": "user", "content": "hijack"}]}).json()
+    assert r3["chat_id"] != cid  # can't append to someone else's chat
+    assert client.delete(f"/api/assistant/chats/{cid}", headers=hdr).json()["ok"]

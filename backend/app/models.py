@@ -626,3 +626,47 @@ class AssistantUsage(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     day: Mapped[str] = mapped_column(String(10))
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AssistantChat(Base):
+    """A saved Ask IRAI conversation (sidebar history)."""
+    __tablename__ = "assistant_chats"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    messages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    context: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class StrategyListing(TimestampMixin, Base):
+    """A member's bot configuration published to the strategy marketplace. Copying creates a new paper bot."""
+    __tablename__ = "strategy_listings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source_bot_id: Mapped[int | None] = mapped_column(ForeignKey("bots.id", ondelete="SET NULL"), index=True)
+    title: Mapped[str] = mapped_column(String(100))
+    summary: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(30), default="trend")
+    config: Mapped[dict[str, Any]] = mapped_column(JSON)  # mode, strategy, params, symbols, risk controls
+    backtest: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    price_monthly: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(12), default="active", index=True)  # active | hidden | removed
+    copies: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class PremiumSignal(Base):
+    """IRAI-generated daily signal on the coverage universe (descriptive, not a recommendation)."""
+    __tablename__ = "premium_signals"
+    __table_args__ = (UniqueConstraint("date", "symbol", "kind", name="uq_signal_day_symbol_kind"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[str] = mapped_column(String(10), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    kind: Mapped[str] = mapped_column(String(30))
+    direction: Mapped[str] = mapped_column(String(10))  # bullish | bearish | neutral
+    strength: Mapped[float] = mapped_column(Float)  # 0-100
+    title: Mapped[str] = mapped_column(String(160))
+    detail: Mapped[str | None] = mapped_column(String(600))
+    data: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

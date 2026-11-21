@@ -134,3 +134,29 @@ def test_rules_draft_golden_cross_defaults():
     from app.routers.bots import _rules_draft
     d = _rules_draft("Golden cross on SPY with a 10% stop-loss")
     assert d["params"] == {"short": 50, "long": 200} and d["stop_loss_pct"] == pytest.approx(0.1)
+
+
+def test_templates_brokers_and_marketplace(client):
+    t = client.get("/api/trade/templates").json()
+    assert len(t) >= 6 and t[0]["backtest"]["stats"]["cagr"] is not None
+    assert any(x["config"]["mode"] == "webhook" for x in t)
+    br = client.get("/api/trade/brokers").json()
+    assert {"Webull", "Robinhood", "Fidelity", "Charles Schwab", "Interactive Brokers", "E*TRADE"} <= {b["name"] for b in br["brokers"]}
+    author = _user(client)
+    acct = client.post("/api/paper/accounts", headers=author, json={"starting_cash": 50000}).json()
+    b = client.post("/api/bots", headers=author, json={"name": "Trend", "strategy": "sma_cross", "symbols": ["SPY"], "accounts": [{"account_id": acct["id"], "capital": 10000}]}).json()
+    bad = client.post("/api/marketplace", headers=author, json={"bot_id": b["id"], "title": "Sure thing", "summary": "Guaranteed returns every month with this strategy, trust me on this one."})
+    assert bad.status_code == 422
+    free = client.post("/api/marketplace", headers=author, json={"bot_id": b["id"], "title": "SPY trend", "category": "trend",
+                                                                "summary": "A 20/50-day moving-average crossover on SPY. Sits in cash during downtrends; whipsaws in sideways markets."}).json()
+    paid = client.post("/api/marketplace", headers=author, json={"bot_id": b["id"], "title": "SPY trend pro", "category": "trend", "price_monthly": 19,
+                                                                "summary": "The same rule with tighter risk controls and a weekly commentary from the author on positioning."}).json()
+    lst = client.get("/api/marketplace").json()
+    assert {free["id"], paid["id"]} <= {x["id"] for x in lst} and all("summary" in x and "author" in x for x in lst)
+    buyer = _user(client)
+    bacct = client.post("/api/paper/accounts", headers=buyer, json={"starting_cash": 30000}).json()
+    copy = client.post(f"/api/marketplace/{free['id']}/copy", headers=buyer, json={"accounts": [{"account_id": bacct["id"], "capital": 5000}]}).json()
+    assert copy["strategy"] == "sma_cross" and copy["capital"] == 5000
+    assert client.post(f"/api/marketplace/{paid['id']}/copy", headers=buyer, json={"accounts": [{"account_id": bacct["id"], "capital": 5000}]}).status_code == 402
+    assert client.get(f"/api/marketplace/{free['id']}").json()["copies"] == 1
+    assert client.patch(f"/api/marketplace/{free['id']}", headers=buyer, json={"title": "mine now"}).status_code == 404
