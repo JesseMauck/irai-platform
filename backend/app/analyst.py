@@ -169,7 +169,7 @@ def run(report_id: str) -> None:
     if isinstance(pr, dict) and pr.get("rows"):
         pack["peers"] = {"source_id": src(f"Peer comparison ({pr.get('group')})"), "median": pr.get("peer_median"),
                          "rows": [{k: r.get(k) for k in ("symbol", "forward_pe", "ev_ebitda", "operating_margin", "revenue_growth", "roe")} for r in pr["rows"][:8]]}
-    _set(report_id, "street", "done", f"{cons.get('analyst_count') if isinstance(cons, dict) else 'n/a'} analysts")
+    _set(report_id, "street", "done", f"{int(cons['analyst_count']) if isinstance(cons, dict) and cons.get('analyst_count') else 'n/a'} analysts")
 
     # 8 AI
     _set(report_id, "ai", "running")
@@ -250,6 +250,10 @@ def _p(x: float | None, d: int = 1) -> str:
     return "n/a" if x is None else f"{x * 100:+.{d}f}%"
 
 
+def _x(v: float | None) -> str:
+    return "n/a" if v is None or v <= 0 else f"{v:.1f}x"
+
+
 def rules_note(pack: dict[str, Any]) -> dict[str, Any]:
     m, f, t, c = pack["market"], pack["fundamentals"], pack["technicals"], pack["consensus"]
     qr = pack.get("quant_ratings") or {}
@@ -262,7 +266,7 @@ def rules_note(pack: dict[str, Any]) -> dict[str, Any]:
     if (f.get("operating_margin") or 0) > 0.25:
         bull.append({"point": f"High operating margin of {_p(f['operating_margin'])}.", "sources": sid("fundamentals")})
     if c.get("implied_move") and c["implied_move"] > 0.1:
-        bull.append({"point": f"Consensus target implies {_p(c['implied_move'])} vs the current price ({c.get('analyst_count')} analysts).", "sources": sid("consensus")})
+        bull.append({"point": f"Consensus target implies {_p(c['implied_move'])} vs the current price ({int(c.get('analyst_count') or 0)} analysts).", "sources": sid("consensus")})
     if (f.get("forward_pe") or 0) > 35:
         bear.append({"point": f"Rich valuation at {f['forward_pe']:.1f}x forward earnings.", "sources": sid("fundamentals")})
     if (r.get("3m") or 0) < -0.1:
@@ -280,7 +284,7 @@ def rules_note(pack: dict[str, Any]) -> dict[str, Any]:
         "whats_new": [{"point": h["title"], "sources": [h["source_id"]]} for h in news] or [{"point": "No recent headlines found.", "sources": []}],
         "bull_case": bull or [{"point": "No standout strengths in the available metrics.", "sources": []}],
         "bear_case": bear or [{"point": "No standout weaknesses in the available metrics.", "sources": []}],
-        "valuation": f"Forward P/E {f.get('forward_pe') or 'n/a'}, EV/EBITDA {f.get('ev_ebitda') or 'n/a'}; Street mean target implies {_p(c.get('implied_move'))}.",
+        "valuation": f"Forward P/E {_x(f.get('forward_pe'))}, EV/EBITDA {_x(f.get('ev_ebitda'))}; Street mean target implies {_p(c.get('implied_move'))}.",
         "technical": f"Trend {t.get('trend', 'n/a')}, RSI {round(t['rsi14']) if t.get('rsi14') else 'n/a'}; {_p(t.get('from_high_52w'))} from the 52-week high.",
         "sentiment": f"Street sentiment {c.get('sentiment') or 'n/a'}; news tone {(pack['news']['buzz'] or {}).get('tone_label') or 'n/a'}.",
         "catalysts": [{"event": "Next earnings report", "date": nxt.get("date"), "sources": sid("earnings")}] if nxt else [],

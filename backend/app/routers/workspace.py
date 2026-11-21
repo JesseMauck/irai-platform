@@ -164,7 +164,7 @@ def theme_analytics(syms: list[str], bench: str = "SPY") -> dict[str, Any]:
         hi = max(closes[-252:]) if closes else None
         daily[sym] = _rets_by_date(c["history"])
         rows.append({"symbol": sym, "name": info.get("name") or q.get("name"), "price": q.get("price"), "change_pct": q.get("change_pct"),
-                     "ret_1m": rr["1m"], "ret_3m": rr["3m"], "ret_ytd": _ytd(c["history"]), "ret_1y": rr["12m"],
+                     "ret_1m": rr["1m"], "ret_3m": rr["3m"], "ret_ytd": _ytd(c["history"]), "ret_1y": rr["12m"] if rr["12m"] is not None else _span_ret(closes),
                      "volatility": rr["volatility"], "max_drawdown": rr["max_drawdown"],
                      "from_high": (closes[-1] / hi - 1) if hi else None,
                      "above_50d": bool(sma50 and closes and closes[-1] > sma50), "above_200d": bool(sma200 and closes and closes[-1] > sma200),
@@ -189,7 +189,7 @@ def theme_analytics(syms: list[str], bench: str = "SPY") -> dict[str, Any]:
                 p["bench"] = round(bh[p["date"]] / base * 100, 3)
         bclose = [h["close"] for h in bench_row[1]["history"] if h.get("close")]
         br = research._returns(bench_row[1]["history"])
-        bench_out = {"symbol": bench, "ret_1m": br["1m"], "ret_3m": br["3m"], "ret_ytd": _ytd(bench_row[1]["history"]), "ret_1y": br["12m"],
+        bench_out = {"symbol": bench, "ret_1m": br["1m"], "ret_3m": br["3m"], "ret_ytd": _ytd(bench_row[1]["history"]), "ret_1y": br["12m"] if br["12m"] is not None else _span_ret(bclose),
                      "volatility": br["volatility"], "max_drawdown": br["max_drawdown"], "source": bench_row[1]["quote"].get("source"), "last": bclose[-1] if bclose else None}
 
     def idx_ret(n: int | None = None, ytd: bool = False):
@@ -199,7 +199,9 @@ def theme_analytics(syms: list[str], bench: str = "SPY") -> dict[str, Any]:
             y = str(dt.date.today().year)
             prior = [p for p in idx if p["date"] < y]
             return idx[-1]["theme"] / prior[-1]["theme"] - 1 if prior else None
-        return idx[-1]["theme"] / idx[-1 - n]["theme"] - 1 if len(idx) > n else None
+        if len(idx) > n:
+            return idx[-1]["theme"] / idx[-1 - n]["theme"] - 1
+        return idx[-1]["theme"] / idx[0]["theme"] - 1 if n >= 250 and len(idx) >= 200 else None  # ~1y of bars
 
     ir = [b / a - 1 for a, b in zip([p["theme"] for p in idx], [p["theme"] for p in idx][1:])]
     peak, mdd = 0.0, 0.0
@@ -252,6 +254,11 @@ def theme_analytics(syms: list[str], bench: str = "SPY") -> dict[str, Any]:
         "laggards": [{"symbol": r["symbol"], "ret_1m": r["ret_1m"]} for r in ranked[-3:][::-1]] if len(ranked) > 3 else [],
         "sectors": _sector_mix(rows),
     }
+
+
+def _span_ret(closes: list[float]) -> float | None:
+    """Return over the whole 1-year history when it is a few bars short of 251."""
+    return closes[-1] / closes[0] - 1 if len(closes) >= 200 and closes[0] else None
 
 
 def _when(v: Any) -> str | None:
