@@ -217,14 +217,22 @@ class YahooSource:
 
 
 def _frac_yield(info: dict[str, Any]) -> float | None:
-    """Dividend yield as a fraction (0.025 = 2.5%). yfinance's dividendYield is in percent; the trailing and
-    fund `yield` fields are fractions, so prefer those."""
-    for k in ("trailingAnnualDividendYield", "yield"):
-        v = _num(info.get(k))
-        if v is not None and 0 < v < 1:  # Yahoo reports 0 for some funds that do pay; fall through to the next field
-            return v
+    """Dividend yield as a fraction (0.025 = 2.5%).
+
+    yfinance's dividendYield is in percent and priced in the quote currency, so it is the primary source.
+    trailingAnnualDividendYield divides dividends in the *financial* currency by the quote price, which is wildly
+    wrong for ADRs (Toyota's yen dividend over its dollar ADR price reads as 47%), so it is used only when the two
+    currencies match. Funds report `yield` as a fraction."""
     v = _num(info.get("dividendYield"))
-    return v / 100 if v is not None else None
+    if v is not None and v >= 0:
+        v = v / 100
+    else:
+        v = _num(info.get("yield"))
+        if v is None:
+            fin, cur = info.get("financialCurrency"), info.get("currency")
+            if not fin or not cur or fin == cur:
+                v = _num(info.get("trailingAnnualDividendYield"))
+    return v if v is not None and 0 <= v < 0.5 else None  # above 50% is a data error, not a yield
 
 
 def _frac_expense(info: dict[str, Any]) -> float | None:
