@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..db import SessionLocal, get_db
 from ..market import service
-from ..models import CongressTrade, DisclosureDoc, Filing13F, User
+from ..models import CongressTrade, DisclosureDoc, User
 from ..security import PLAN_ORDER, optional_user
 
 router = APIRouter(prefix="/api", tags=["disclosures"])

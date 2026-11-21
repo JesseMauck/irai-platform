@@ -2,7 +2,7 @@
 
 1. Rules (free, deterministic): legitimate rejections and one-off blips are settled without an LLM call.
 2. Claude: each remaining issue is cross-checked against the platform's business rules and the evidence,
-   with a forced tool call returning a structured verdict. Bounded per run (IRAI_QA_TRIAGE_MAX).
+   with a tool call returning a structured verdict (valuebot.llm.toolcall handles models that reject a forced tool_choice). Bounded per run (IRAI_QA_TRIAGE_MAX).
 
 Verdicts: valid (a real defect or UX/latency bottleneck worth fixing), false_positive (the platform behaved
 correctly), needs_more_data (can't tell yet; re-triaged once it recurs). Only `valid` issues reach the fix queue.
@@ -112,11 +112,11 @@ def _claude(issue: QaIssue, s: QaSettings) -> dict[str, Any] | None:
                                               "expected", "actual", "tickers", "occurrences", "context")}
     evidence["first_seen"], evidence["last_seen"] = str(issue.first_seen), str(issue.last_seen)
     evidence["trace"] = issue.trace
-    resp = anthropic.Anthropic(api_key=vb.anthropic_api_key).messages.create(
-        model=s.triage_model or vb.model, max_tokens=s.triage_max_tokens, system=SYSTEM,
-        messages=[{"role": "user", "content": "Issue reported by the synthetic trader:\n" + json.dumps(evidence, default=str, indent=1)[:12000]}],
-        tools=[VERDICT_TOOL], tool_choice={"type": "tool", "name": "record_verdict"})
-    return next((dict(b.input) for b in resp.content if b.type == "tool_use"), None)
+    from valuebot.llm.toolcall import call_tool
+
+    return call_tool(anthropic.Anthropic(api_key=vb.anthropic_api_key), model=s.triage_model or vb.model, max_tokens=s.triage_max_tokens,
+                     system=SYSTEM, tool=VERDICT_TOOL,
+                     messages=[{"role": "user", "content": "Issue reported by the synthetic trader:\n" + json.dumps(evidence, default=str, indent=1)[:12000]}])
 
 
 def triage(db: Session, settings: QaSettings | None = None, llm=None) -> dict[str, int]:

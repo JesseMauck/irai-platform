@@ -1,7 +1,7 @@
 """synthetic trader QA: runs, deduplicated issues, ticker ledger
 
 Revision ID: f1a2b3c4d5e6
-Revises: 4c25e778968d
+Revises: 3baed75e8160
 Create Date: 2026-11-21 11:00:00
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = 'f1a2b3c4d5e6'
-down_revision: Union[str, Sequence[str], None] = '4c25e778968d'
+down_revision: Union[str, Sequence[str], None] = '3baed75e8160'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
